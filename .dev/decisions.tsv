@@ -1,0 +1,4 @@
+ts	phase	decision	why	evidence	result
+2026-09-15T19:40:23Z	frame	autonomous run, local commits only, no push	user asked to build every phase to completion without stopping; orchestrate playbook needs stacked PRs and a remote, which we do not have	FINAL-IDEA.md B13	armed
+2026-09-15T19:40:23Z	frame	parent repo left untouched	auto mode blocked modifying the shared hackathons repo; nested repo is enough and destroys nothing	.dev/decisions.tsv	ground-truth/ is now its own repo
+2026-09-15T19:41:54Z	U0.1	scaffolded Next 16 + vitest + zod, dropped Google fonts	build-time font fetch is a network dependency we do not need	02685cd	typecheck, test, build green

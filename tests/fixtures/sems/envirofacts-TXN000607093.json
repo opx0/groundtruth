@@ -1,0 +1,27 @@
+[
+{
+  "site_id": "0607093",
+  "fk_ref_region_code": "06",
+  "name": "US OIL RECOVERY",
+  "epa_id": "TXN000607093",
+  "street_addr_txt": "400 AND 200 N. RICHEY STREET",
+  "supplemental_addr_txt": null,
+  "city_name": "PASADENA",
+  "fk_ref_state_code": "TX",
+  "zip_code": "77506",
+  "congressional_district_code": "29",
+  "county_name": "HARRIS",
+  "fips_code": "48201",
+  "primary_latitude_decimal_val": "29.718389",
+  "primary_longitude_decimal_val": "-95.221528",
+  "saa_agreement_site_ind": "N",
+  "npl_status_code": "F",
+  "npl_status_name": "Currently on the Final NPL",
+  "federal_facility_ind": "N",
+  "non_npl_status_code": null,
+  "non_npl_status_name": null,
+  "non_npl_status_date": "2010-07-05 00:00:00",
+  "archived_ind": "N",
+  "archived_date": null
+}
+]

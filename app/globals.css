@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+	--font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+		"Helvetica Neue", Arial, sans-serif;
+	--font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+		"Liberation Mono", monospace;
+}
+
+:root {
+	--background: #fbfbfa;
+	--foreground: #1a1a19;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--background: #0d0d0c;
+		--foreground: #e8e8e6;
+	}
+}
+
+body {
+	background: var(--background);
+	color: var(--foreground);
+	font-family: var(--font-sans);
+}

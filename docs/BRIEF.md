@@ -214,7 +214,11 @@ type Provenance = {
   adapterVersion: string;
 };
 
-type Sourced<T> = { value: T; provenance: Provenance[] };
+type Sourced<T> = { value: T; provenance: readonly [Provenance, ...Provenance[]] };
+
+// A record can be built from more than one response. SEMS joins the ArcGIS
+// layer to Envirofacts, so a single hash per record cannot be honest.
+type PayloadRef = { dataset: string; url: string; sha256: string; retrievedAt: string };
 
 type GeoPoint = {
   latitude: Sourced<number>;
@@ -234,8 +238,7 @@ type EvidenceBase = {
   distanceMeters: Sourced<number> | null;    // always "haversine" with both coordinates in provenance
   effectiveAt: Sourced<string | null>;
   sourceUpdatedAt: Sourced<string | null>;
-  retrievedAt: string;
-  rawPayloadHash: string;                    // SHA-256 of the exact response bytes
+  payloads: readonly [PayloadRef, ...PayloadRef[]]; // one per response the record was built from
   caveats: string[];
 };
 

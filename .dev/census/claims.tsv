@@ -1,0 +1,27 @@
+claim	source_of_rule	subject_scope
+Matched address, block range and street side	BRIEF A2 screen 2, B7 rule 1	origin
+Coordinate precision is a block not a parcel	BRIEF A2 screen 2	origin
+Status of every source	BRIEF B7 rule 2	source
+Retrieval time of the report	BRIEF A2 screen 3	source
+Search boundary for each section	BRIEF A2 screen 3, B2 table	section
+SEMS lists N sites within 5 miles	BRIEF A2 screen 3	section
+Count of final-NPL sites within the boundary	BRIEF A2 screen 3	section
+ECHO lists N regulated facilities within 5 miles	BRIEF A2 screen 3	section
+N facilities have a formal enforcement action	BRIEF A2 screen 3	section
+N facilities are in current noncompliance	BRIEF A2 screen 3	section
+View all control when a section holds more than five	BRIEF B7	section
+No matching records within the stated boundary	BRIEF B10	section
+Source unavailable with retry	BRIEF B10	source
+FEMA answered but no polygon intersects	BRIEF B10	source
+Esri fallback cannot tell minimal hazard from unmapped	BRIEF B10, B2	source
+Site name, distance, NPL status, status date	BRIEF A2 screen 3	record
+Facility name, distance, program, last formal action	BRIEF A2 screen 3	record
+FEMA zone code, panel, inside or outside the SFHA	BRIEF A2 screen 3	record
+Monitor id, distance, period, value, unit	BRIEF A2 screen 3	record
+Date unavailable when a record date is missing	BRIEF B10	record
+Unknown status shown verbatim with meaning not mapped	BRIEF B10	record
+FRS name and SEMS name differ for one site	BRIEF B2, B6 rule 4, A3	group
+Two SEMS EPA IDs share one FRS registry ID	BRIEF B6 rule 1	group
+Distance uses the FRS coordinate, SEMS coordinate differs	BRIEF B6 rule 4	group
+Possible match label on a suggested group	BRIEF B6 rule 3	group
+Program interest link by exact program ID	BRIEF B6 rule 2	group

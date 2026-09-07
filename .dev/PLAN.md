@@ -56,8 +56,14 @@ Work is assigned by how much judgment it needs, not by size.
 
 ## Known blockers
 
-- ECHO and FEMA NFHL refuse connections from this machine. U1.5 and the
-  authoritative half of U1.3 build against recorded fixtures and are marked
-  unverified against live traffic until the app runs from a US region.
+- ECHO and FEMA NFHL refuse connections from this machine. Both return a
+  connection reset before any response body. Relaying the request through a
+  public proxy was tried and is disallowed by the sandbox, correctly, so the
+  bytes have to come from a machine that can reach them. Until then U1.5 and
+  the authoritative half of U1.3 build against a schema derived from EPA's
+  published column list, and every record they produce is marked
+  `shapeUnverified` so the gap is visible in the report rather than hidden.
+  Clearing it needs one of: a US-region deploy, one curl from a US host, or a
+  git remote so a CI runner can record the fixtures.
 - AQS and AirNow need free keys the operator must register. Both adapters are
   built and tested against fixtures meanwhile.

@@ -2,3 +2,4 @@ ts	event	unit	detail	elapsed_s
 2026-09-15T19:40:23Z	start	U0.1	repo + toolchain scaffold	
 2026-09-15T19:41:54Z	end	U0.1	typecheck+test+build green	91
 2026-09-15T19:42:43Z	start	U0.2	evidence kernel design race	
+2026-09-15T19:51:00Z	end	U0.2	design race + synthesis done	497

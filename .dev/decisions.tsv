@@ -5,3 +5,4 @@ ts	phase	decision	why	evidence	result
 2026-09-15T19:44:28Z	U1.5	ECHO fixtures cannot be recorded from this machine	ECHO resets the connection from India and the sandbox correctly refuses a third-party proxy relay	.dev/PLAN.md known blockers	blocked, needs a US host or a git remote
 2026-09-15T19:45:09Z	U0.2	arm-b design landed, cursor-reader shape	reading a field returns the citation, so an adapter cannot produce a value without provenance	.dev/designs/arm-b.md	candidate, flagged aggregate-sentence gap
 2026-09-15T19:50:44Z	U0.2	arm A wins, five grafts	only arm A makes the product rule a compile error rather than a review item	.dev/designs/SYNTHESIS.md	design settled, implementation next
+2026-09-15T19:52:15Z	fixtures	recorded 14 real payloads incl. error and no-data cases	adapters need the awkward real shapes, not clean examples; found that ArcGIS returns errors with HTTP 200	tests/fixtures/README.md	done for reachable sources

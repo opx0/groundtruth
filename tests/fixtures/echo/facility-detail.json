@@ -1,0 +1,5018 @@
+{
+"Results":{
+"Message":"Success",
+"MultipleFRSFacilities":{
+}
+,
+"RegistryID":"110000460885",
+"Reports":{
+"HasPollRpt":"Y",
+"HasAimRpt":"N",
+"HasBiosolidAnnualRpt":"N",
+"HasBflmRpt":"Y"
+}
+,
+"Permits":[
+{
+"Statute":"",
+"EPASystem":"FRS",
+"EPARegion":"06",
+"SourceID":"110000460885",
+"FacilityName":"HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER STREET",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.722274",
+"Longitude":"-95.254401",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":"CENTER OF A FACILITY OR STATION",
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17600",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"",
+"EPASystem":"ICIS",
+"EPARegion":"06",
+"SourceID":"3600141400",
+"FacilityName":"VALERO ENERGY CORPORATION - HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER STREET",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.72202",
+"Longitude":"-95.25418",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":"30",
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"",
+"EPASystem":"ICIS",
+"EPARegion":"06",
+"SourceID":"30614",
+"FacilityName":"VALERO REFINING COMPANY TEXAS",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.718644",
+"Longitude":"-95.253853",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":"175",
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"",
+"EPASystem":"ICIS",
+"EPARegion":"06",
+"SourceID":"30613",
+"FacilityName":"VALERO REFINING COMPANY",
+"FacilityStreet":"9701 MANCHESTER BLVD",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.718644",
+"Longitude":"-95.253853",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":"175",
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"CAA",
+"EPASystem":"ICIS-Air",
+"EPARegion":"06",
+"SourceID":"TX0000004820102018",
+"FacilityName":"VALERO PARTNERS HOUSTON",
+"FacilityStreet":"9701 MANCHESTER ST",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Major Emissions",
+"Areas":"CAAMACT, CAANSPS, CAATVP",
+"ExpDate":null,
+"Latitude":"29.722274",
+"Longitude":"-95.254401",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"324110 424710",
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"Y",
+"FacilityStatus":"Operating"
+}
+,{
+"Statute":"CAA",
+"EPASystem":"ICIS-Air",
+"EPARegion":"06",
+"SourceID":"TX0000004820100065",
+"FacilityName":"VALERO HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER ST",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Major Emissions",
+"Areas":"CAAMACT, CAANESH, CAANSPS, CAANSR, CAAPSD, CAASIP, CAATVP",
+"ExpDate":null,
+"Latitude":"29.722274",
+"Longitude":"-95.254401",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"324110",
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"Y",
+"FacilityStatus":"Operating"
+}
+,{
+"Statute":"CAA",
+"EPASystem":"CEDRI",
+"EPARegion":"06",
+"SourceID":"CEDRI10079059",
+"FacilityName":"VALERO ENERGY PARTNERS LP",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.71839",
+"Longitude":"-95.25343",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17630",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"CAA",
+"EPASystem":"CEDRI",
+"EPARegion":"06",
+"SourceID":"CEDRI124823",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.722274",
+"Longitude":"-95.254401",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17630",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"CAA",
+"EPASystem":"EIS",
+"EPARegion":"06",
+"SourceID":"4182511",
+"FacilityName":"HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.71917",
+"Longitude":"-95.2536",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"324110",
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":"UNKNOWN",
+"RefPointDesc":"POINT WHERE SUBSTANCE IS RELEASED",
+"Scale":null,
+"AccuracyValue":"100",
+"AccuracyScore":"17400",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"CAA",
+"EPASystem":"GHGRP",
+"EPARegion":"06",
+"SourceID":"1006062",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Supplier, Direct Emitter",
+"Areas":"General Stationary Fuel Combustion, Petroleum Refining, Petroleum Product Supply",
+"ExpDate":null,
+"Latitude":null,
+"Longitude":null,
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"324110",
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Reporting Year 2023:  Emitter - Reporting and meeting Verification requirements.  Supplier - Reporting and meeting Verification requirements."
+}
+,{
+"Statute":"CAA",
+"EPASystem":"RMP",
+"EPARegion":"06",
+"SourceID":"100000084605",
+"FacilityName":"VALERO HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.719583",
+"Longitude":"-95.254028",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"32411",
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":"PLANT ENTRANCE (GENERAL)",
+"Scale":null,
+"AccuracyValue":"25",
+"AccuracyScore":"17400",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"CERCLA",
+"EPASystem":"SEMS",
+"EPARegion":"06",
+"SourceID":"TXN000622182",
+"FacilityName":"VALERO PLUME",
+"FacilityStreet":"9701 MANCHESTER ROAD",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":null,
+"FacilityCountyName":null,
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":null,
+"Longitude":null,
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"NOT ON THE NPL"
+}
+,{
+"Statute":"CWA",
+"EPASystem":"ICIS-NPDES",
+"EPARegion":"06",
+"SourceID":"TXR05K869",
+"FacilityName":"VALERO REFINING TEXAS",
+"FacilityStreet":"9701 MANCHESTER ST",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012-2408",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Non-Major: General Permit Covered Facility",
+"Areas":"Industrial Stormwater",
+"ExpDate":"08/13/2026",
+"Latitude":"29.72",
+"Longitude":"-95.25",
+"IndianCountry":"N",
+"SIC":"2911",
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Admin Continued"
+}
+,{
+"Statute":"CWA",
+"EPASystem":"ICIS-NPDES",
+"EPARegion":"06",
+"SourceID":"TX0002976",
+"FacilityName":"HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER ST",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Major: NPDES Individual Permit",
+"Areas":null,
+"ExpDate":"03/16/2028",
+"Latitude":"29.722222",
+"Longitude":"-95.255",
+"IndianCountry":"N",
+"SIC":"2911",
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":"NAD27",
+"CollectDesc":"Interpolation-Map",
+"RefPointDesc":"Facility Center/Centroid",
+"Scale":"24000",
+"AccuracyValue":"30",
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Effective"
+}
+,{
+"Statute":"CWA",
+"EPASystem":"ICIS-NPDES",
+"EPARegion":"06",
+"SourceID":"TXR15334H",
+"FacilityName":"VALERO HOUSTON MAINTENANCE WAREHOUSE BUILDING",
+"FacilityStreet":"9701 MANCHESTER ST",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012-2408",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Non-Major: General Permit Covered Facility",
+"Areas":"Construction Stormwater",
+"ExpDate":"03/05/2023",
+"Latitude":"29.719697",
+"Longitude":"-95.256888",
+"IndianCountry":"N",
+"SIC":"1541",
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":"30",
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Expired"
+}
+,{
+"Statute":"EP313",
+"EPASystem":"TRI",
+"EPARegion":"6",
+"SourceID":"7701WVLRNR971MA",
+"FacilityName":"VALERO REFINING - TEXAS L.P. HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Toxics Release Inventory",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.71839",
+"Longitude":"-95.25343",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"324110",
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17630",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Last Reported for 2023"
+}
+,{
+"Statute":"EP313",
+"EPASystem":"TRI",
+"EPARegion":"6",
+"SourceID":"77012HLLPT9701M",
+"FacilityName":"VALERO REFINING - TEXAS L.P. HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Toxics Release Inventory",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.722274",
+"Longitude":"-95.254401",
+"IndianCountry":"N",
+"SIC":"2911",
+"NAICS":"324110",
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17430",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Last Reported for 2024"
+}
+,{
+"Statute":"RCRA",
+"EPASystem":"RCRAInfo",
+"EPARegion":"06",
+"SourceID":"TXR000083882",
+"FacilityName":"VALERO PARTNERS HOUSTON",
+"FacilityStreet":"9701 9701 MANCHESTER ST TANK FARM",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012-2408",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"Other",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.7228",
+"Longitude":"-95.2556",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"324110 424710",
+"DQURL":null,
+"HdatumDesc":"WGS84",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Inactive (     )"
+}
+,{
+"Statute":"RCRA",
+"EPASystem":"RCRAInfo",
+"EPARegion":"06",
+"SourceID":"TXD053624193",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER ST",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012-2408",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"LQG",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.722222",
+"Longitude":"-95.255",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":"324110",
+"DQURL":null,
+"HdatumDesc":"WGS84",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":"Active (H A  )"
+}
+,{
+"Statute":"TSCA",
+"EPASystem":"TSCA",
+"EPARegion":"06",
+"SourceID":"TSCA10169492",
+"FacilityName":"VALERO ENERGY PARTNERS LP",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.71839",
+"Longitude":"-95.25343",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17630",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"TSCA",
+"EPASystem":"TSCA",
+"EPARegion":"06",
+"SourceID":"100608521",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.71784",
+"Longitude":"-95.25251",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17630",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"TSCA",
+"EPASystem":"TSCA",
+"EPARegion":"06",
+"SourceID":"TSCA4620",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":"48201",
+"FacilityCountyName":"Harris County",
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":"29.722274",
+"Longitude":"-95.254401",
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":"NAD83",
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":"17630",
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+,{
+"Statute":"TSCA",
+"EPASystem":"TSCA",
+"EPARegion":"06",
+"SourceID":"200003371",
+"FacilityName":"HOUSTON REFINERY",
+"FacilityStreet":"9701 MANCHESTER, P.O. BOX 5038",
+"FacilityCity":"HOUSTON",
+"FacilityState":"TX",
+"FacilityZip":"77012",
+"FacilityFipsCode":null,
+"FacilityCountyName":null,
+"Universe":"",
+"Areas":null,
+"ExpDate":null,
+"Latitude":null,
+"Longitude":null,
+"IndianCountry":"N",
+"SIC":null,
+"NAICS":null,
+"DQURL":null,
+"HdatumDesc":null,
+"CollectDesc":null,
+"RefPointDesc":null,
+"Scale":null,
+"AccuracyValue":null,
+"AccuracyScore":null,
+"HasIcisSsoRpt":"N",
+"HasBioRpt":"N",
+"HasSBERpt":"N",
+"HasBflmRpt":"N",
+"FacilityStatus":null
+}
+]
+,
+"SystemExtractDates":{
+"Dates":[
+{
+"EPASystem":"ICIS-Air",
+"SystemExtractDate":"09/11/2026"
+}
+,{
+"EPASystem":"ICIS-NPDES",
+"SystemExtractDate":"09/11/2026"
+}
+,{
+"EPASystem":"RCRAInfo",
+"SystemExtractDate":"09/11/2026"
+}
+,{
+"EPASystem":"SDWIS",
+"SystemExtractDate":"07/09/2026"
+}
+]
+}
+,
+"EnforcementComplianceSummaries":{
+"ProgramDates":[
+{
+"Program":"CAA",
+"StartDate3Yr":"10/01/2023",
+"StartDate5Yr":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+,{
+"Program":"CWA",
+"StartDate3Yr":"07/01/2023",
+"StartDate5Yr":"09/12/2021",
+"EndDate":"06/30/2026"
+}
+,{
+"Program":"RCRA",
+"StartDate3Yr":"10/01/2023",
+"StartDate5Yr":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+]
+,
+"Summaries":[
+{
+"Statute":"CAA",
+"Inspections":"3",
+"LastInspection":"11/25/2025",
+"CurrentStatus":"No Violation Identified",
+"QtrsInNC":"0",
+"QtrsInSNC":"0",
+"InformalActions":null,
+"FormalActions":"1",
+"Cases":null,
+"TotalPenalties":"$27,414",
+"TotalCasePenalties":null
+}
+,{
+"Statute":"CWA",
+"Inspections":"3",
+"LastInspection":"05/15/2026",
+"CurrentStatus":"No Violation Identified",
+"QtrsInNC":"3",
+"QtrsInSNC":"0",
+"InformalActions":null,
+"FormalActions":null,
+"Cases":null,
+"TotalPenalties":null,
+"TotalCasePenalties":null
+}
+,{
+"Statute":"RCRA",
+"Inspections":"1",
+"LastInspection":"01/26/2022",
+"CurrentStatus":"No Violation Identified",
+"QtrsInNC":"0",
+"QtrsInSNC":"0",
+"InformalActions":"1",
+"FormalActions":null,
+"Cases":null,
+"TotalPenalties":null,
+"TotalCasePenalties":null
+}
+]
+}
+,
+"NAICS":{
+"Sources":[
+{
+"NAICSCodes":[
+{
+"SourceID":"100000084605",
+"EPASystem":"RMP",
+"NAICSCode":"32411",
+"NAICSDesc":"Petroleum Refineries"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"1006062",
+"EPASystem":"GHGRP",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"4182511",
+"EPASystem":"EIS",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"77012HLLPT9701M",
+"EPASystem":"TRI",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"7701WVLRNR971MA",
+"EPASystem":"TRI",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+,{
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"NAICSCode":"424710",
+"NAICSDesc":"Petroleum Bulk Stations and Terminals"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"TXD053624193",
+"EPASystem":"RCRAInfo",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+]
+}
+,{
+"NAICSCodes":[
+{
+"SourceID":"TXR000083882",
+"EPASystem":"RCRAInfo",
+"NAICSCode":"324110",
+"NAICSDesc":"Petroleum Refineries"
+}
+,{
+"SourceID":"TXR000083882",
+"EPASystem":"RCRAInfo",
+"NAICSCode":"424710",
+"NAICSDesc":"Petroleum Bulk Stations and Terminals"
+}
+]
+}
+]
+}
+,
+"SBEEventTotals":{
+}
+,
+"SIC":{
+"Sources":[
+{
+"SICCodes":[
+{
+"SourceID":"77012HLLPT9701M",
+"EPASystem":"TRI",
+"SICCode":"2911",
+"SICDesc":"Petroleum Refining"
+}
+]
+}
+,{
+"SICCodes":[
+{
+"SourceID":"TX0002976",
+"EPASystem":"ICIS-NPDES",
+"SICCode":"2911",
+"SICDesc":"Petroleum Refining"
+}
+]
+}
+,{
+"SICCodes":[
+{
+"SourceID":"TXR05K869",
+"EPASystem":"ICIS-NPDES",
+"SICCode":"2911",
+"SICDesc":"Petroleum Refining"
+}
+]
+}
+,{
+"SICCodes":[
+{
+"SourceID":"TXR15334H",
+"EPASystem":"ICIS-NPDES",
+"SICCode":"1541",
+"SICDesc":"Industrial Buildings And Warehouses"
+}
+]
+}
+]
+}
+,
+"EffluentGuidelines":{
+}
+,
+"InspectionEnforcementSummary":{
+"ProgramDates":[
+{
+"Program":"CAA",
+"StartDate":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+,{
+"Program":"CWA",
+"StartDate":"09/12/2021",
+"EndDate":"06/30/2026"
+}
+,{
+"Program":"RCRA",
+"StartDate":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+]
+,
+"Source":[
+{
+"Statute":"CAA",
+"EPASystem":"ICIS-Air",
+"SourceID":"TX0000004820100065",
+"InspectionCount":"1",
+"DateLastInspection":"11/25/2025",
+"FormalEnfActCount":"1",
+"TotalPenalties":"$27,414"
+}
+,{
+"Statute":"CAA",
+"EPASystem":"ICIS-Air",
+"SourceID":"TX0000004820102018",
+"InspectionCount":"1",
+"DateLastInspection":"11/07/2025",
+"FormalEnfActCount":"0",
+"TotalPenalties":"$0"
+}
+,{
+"Statute":"CWA",
+"EPASystem":"ICIS-NPDES",
+"SourceID":"TX0002976",
+"InspectionCount":"3",
+"DateLastInspection":"05/15/2026",
+"FormalEnfActCount":"0",
+"TotalPenalties":"$0"
+}
+,{
+"Statute":"CWA",
+"EPASystem":"ICIS-NPDES",
+"SourceID":"TXR05K869",
+"InspectionCount":"0",
+"DateLastInspection":null,
+"FormalEnfActCount":"0",
+"TotalPenalties":"$0"
+}
+,{
+"Statute":"CWA",
+"EPASystem":"ICIS-NPDES",
+"SourceID":"TXR15334H",
+"InspectionCount":"0",
+"DateLastInspection":null,
+"FormalEnfActCount":"0",
+"TotalPenalties":"$0"
+}
+,{
+"Statute":"RCRA",
+"EPASystem":"RCRAInfo",
+"SourceID":"TXD053624193",
+"InspectionCount":"1",
+"DateLastInspection":"01/26/2022",
+"FormalEnfActCount":"0",
+"TotalPenalties":"$0"
+}
+,{
+"Statute":"RCRA",
+"EPASystem":"RCRAInfo",
+"SourceID":"TXR000083882",
+"InspectionCount":"0",
+"DateLastInspection":null,
+"FormalEnfActCount":"0",
+"TotalPenalties":"$0"
+}
+]
+}
+,
+"ComplianceHistory":{
+"ProgramDates":[
+{
+"Program":"CAA",
+"StartDate":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+,{
+"Program":"CWA",
+"StartDate":"09/12/2021",
+"EndDate":"06/30/2026"
+}
+,{
+"Program":"RCRA",
+"StartDate":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+]
+,
+"Inspection":[
+{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"08/14/2026",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000021675460001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"06/11/2026",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000021378010001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"05/18/2026",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000021516950001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/10/2026",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000021245930001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/06/2026",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000021237290001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"12/04/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020901840001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"FCE On-Site",
+"LeadAgency":"State",
+"Date":"11/25/2025",
+"CMSFlag":"Y",
+"OfficialFlag":"Y",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020901850001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"PCE Title V CCR",
+"LeadAgency":"State",
+"Date":"11/25/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":"Reviewed: 11/25/2025 Facility Reported Deviations",
+"CompMonitorID":"TX000A0000000020901850002"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"11/06/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000021054680001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"08/06/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020850980001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"05/16/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020645100001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"PCE Title V CCR",
+"LeadAgency":"State",
+"Date":"05/02/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":"Reviewed: 05/02/2025 Facility Reported Deviations",
+"CompMonitorID":"TX000A0000000020288180001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/28/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020414610001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"11/22/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020155170001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"11/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020226520001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"08/15/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020022050001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"06/14/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019609560001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"06/06/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019881470001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"PCE Title V CCR",
+"LeadAgency":"State",
+"Date":"05/16/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":"Reviewed: 05/16/2024 Facility Reported Deviations",
+"CompMonitorID":"TX000A0000000019450120001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250014"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250016"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250004"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250008"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250011"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250012"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250010"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250015"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250009"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250006"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250002"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250005"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250017"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250018"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250003"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250007"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"04/18/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019651250013"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"03/25/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019653380001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/16/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019649880001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"12/29/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019437610001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"11/29/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019248720001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"08/08/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019049630001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"08/02/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019168390001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"06/19/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019048900001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"05/23/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018403560001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"03/13/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018691590001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"PCE Title V CCR",
+"LeadAgency":"State",
+"Date":"02/10/2023",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":"Reviewed: 02/10/2023 Facility Reported Deviations",
+"CompMonitorID":"TX000A0000000018617840001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"11/28/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018541320001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"11/23/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018410230001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"112(r)(7) Inspection",
+"LeadAgency":"EPA",
+"Date":"11/18/2022",
+"CMSFlag":"Y",
+"OfficialFlag":"Y",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"06000F1614094"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"10/03/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018347240001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"08/26/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018119200001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"08/12/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018186210001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"PCE Title V CCR",
+"LeadAgency":"State",
+"Date":"07/29/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":"Reviewed: 07/29/2022 Facility Reported Deviations",
+"CompMonitorID":"TX000A0000000018186220001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"06/10/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018128250001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"03/07/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017880320001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180003"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180013"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180002"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180008"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180015"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180012"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180007"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180005"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180004"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180011"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180016"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180014"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180009"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180010"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/15/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017942180006"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"12/17/2021",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017718810001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"10/04/2021",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017474730001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"FCE On-Site",
+"LeadAgency":"State",
+"Date":"11/07/2025",
+"CMSFlag":"Y",
+"OfficialFlag":"Y",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020912780001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"PCE Title V CCR",
+"LeadAgency":"State",
+"Date":"11/07/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":"Reviewed: 11/07/2025 Facility Reported Deviations",
+"CompMonitorID":"TX000A0000000020912780002"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/05/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000020283550001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"02/02/2024",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000019447630001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"10/17/2022",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000018409660001"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820102018",
+"EPASystem":"ICIS-Air",
+"ActivityType":"Compliance Investigation",
+"InspectionType":"Investigation",
+"LeadAgency":"State",
+"Date":"11/30/2021",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000A0000000017626220001"
+}
+,{
+"Statute":"CWA",
+"SourceID":"R6-TX-00155",
+"EPASystem":"ICIS (OIL)",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"Plan Review - Off-Site",
+"LeadAgency":"EPA",
+"Date":"07/16/2025",
+"CMSFlag":"N",
+"OfficialFlag":"N",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"06000FOIL0000000000002744"
+}
+,{
+"Statute":"CWA",
+"SourceID":"TX0002976",
+"EPASystem":"ICIS-NPDES",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"Base Program - Evaluation",
+"LeadAgency":"State",
+"Date":"05/15/2026",
+"CMSFlag":"Y",
+"OfficialFlag":"Y",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000N002146931TX0002976"
+}
+,{
+"Statute":"CWA",
+"SourceID":"TX0002976",
+"EPASystem":"ICIS-NPDES",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"Base Program - Evaluation",
+"LeadAgency":"State",
+"Date":"08/06/2024",
+"CMSFlag":"Y",
+"OfficialFlag":"Y",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000N002002849TX0002976"
+}
+,{
+"Statute":"CWA",
+"SourceID":"TX0002976",
+"EPASystem":"ICIS-NPDES",
+"ActivityType":"Inspection/Evaluation",
+"InspectionType":"Base Program - Evaluation",
+"LeadAgency":"State",
+"Date":"06/06/2022",
+"CMSFlag":"Y",
+"OfficialFlag":"Y",
+"SncFlag":"N",
+"Finding":null,
+"CompMonitorID":"TX000N001819127TX0002976"
+}
+,{
+"Statute":"RCRA",
+"SourceID":"TXD053624193",
+"EPASystem":"RCRAInfo",
+"ActivityType":null,
+"InspectionType":"Compliance Evaluation Inspection",
+"LeadAgency":"State",
+"Date":"01/26/2022",
+"CMSFlag":"Y",
+"OfficialFlag":"Y",
+"SncFlag":"N",
+"Finding":"Violations Or Compliance Issues Were Found",
+"CompMonitorID":"7"
+}
+]
+}
+,
+"ComplianceSummary":{
+"ProgramDates":[
+{
+"Program":"CAA",
+"StartDate":"10/01/2023",
+"EndDate":"09/30/2026"
+}
+,{
+"Program":"CWA",
+"StartDate":"07/01/2023",
+"EndDate":"06/30/2026"
+}
+,{
+"Program":"RCRA",
+"StartDate":"10/01/2023",
+"EndDate":"09/30/2026"
+}
+]
+,
+"Source":[
+{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"CurrentSNC":"No",
+"Description":null,
+"CurrentAsOf":"09/12/2026",
+"QtrsInNC":"0"
+}
+,{
+"Statute":"CAA",
+"SourceID":"TX0000004820102018",
+"CurrentSNC":"No",
+"Description":null,
+"CurrentAsOf":"09/12/2026",
+"QtrsInNC":"0"
+}
+,{
+"Statute":"CWA",
+"SourceID":"TX0002976",
+"CurrentSNC":"No",
+"Description":null,
+"CurrentAsOf":"06/30/2026",
+"QtrsInNC":"3"
+}
+,{
+"Statute":"CWA",
+"SourceID":"TXR05K869",
+"CurrentSNC":"No",
+"Description":null,
+"CurrentAsOf":"06/30/2026",
+"QtrsInNC":"0"
+}
+,{
+"Statute":"CWA",
+"SourceID":"TXR15334H",
+"CurrentSNC":"No",
+"Description":null,
+"CurrentAsOf":"06/30/2026",
+"QtrsInNC":"0"
+}
+,{
+"Statute":"RCRA",
+"SourceID":"TXD053624193",
+"CurrentSNC":"No",
+"Description":null,
+"CurrentAsOf":"09/12/2026",
+"QtrsInNC":"0"
+}
+,{
+"Statute":"RCRA",
+"SourceID":"TXR000083882",
+"CurrentSNC":"No",
+"Description":null,
+"CurrentAsOf":"09/12/2026",
+"QtrsInNC":"0"
+}
+]
+}
+,
+"CWA3YrCompliance":{
+"Header":{
+"Qtr1Start":"07/01/2023",
+"Qtr1End":"09/30/2023",
+"Qtr2Start":"10/01/2023",
+"Qtr2End":"12/31/2023",
+"Qtr3Start":"01/01/2024",
+"Qtr3End":"03/31/2024",
+"Qtr4Start":"04/01/2024",
+"Qtr4End":"06/30/2024",
+"Qtr5Start":"07/01/2024",
+"Qtr5End":"09/30/2024",
+"Qtr6Start":"10/01/2024",
+"Qtr6End":"12/31/2024",
+"Qtr7Start":"01/01/2025",
+"Qtr7End":"03/31/2025",
+"Qtr8Start":"04/01/2025",
+"Qtr8End":"06/30/2025",
+"Qtr9Start":"07/01/2025",
+"Qtr9End":"09/30/2025",
+"Qtr10Start":"10/01/2025",
+"Qtr10End":"12/31/2025",
+"Qtr11Start":"01/01/2026",
+"Qtr11End":"03/31/2026",
+"Qtr12Start":"04/01/2026",
+"Qtr12End":"06/30/2026",
+"Qtr13Start":"07/01/2026",
+"Qtr13End":"09/11/2026"
+}
+,
+"Sources":[
+{
+"Status":[
+{
+"SourceID":"TX0002976",
+"Qtr1Status":"No Violation Identified",
+"Qtr2Status":"No Violation Identified",
+"Qtr3Status":"Violation Identified",
+"Qtr4Status":"No Violation Identified",
+"Qtr5Status":"No Violation Identified",
+"Qtr6Status":"No Violation Identified",
+"Qtr7Status":"Violation Identified",
+"Qtr8Status":"Violation Identified",
+"Qtr9Status":"No Violation Identified",
+"Qtr10Status":"No Violation Identified",
+"Qtr11Status":"No Violation Identified",
+"Qtr12Status":"No Violation Identified",
+"Qtr13Status":"Undetermined"
+}
+]
+}
+,{
+"Status":[
+{
+"SourceID":"TXR05K869",
+"Qtr1Status":"No Violation Identified",
+"Qtr2Status":"No Violation Identified",
+"Qtr3Status":"No Violation Identified",
+"Qtr4Status":"No Violation Identified",
+"Qtr5Status":"No Violation Identified",
+"Qtr6Status":"No Violation Identified",
+"Qtr7Status":"No Violation Identified",
+"Qtr8Status":"No Violation Identified",
+"Qtr9Status":"No Violation Identified",
+"Qtr10Status":"No Violation Identified",
+"Qtr11Status":"No Violation Identified",
+"Qtr12Status":"No Violation Identified",
+"Qtr13Status":"Undetermined"
+}
+]
+}
+,{
+"Status":[
+{
+"SourceID":"TXR15334H",
+"Qtr1Status":"No Violation Identified",
+"Qtr2Status":"No Violation Identified",
+"Qtr3Status":"No Violation Identified",
+"Qtr4Status":"No Violation Identified",
+"Qtr5Status":"No Violation Identified",
+"Qtr6Status":"No Violation Identified",
+"Qtr7Status":"No Violation Identified",
+"Qtr8Status":"No Violation Identified",
+"Qtr9Status":"No Violation Identified",
+"Qtr10Status":"No Violation Identified",
+"Qtr11Status":"No Violation Identified",
+"Qtr12Status":"No Violation Identified",
+"Qtr13Status":"Undetermined"
+}
+]
+}
+]
+}
+,
+"CWARNCCompliance":{
+"Header":{
+"Qtr1Start":"07/01/2023",
+"Qtr1End":"09/30/2023",
+"Qtr2Start":"10/01/2023",
+"Qtr2End":"12/31/2023",
+"Qtr3Start":"01/01/2024",
+"Qtr3End":"03/31/2024",
+"Qtr4Start":"04/01/2024",
+"Qtr4End":"06/30/2024",
+"Qtr5Start":"07/01/2024",
+"Qtr5End":"09/30/2024",
+"Qtr6Start":"10/01/2024",
+"Qtr6End":"12/31/2024",
+"Qtr7Start":"01/01/2025",
+"Qtr7End":"03/31/2025",
+"Qtr8Start":"04/01/2025",
+"Qtr8End":"06/30/2025",
+"Qtr9Start":"07/01/2025",
+"Qtr9End":"09/30/2025",
+"Qtr10Start":"10/01/2025",
+"Qtr10End":"12/31/2025",
+"Qtr11Start":"01/01/2026",
+"Qtr11End":"03/31/2026",
+"Qtr12Start":"04/01/2026",
+"Qtr12End":"06/30/2026"
+}
+,
+"Sources":[
+{
+"Status":[
+{
+"SourceID":"TX0002976",
+"Qtr1Status":null,
+"Qtr2Status":null,
+"Qtr3Status":"Other Violation",
+"Qtr4Status":null,
+"Qtr5Status":"Resolved",
+"Qtr6Status":null,
+"Qtr7Status":"Other Violation",
+"Qtr8Status":"Other Violation",
+"Qtr9Status":null,
+"Qtr10Status":null,
+"Qtr11Status":null,
+"Qtr12Status":null
+}
+]
+}
+,{
+"Status":[
+{
+"SourceID":"TXR05K869",
+"Qtr1Status":null,
+"Qtr2Status":null,
+"Qtr3Status":null,
+"Qtr4Status":null,
+"Qtr5Status":null,
+"Qtr6Status":null,
+"Qtr7Status":null,
+"Qtr8Status":null,
+"Qtr9Status":null,
+"Qtr10Status":null,
+"Qtr11Status":null,
+"Qtr12Status":null
+}
+]
+}
+,{
+"Status":[
+{
+"SourceID":"TXR15334H",
+"Qtr1Status":null,
+"Qtr2Status":null,
+"Qtr3Status":null,
+"Qtr4Status":null,
+"Qtr5Status":null,
+"Qtr6Status":null,
+"Qtr7Status":null,
+"Qtr8Status":null,
+"Qtr9Status":null,
+"Qtr10Status":null,
+"Qtr11Status":null,
+"Qtr12Status":null
+}
+]
+}
+]
+}
+,
+"CWA3YrD80D90Counts":{
+}
+,
+"CWAEffluentComplianceEXP":{
+"Header":{
+"Qtr1Start":"07/01/2023",
+"Qtr1End":"09/30/2023",
+"Qtr2Start":"10/01/2023",
+"Qtr2End":"12/31/2023",
+"Qtr3Start":"01/01/2024",
+"Qtr3End":"03/31/2024",
+"Qtr4Start":"04/01/2024",
+"Qtr4End":"06/30/2024",
+"Qtr5Start":"07/01/2024",
+"Qtr5End":"09/30/2024",
+"Qtr6Start":"10/01/2024",
+"Qtr6End":"12/31/2024",
+"Qtr7Start":"01/01/2025",
+"Qtr7End":"03/31/2025",
+"Qtr8Start":"04/01/2025",
+"Qtr8End":"06/30/2025",
+"Qtr9Start":"07/01/2025",
+"Qtr9End":"09/30/2025",
+"Qtr10Start":"10/01/2025",
+"Qtr10End":"12/31/2025",
+"Qtr11Start":"01/01/2026",
+"Qtr11End":"03/31/2026",
+"Qtr12Start":"04/01/2026",
+"Qtr12End":"06/30/2026",
+"Qtr13Start":"07/01/2026",
+"Qtr13End":"09/11/2026"
+}
+,
+"Sources":[
+{
+"Parameters":[
+{
+"SourceID":"TX0002976",
+"ParameterCode":"00530",
+"ParameterName":"Solids, total suspended",
+"DischargePoint":"001 - A",
+"MonitoringLocation":"Effluent Gross",
+"MeasurementType":"Mthly",
+"Qtr1Status":null,
+"Qtr1Value":null,
+"Qtr2Status":null,
+"Qtr2Value":null,
+"Qtr3Status":null,
+"Qtr3Value":null,
+"Qtr4Status":null,
+"Qtr4Value":null,
+"Qtr5Status":null,
+"Qtr5Value":null,
+"Qtr6Status":null,
+"Qtr6Value":null,
+"Qtr7Status":null,
+"Qtr7Value":"1%",
+"Qtr8Status":null,
+"Qtr8Value":null,
+"Qtr9Status":null,
+"Qtr9Value":null,
+"Qtr10Status":null,
+"Qtr10Value":null,
+"Qtr11Status":null,
+"Qtr11Value":null,
+"Qtr12Status":null,
+"Qtr12Value":null,
+"Qtr13Status":null,
+"Qtr13Value":null
+}
+,{
+"SourceID":"TX0002976",
+"ParameterCode":"00530",
+"ParameterName":"Solids, total suspended",
+"DischargePoint":"001 - A",
+"MonitoringLocation":"Effluent Gross",
+"MeasurementType":"NMth",
+"Qtr1Status":null,
+"Qtr1Value":null,
+"Qtr2Status":null,
+"Qtr2Value":null,
+"Qtr3Status":null,
+"Qtr3Value":null,
+"Qtr4Status":null,
+"Qtr4Value":null,
+"Qtr5Status":null,
+"Qtr5Value":null,
+"Qtr6Status":null,
+"Qtr6Value":null,
+"Qtr7Status":null,
+"Qtr7Value":"12%",
+"Qtr8Status":null,
+"Qtr8Value":null,
+"Qtr9Status":null,
+"Qtr9Value":null,
+"Qtr10Status":null,
+"Qtr10Value":null,
+"Qtr11Status":null,
+"Qtr11Value":null,
+"Qtr12Status":null,
+"Qtr12Value":null,
+"Qtr13Status":null,
+"Qtr13Value":null
+}
+,{
+"SourceID":"TX0002976",
+"ParameterCode":"00556",
+"ParameterName":"Oil & Grease",
+"DischargePoint":"002 - A",
+"MonitoringLocation":"Effluent Gross",
+"MeasurementType":"NMth",
+"Qtr1Status":null,
+"Qtr1Value":null,
+"Qtr2Status":null,
+"Qtr2Value":null,
+"Qtr3Status":null,
+"Qtr3Value":null,
+"Qtr4Status":null,
+"Qtr4Value":null,
+"Qtr5Status":null,
+"Qtr5Value":null,
+"Qtr6Status":null,
+"Qtr6Value":null,
+"Qtr7Status":null,
+"Qtr7Value":"131%",
+"Qtr8Status":null,
+"Qtr8Value":null,
+"Qtr9Status":null,
+"Qtr9Value":null,
+"Qtr10Status":null,
+"Qtr10Value":null,
+"Qtr11Status":null,
+"Qtr11Value":null,
+"Qtr12Status":null,
+"Qtr12Value":null,
+"Qtr13Status":null,
+"Qtr13Value":null
+}
+,{
+"SourceID":"TX0002976",
+"ParameterCode":"00340",
+"ParameterName":"Oxygen demand, chem. [high level] [COD]",
+"DischargePoint":"002 - A",
+"MonitoringLocation":"Effluent Gross",
+"MeasurementType":"NMth",
+"Qtr1Status":null,
+"Qtr1Value":null,
+"Qtr2Status":null,
+"Qtr2Value":null,
+"Qtr3Status":null,
+"Qtr3Value":null,
+"Qtr4Status":null,
+"Qtr4Value":null,
+"Qtr5Status":null,
+"Qtr5Value":null,
+"Qtr6Status":null,
+"Qtr6Value":null,
+"Qtr7Status":null,
+"Qtr7Value":null,
+"Qtr8Status":null,
+"Qtr8Value":"37%",
+"Qtr9Status":null,
+"Qtr9Value":null,
+"Qtr10Status":null,
+"Qtr10Value":null,
+"Qtr11Status":null,
+"Qtr11Value":null,
+"Qtr12Status":null,
+"Qtr12Value":null,
+"Qtr13Status":null,
+"Qtr13Value":null
+}
+,{
+"SourceID":"TX0002976",
+"ParameterCode":"00340",
+"ParameterName":"Oxygen demand, chem. [high level] [COD]",
+"DischargePoint":"008 - A",
+"MonitoringLocation":"Effluent Gross",
+"MeasurementType":"NMth",
+"Qtr1Status":null,
+"Qtr1Value":null,
+"Qtr2Status":null,
+"Qtr2Value":null,
+"Qtr3Status":null,
+"Qtr3Value":"84%",
+"Qtr4Status":null,
+"Qtr4Value":null,
+"Qtr5Status":null,
+"Qtr5Value":null,
+"Qtr6Status":null,
+"Qtr6Value":null,
+"Qtr7Status":null,
+"Qtr7Value":null,
+"Qtr8Status":null,
+"Qtr8Value":null,
+"Qtr9Status":null,
+"Qtr9Value":null,
+"Qtr10Status":null,
+"Qtr10Value":null,
+"Qtr11Status":null,
+"Qtr11Value":null,
+"Qtr12Status":null,
+"Qtr12Value":null,
+"Qtr13Status":null,
+"Qtr13Value":null
+}
+]
+}
+]
+}
+,
+"CWAPSCompliance":{
+}
+,
+"CWASECompliance":{
+"Header":{
+"Qtr1Start":"07/01/2023",
+"Qtr1End":"09/30/2023",
+"Qtr2Start":"10/01/2023",
+"Qtr2End":"12/31/2023",
+"Qtr3Start":"01/01/2024",
+"Qtr3End":"03/31/2024",
+"Qtr4Start":"04/01/2024",
+"Qtr4End":"06/30/2024",
+"Qtr5Start":"07/01/2024",
+"Qtr5End":"09/30/2024",
+"Qtr6Start":"10/01/2024",
+"Qtr6End":"12/31/2024",
+"Qtr7Start":"01/01/2025",
+"Qtr7End":"03/31/2025",
+"Qtr8Start":"04/01/2025",
+"Qtr8End":"06/30/2025",
+"Qtr9Start":"07/01/2025",
+"Qtr9End":"09/30/2025",
+"Qtr10Start":"10/01/2025",
+"Qtr10End":"12/31/2025",
+"Qtr11Start":"01/01/2026",
+"Qtr11End":"03/31/2026",
+"Qtr12Start":"04/01/2026",
+"Qtr12End":"06/30/2026",
+"Qtr13Start":"07/01/2026",
+"Qtr13End":"09/11/2026"
+}
+,
+"Sources":[
+{
+"Violations":[
+{
+"SourceID":"TX0002976",
+"ViolationDesc":"Permit Violations - Violation Specified in Comment",
+"NPDESViolationId":"3677299908",
+"Agency":"State",
+"Qtr1Status":null,
+"Qtr1Value":null,
+"Qtr2Status":null,
+"Qtr2Value":null,
+"Qtr3Status":null,
+"Qtr3Value":null,
+"Qtr4Status":null,
+"Qtr4Value":null,
+"Qtr5Status":"RV",
+"Qtr5Value":"08/06/2024",
+"Qtr6Status":null,
+"Qtr6Value":null,
+"Qtr7Status":null,
+"Qtr7Value":null,
+"Qtr8Status":null,
+"Qtr8Value":null,
+"Qtr9Status":null,
+"Qtr9Value":null,
+"Qtr10Status":null,
+"Qtr10Value":null,
+"Qtr11Status":null,
+"Qtr11Value":null,
+"Qtr12Status":null,
+"Qtr12Value":null,
+"Qtr13Status":null,
+"Qtr13Value":null
+}
+]
+}
+]
+}
+,
+"CWACSCompliance":{
+}
+,
+"CWAEffluentALRExceedencesEXP":{
+}
+,
+"AirCompliance":{
+"Header":{
+"Qtr1Start":"10/01/2023",
+"Qtr1End":"12/31/2023",
+"Qtr2Start":"01/01/2024",
+"Qtr2End":"03/31/2024",
+"Qtr3Start":"04/01/2024",
+"Qtr3End":"06/30/2024",
+"Qtr4Start":"07/01/2024",
+"Qtr4End":"09/30/2024",
+"Qtr5Start":"10/01/2024",
+"Qtr5End":"12/31/2024",
+"Qtr6Start":"01/01/2025",
+"Qtr6End":"03/31/2025",
+"Qtr7Start":"04/01/2025",
+"Qtr7End":"06/30/2025",
+"Qtr8Start":"07/01/2025",
+"Qtr8End":"09/30/2025",
+"Qtr9Start":"10/01/2025",
+"Qtr9End":"12/31/2025",
+"Qtr10Start":"01/01/2026",
+"Qtr10End":"03/31/2026",
+"Qtr11Start":"04/01/2026",
+"Qtr11End":"06/30/2026",
+"Qtr12Start":"07/01/2026",
+"Qtr12End":"09/30/2026"
+}
+,
+"Sources":[
+{
+"PermitHistory":{
+"SourceID":"TX0000004820100065",
+"Qtr1Status":"No Violation Identified",
+"Qtr2Status":"No Violation Identified",
+"Qtr3Status":"No Violation Identified",
+"Qtr4Status":"No Violation Identified",
+"Qtr5Status":"No Violation Identified",
+"Qtr6Status":"No Violation Identified",
+"Qtr7Status":"No Violation Identified",
+"Qtr8Status":"No Violation Identified",
+"Qtr9Status":"No Violation Identified",
+"Qtr10Status":"No Violation Identified",
+"Qtr11Status":"No Violation Identified",
+"Qtr12Status":"No Violation Identified"
+}
+,
+"HPVHistory":{
+"SourceID":"TX0000004820100065",
+"Qtr1Status":null,
+"Qtr2Status":null,
+"Qtr3Status":null,
+"Qtr4Status":null,
+"Qtr5Status":null,
+"Qtr6Status":null,
+"Qtr7Status":null,
+"Qtr8Status":null,
+"Qtr9Status":null,
+"Qtr10Status":null,
+"Qtr11Status":null,
+"Qtr12Status":null
+}
+,
+"HPVProgramsPollutants":[
+]
+,
+"FRVProgramsPollutants":[
+]
+,
+"AFSPrograms":[
+]
+}
+,{
+"PermitHistory":{
+"SourceID":"TX0000004820102018",
+"Qtr1Status":"No Violation Identified",
+"Qtr2Status":"No Violation Identified",
+"Qtr3Status":"No Violation Identified",
+"Qtr4Status":"No Violation Identified",
+"Qtr5Status":"No Violation Identified",
+"Qtr6Status":"No Violation Identified",
+"Qtr7Status":"No Violation Identified",
+"Qtr8Status":"No Violation Identified",
+"Qtr9Status":"No Violation Identified",
+"Qtr10Status":"No Violation Identified",
+"Qtr11Status":"No Violation Identified",
+"Qtr12Status":"No Violation Identified"
+}
+,
+"HPVHistory":{
+"SourceID":"TX0000004820102018",
+"Qtr1Status":null,
+"Qtr2Status":null,
+"Qtr3Status":null,
+"Qtr4Status":null,
+"Qtr5Status":null,
+"Qtr6Status":null,
+"Qtr7Status":null,
+"Qtr8Status":null,
+"Qtr9Status":null,
+"Qtr10Status":null,
+"Qtr11Status":null,
+"Qtr12Status":null
+}
+,
+"HPVProgramsPollutants":[
+]
+,
+"FRVProgramsPollutants":[
+]
+,
+"AFSPrograms":[
+]
+}
+]
+}
+,
+"BflmCompliance":{
+"Qtr1Start":"10/01/2023",
+"Qtr1End":"12/31/2023",
+"Qtr2Start":"01/01/2024",
+"Qtr2End":"03/31/2024",
+"Qtr3Start":"04/01/2024",
+"Qtr3End":"06/30/2024",
+"Qtr4Start":"07/01/2024",
+"Qtr4End":"09/30/2024",
+"Qtr5Start":"10/01/2024",
+"Qtr5End":"12/31/2024",
+"Qtr6Start":"01/01/2025",
+"Qtr6End":"03/31/2025",
+"Qtr7Start":"04/01/2025",
+"Qtr7End":"06/30/2025",
+"Qtr8Start":"07/01/2025",
+"Qtr8End":"09/30/2025",
+"Qtr9Start":"10/01/2025",
+"Qtr9End":"12/31/2025",
+"Qtr10Start":"01/01/2026",
+"Qtr10End":"03/31/2026",
+"Qtr11Start":"04/01/2026",
+"Qtr11End":"06/30/2026",
+"Qtr12Start":"07/01/2026",
+"Qtr12End":"09/30/2026"
+,
+"Sources":[
+{
+"Status":{
+"SourceID":"CEDRI124823",
+"Qtr1Status":"No Exceedance Identified",
+"Qtr2Status":"No Exceedance Identified",
+"Qtr3Status":"No Exceedance Identified",
+"Qtr4Status":"No Exceedance Identified",
+"Qtr5Status":"No Exceedance Identified",
+"Qtr6Status":"No Exceedance Identified",
+"Qtr7Status":"No Exceedance Identified",
+"Qtr8Status":"No Exceedance Identified",
+"Qtr9Status":"No Exceedance Identified",
+"Qtr10Status":"No Exceedance Identified",
+"Qtr11Status":"No Exceedance Identified",
+"Qtr12Status":null
+}
+,
+"ProgramPollutants":[
+{
+"SourceID":"CEDRI124823",
+"Program":"Petroleum Refinery Sector Rule - Benzene Fenceline Monitoring",
+"Pollutant":"Benzene - Annual Average ���C",
+"Qtr1Value":"2",
+"Qtr2Value":"2",
+"Qtr3Value":"2",
+"Qtr4Value":"2",
+"Qtr5Value":"2",
+"Qtr6Value":"2",
+"Qtr7Value":"2",
+"Qtr8Value":"2",
+"Qtr9Value":"3",
+"Qtr10Value":"3",
+"Qtr11Value":"3",
+"Qtr12Value":null
+}
+]
+}
+]
+}
+,
+"RCRACompliance":{
+"Qtr1Start":"10/01/2023",
+"Qtr1End":"12/31/2023",
+"Qtr2Start":"01/01/2024",
+"Qtr2End":"03/31/2024",
+"Qtr3Start":"04/01/2024",
+"Qtr3End":"06/30/2024",
+"Qtr4Start":"07/01/2024",
+"Qtr4End":"09/30/2024",
+"Qtr5Start":"10/01/2024",
+"Qtr5End":"12/31/2024",
+"Qtr6Start":"01/01/2025",
+"Qtr6End":"03/31/2025",
+"Qtr7Start":"04/01/2025",
+"Qtr7End":"06/30/2025",
+"Qtr8Start":"07/01/2025",
+"Qtr8End":"09/30/2025",
+"Qtr9Start":"10/01/2025",
+"Qtr9End":"12/31/2025",
+"Qtr10Start":"01/01/2026",
+"Qtr10End":"03/31/2026",
+"Qtr11Start":"04/01/2026",
+"Qtr11End":"06/30/2026",
+"Qtr12Start":"07/01/2026",
+"Qtr12End":"09/30/2026"
+,
+"Sources":[
+{
+"Status":{
+"SourceID":"TXD053624193",
+"Qtr1Status":"No Violation Identified",
+"Qtr2Status":"No Violation Identified",
+"Qtr3Status":"No Violation Identified",
+"Qtr4Status":"No Violation Identified",
+"Qtr5Status":"No Violation Identified",
+"Qtr6Status":"No Violation Identified",
+"Qtr7Status":"No Violation Identified",
+"Qtr8Status":"No Violation Identified",
+"Qtr9Status":"No Violation Identified",
+"Qtr10Status":"No Violation Identified",
+"Qtr11Status":"No Violation Identified",
+"Qtr12Status":"No Violation Identified"
+}
+,
+"Evaluations":[
+]
+,
+"Violations":[
+]
+}
+,{
+"Status":{
+"SourceID":"TXR000083882",
+"Qtr1Status":"No Violation Identified",
+"Qtr2Status":"No Violation Identified",
+"Qtr3Status":"No Violation Identified",
+"Qtr4Status":"No Violation Identified",
+"Qtr5Status":"No Violation Identified",
+"Qtr6Status":"No Violation Identified",
+"Qtr7Status":"No Violation Identified",
+"Qtr8Status":"No Violation Identified",
+"Qtr9Status":"No Violation Identified",
+"Qtr10Status":"No Violation Identified",
+"Qtr11Status":"No Violation Identified",
+"Qtr12Status":"No Violation Identified"
+}
+,
+"Evaluations":[
+]
+,
+"Violations":[
+]
+}
+]
+}
+,
+"SDWISCompliance":{
+}
+,
+"Watersheds":{
+"WBD12s":[
+{
+"WBD12":"120401040502",
+"WBD12Name":"Lower Sims Bayou",
+"ICISWaterBodyNames":"DIRECTLY HOUSTON SHIP CHANNEL/BUFFALO BAYOU",
+"BeachCloseLastYearFlg":"No",
+"BeachCloseLast2yrsFlg":"No",
+"PossibleImpairingParameters":null,
+"E90PossibleImpairingParameters":null,
+"EsaAquaticSpeciesFlg":"Yes"
+}
+,{
+"WBD12":"120401040703",
+"WBD12Name":"Vince Bayou-Buffalo Bayou",
+"ICISWaterBodyNames":"CITY OF HOUSTON MS4 - SHIP CHANNEL, DIRECTLY HOUSTON SHIP CHANNEL/BUFFALO BAYOU, HOUSTON SHIP CHANNEL/BUFFALO BAYOU TIDAL",
+"BeachCloseLastYearFlg":"No",
+"BeachCloseLast2yrsFlg":"No",
+"PossibleImpairingParameters":null,
+"E90PossibleImpairingParameters":null,
+"EsaAquaticSpeciesFlg":"Yes"
+}
+,{
+"WBD12":"120402040200",
+"WBD12Name":"Dickinson Bayou",
+"ICISWaterBodyNames":"CITY OF HOUSTON MS4 - SHIP CHANNEL",
+"BeachCloseLastYearFlg":"No",
+"BeachCloseLast2yrsFlg":"No",
+"PossibleImpairingParameters":null,
+"E90PossibleImpairingParameters":null,
+"EsaAquaticSpeciesFlg":"Yes"
+}
+]
+}
+,
+"AssessedWaters":{
+"AssessmentUnits":[
+{
+"State":"TX",
+"ReportingCycle":"2024",
+"AssessmentUnitIdentifier":"TX-1104_01",
+"AUURL":"https://mywaterway.epa.gov/waterbody-report/TCEQMAIN/TX-1104_01",
+"AssessmentUnitName":"Dickinson Bayou Above Tidal",
+"WaterCondition":"Impaired - With Restoration Plan",
+"CauseGroupsImpaired":"PATHOGENS",
+"DrinkingWaterUse":null,
+"EcologicalUse":null,
+"AquaticLifeUse":null,
+"FishConsumptionUse":null,
+"RecreationUse":"Not Supporting",
+"OtherUse":null
+}
+,{
+"State":"TX",
+"ReportingCycle":"2024",
+"AssessmentUnitIdentifier":"TX-1007_01",
+"AUURL":"https://mywaterway.epa.gov/waterbody-report/TCEQMAIN/TX-1007_01",
+"AssessmentUnitName":"Houston Ship Channel/Buffalo Bayou Tidal",
+"WaterCondition":"Impaired - 303(d) Listed - With Restoration Plan",
+"CauseGroupsImpaired":"DIOXINS | POLYCHLORINATED BIPHENYLS (PCBS)",
+"DrinkingWaterUse":null,
+"EcologicalUse":"Fully Supporting",
+"AquaticLifeUse":"Fully Supporting",
+"FishConsumptionUse":"Not Supporting",
+"RecreationUse":null,
+"OtherUse":"Fully Supporting"
+}
+,{
+"State":"TX",
+"ReportingCycle":"2024",
+"AssessmentUnitIdentifier":"TX-1007_02",
+"AUURL":"https://mywaterway.epa.gov/waterbody-report/TCEQMAIN/TX-1007_02",
+"AssessmentUnitName":"Houston Ship Channel/Buffalo Bayou Tidal",
+"WaterCondition":"Impaired - 303(d) Listed",
+"CauseGroupsImpaired":"DIOXINS | POLYCHLORINATED BIPHENYLS (PCBS)",
+"DrinkingWaterUse":null,
+"EcologicalUse":"Fully Supporting",
+"AquaticLifeUse":"Fully Supporting",
+"FishConsumptionUse":"Not Supporting",
+"RecreationUse":null,
+"OtherUse":"Fully Supporting"
+}
+]
+}
+,
+"Notices":{
+"ProgramDates":[
+{
+"Program":"RCRA",
+"StartDate":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+]
+,
+"Notice":[
+{
+"Statute":"RCRA",
+"EPASystem":"RCRAInfo",
+"SourceID":"TXD053624193",
+"ActionType":"WRITTEN INFORMAL",
+"LeadAgency":"State",
+"NoticeDate":"04/11/2022",
+"EnfIdentifier":"6",
+"OfficialFlag":"Y"
+}
+]
+}
+,
+"FormalActions":{
+"ProgramDates":[
+{
+"Program":"CAA",
+"StartDate":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+]
+,
+"Action":[
+{
+"Statute":"CAA",
+"SourceID":"TX0000004820100065",
+"ActionType":"Administrative Order",
+"LeadAgency":"State",
+"ActionDate":"07/25/2022",
+"PenaltyAmount":"$27,414",
+"PenaltyDesc":null
+}
+]
+}
+,
+"ICISFormalActions":{
+}
+,
+"CaseFormalActions":{
+"ProgramDates":[
+{
+"Program":"CAA",
+"StartDate":"09/12/2021",
+"EndDate":"09/30/2026"
+}
+]
+,
+"Action":[
+{
+"DataSource":"I",
+"StatuteCode":"CAA",
+"LawSectionCode":"OTHER",
+"CaseID":"TX000A446506372021027",
+"ActivityID":"3602394916",
+"EPASystem":"ICIS-Air",
+"SourceID":"AIR/TX0000004820100065",
+"ActivityName":null,
+"LeadAgency":"State",
+"CaseType":"Administrative - Formal",
+"CaseName":null,
+"IssueDate":"07/25/2022",
+"NumberSettlements":"1",
+"Settlements":{
+"Settlement":[
+{
+"TotalCostRecovery":"$0",
+"SettlementDate":"07/25/2022",
+"FederalPenalty":"$0",
+"StateLocalPenalty":"$27,414",
+"PenaltyAmountCollected":null,
+"SepCost":"$0",
+"CompActionCost":"$0"
+}
+]
+}
+}
+]
+}
+,
+"TRIHistory":{
+"Sources":[
+{
+"ReleaseYear":[
+{
+"SourceID":"77012HLLPT9701M",
+"Year":"2024",
+"TotalAirEmissions":"167,594",
+"SurfaceWaterDischarges":"2,052,702",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"2,220,296",
+"TotalOffSiteReleases":"1,379",
+"TotalReleasesTransfers":"2,221,675"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2023",
+"TotalAirEmissions":"112,720",
+"SurfaceWaterDischarges":"1,963,446",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"2,076,166",
+"TotalOffSiteReleases":"356",
+"TotalReleasesTransfers":"2,076,522"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2022",
+"TotalAirEmissions":"107,811",
+"SurfaceWaterDischarges":"2,058,512",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"2,166,323",
+"TotalOffSiteReleases":"197",
+"TotalReleasesTransfers":"2,166,520"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2021",
+"TotalAirEmissions":"113,590",
+"SurfaceWaterDischarges":"1,845,974",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"1,959,564",
+"TotalOffSiteReleases":"417",
+"TotalReleasesTransfers":"1,959,981"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2020",
+"TotalAirEmissions":"123,194",
+"SurfaceWaterDischarges":"1,755,018",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"1,878,212",
+"TotalOffSiteReleases":"802",
+"TotalReleasesTransfers":"1,879,014"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2019",
+"TotalAirEmissions":"113,725",
+"SurfaceWaterDischarges":"1,193,276",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"1,307,001",
+"TotalOffSiteReleases":"17,781",
+"TotalReleasesTransfers":"1,324,782"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2018",
+"TotalAirEmissions":"63,475",
+"SurfaceWaterDischarges":"951,888",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"1,015,363",
+"TotalOffSiteReleases":"5,972",
+"TotalReleasesTransfers":"1,021,335"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2017",
+"TotalAirEmissions":"154,074",
+"SurfaceWaterDischarges":"238,274",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"392,348",
+"TotalOffSiteReleases":"1,091",
+"TotalReleasesTransfers":"393,439"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2016",
+"TotalAirEmissions":"338,604",
+"SurfaceWaterDischarges":"239,156",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"577,760",
+"TotalOffSiteReleases":"16,269",
+"TotalReleasesTransfers":"594,029"
+}
+,{
+"SourceID":"77012HLLPT9701M",
+"Year":"2015",
+"TotalAirEmissions":"429,539",
+"SurfaceWaterDischarges":"358,116",
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"787,655",
+"TotalOffSiteReleases":"113,524",
+"TotalReleasesTransfers":"901,179"
+}
+]
+}
+,{
+"ReleaseYear":[
+{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2023",
+"TotalAirEmissions":"24,093",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"24,093",
+"TotalOffSiteReleases":null,
+"TotalReleasesTransfers":"24,093"
+}
+,{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2022",
+"TotalAirEmissions":"18,748",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"18,748",
+"TotalOffSiteReleases":null,
+"TotalReleasesTransfers":"18,748"
+}
+,{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2021",
+"TotalAirEmissions":"21,770",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"21,770",
+"TotalOffSiteReleases":null,
+"TotalReleasesTransfers":"21,770"
+}
+,{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2020",
+"TotalAirEmissions":"21,387",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"21,387",
+"TotalOffSiteReleases":null,
+"TotalReleasesTransfers":"21,387"
+}
+,{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2019",
+"TotalAirEmissions":"22,235",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"22,235",
+"TotalOffSiteReleases":null,
+"TotalReleasesTransfers":"22,235"
+}
+,{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2018",
+"TotalAirEmissions":"27,481",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"27,481",
+"TotalOffSiteReleases":"473",
+"TotalReleasesTransfers":"27,954"
+}
+,{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2017",
+"TotalAirEmissions":"38,678",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"38,678",
+"TotalOffSiteReleases":"97",
+"TotalReleasesTransfers":"38,775"
+}
+,{
+"SourceID":"7701WVLRNR971MA",
+"Year":"2016",
+"TotalAirEmissions":"18,347",
+"SurfaceWaterDischarges":null,
+"UndergroundInjections":null,
+"ReleasesToLand":null,
+"OffSiteTransfersPOTWS":"0",
+"TotalOnSiteReleases":"18,347",
+"TotalOffSiteReleases":null,
+"TotalReleasesTransfers":"18,347"
+}
+]
+}
+]
+}
+,
+"TRIReleases":{
+"TRIFacilities":"77012HLLPT9701M, 7701WVLRNR971MA",
+"Header":[
+{
+"Year10":"2024",
+"Year9":"2023",
+"Year8":"2022",
+"Year7":"2021",
+"Year6":"2020",
+"Year5":"2019",
+"Year4":"2018",
+"Year3":"2017",
+"Year2":"2016",
+"Year1":"2015"
+}
+]
+,
+"Chemicals":[
+{
+"ChemicalName":"1,2,4-Trimethylbenzene",
+"Year10Pounds":"1,449",
+"Year9Pounds":"1,192",
+"Year8Pounds":"972",
+"Year7Pounds":"1,065",
+"Year6Pounds":"1,393",
+"Year5Pounds":"1,240",
+"Year4Pounds":"2,329",
+"Year3Pounds":"3,366",
+"Year2Pounds":"1,945",
+"Year1Pounds":"2,420"
+}
+,
+{
+"ChemicalName":"1,3-Butadiene",
+"Year10Pounds":"734",
+"Year9Pounds":"823",
+"Year8Pounds":"901",
+"Year7Pounds":"906",
+"Year6Pounds":"893",
+"Year5Pounds":"688",
+"Year4Pounds":"821",
+"Year3Pounds":"646",
+"Year2Pounds":"563",
+"Year1Pounds":"605"
+}
+,
+{
+"ChemicalName":"Ammonia",
+"Year10Pounds":"29,260",
+"Year9Pounds":"24,559",
+"Year8Pounds":"25,127",
+"Year7Pounds":"27,291",
+"Year6Pounds":"30,068",
+"Year5Pounds":"23,687",
+"Year4Pounds":"24,013",
+"Year3Pounds":"25,650",
+"Year2Pounds":"25,249",
+"Year1Pounds":"30,955"
+}
+,
+{
+"ChemicalName":"Anthracene",
+"Year10Pounds":"339",
+"Year9Pounds":"2",
+"Year8Pounds":"2",
+"Year7Pounds":"3",
+"Year6Pounds":"11",
+"Year5Pounds":"18",
+"Year4Pounds":"6",
+"Year3Pounds":"0",
+"Year2Pounds":"5",
+"Year1Pounds":"1"
+}
+,
+{
+"ChemicalName":"Benzene",
+"Year10Pounds":"4,940",
+"Year9Pounds":"4,587",
+"Year8Pounds":"3,836",
+"Year7Pounds":"4,578",
+"Year6Pounds":"4,829",
+"Year5Pounds":"5,234",
+"Year4Pounds":"5,992",
+"Year3Pounds":"8,571",
+"Year2Pounds":"5,382",
+"Year1Pounds":"6,719"
+}
+,
+{
+"ChemicalName":"Benzo[g,h,i]perylene",
+"Year10Pounds":"8",
+"Year9Pounds":"1",
+"Year8Pounds":"1",
+"Year7Pounds":"1",
+"Year6Pounds":"1",
+"Year5Pounds":"1",
+"Year4Pounds":"0",
+"Year3Pounds":"0",
+"Year2Pounds":"0",
+"Year1Pounds":"0"
+}
+,
+{
+"ChemicalName":"Carbon disulfide",
+"Year10Pounds":"243",
+"Year9Pounds":"636",
+"Year8Pounds":"1,271",
+"Year7Pounds":"1,195",
+"Year6Pounds":"627",
+"Year5Pounds":"522",
+"Year4Pounds":null,
+"Year3Pounds":"603",
+"Year2Pounds":"726",
+"Year1Pounds":"1,383"
+}
+,
+{
+"ChemicalName":"Carbonyl sulfide",
+"Year10Pounds":"1,041",
+"Year9Pounds":"32",
+"Year8Pounds":"45",
+"Year7Pounds":"42",
+"Year6Pounds":"43",
+"Year5Pounds":"34",
+"Year4Pounds":"55",
+"Year3Pounds":"48",
+"Year2Pounds":"41",
+"Year1Pounds":"39"
+}
+,
+{
+"ChemicalName":"Cobalt compounds",
+"Year10Pounds":"42",
+"Year9Pounds":null,
+"Year8Pounds":null,
+"Year7Pounds":null,
+"Year6Pounds":null,
+"Year5Pounds":"7,024",
+"Year4Pounds":null,
+"Year3Pounds":"30",
+"Year2Pounds":"41",
+"Year1Pounds":"546"
+}
+,
+{
+"ChemicalName":"Cresol (mixed isomers)",
+"Year10Pounds":"1",
+"Year9Pounds":"4",
+"Year8Pounds":"5",
+"Year7Pounds":"31",
+"Year6Pounds":"33",
+"Year5Pounds":"36",
+"Year4Pounds":"49",
+"Year3Pounds":"33",
+"Year2Pounds":"25",
+"Year1Pounds":"17"
+}
+,
+{
+"ChemicalName":"Cumene",
+"Year10Pounds":"241",
+"Year9Pounds":"172",
+"Year8Pounds":"154",
+"Year7Pounds":"157",
+"Year6Pounds":"192",
+"Year5Pounds":"232",
+"Year4Pounds":"274",
+"Year3Pounds":"327",
+"Year2Pounds":"173",
+"Year1Pounds":"209"
+}
+,
+{
+"ChemicalName":"Cyanide compounds",
+"Year10Pounds":null,
+"Year9Pounds":null,
+"Year8Pounds":null,
+"Year7Pounds":null,
+"Year6Pounds":"624",
+"Year5Pounds":"524",
+"Year4Pounds":"664",
+"Year3Pounds":"571",
+"Year2Pounds":"725",
+"Year1Pounds":"1,460"
+}
+,
+{
+"ChemicalName":"Cyclohexane",
+"Year10Pounds":"7,486",
+"Year9Pounds":"6,698",
+"Year8Pounds":"5,312",
+"Year7Pounds":"5,703",
+"Year6Pounds":"6,110",
+"Year5Pounds":"7,642",
+"Year4Pounds":"7,892",
+"Year3Pounds":"12,788",
+"Year2Pounds":"6,542",
+"Year1Pounds":"7,186"
+}
+,
+{
+"ChemicalName":"Ethylbenzene",
+"Year10Pounds":"1,419",
+"Year9Pounds":"1,314",
+"Year8Pounds":"1,186",
+"Year7Pounds":"1,444",
+"Year6Pounds":"1,700",
+"Year5Pounds":"1,500",
+"Year4Pounds":"2,422",
+"Year3Pounds":"3,056",
+"Year2Pounds":"5,896",
+"Year1Pounds":"2,778"
+}
+,
+{
+"ChemicalName":"Ethylene",
+"Year10Pounds":"620",
+"Year9Pounds":"973",
+"Year8Pounds":"1,397",
+"Year7Pounds":"1,495",
+"Year6Pounds":"957",
+"Year5Pounds":"2,570",
+"Year4Pounds":"5,269",
+"Year3Pounds":"901",
+"Year2Pounds":"1,006",
+"Year1Pounds":"944"
+}
+,
+{
+"ChemicalName":"Hydrochloric acid (acid aerosols including mists, vapors, gas, fog, and other airborne forms of any particle size)",
+"Year10Pounds":"0",
+"Year9Pounds":"0",
+"Year8Pounds":"0",
+"Year7Pounds":"0",
+"Year6Pounds":"0",
+"Year5Pounds":"0",
+"Year4Pounds":"0",
+"Year3Pounds":"0",
+"Year2Pounds":"94",
+"Year1Pounds":"185"
+}
+,
+{
+"ChemicalName":"Hydrogen cyanide",
+"Year10Pounds":"103,731",
+"Year9Pounds":"72,051",
+"Year8Pounds":"68,201",
+"Year7Pounds":"64,080",
+"Year6Pounds":"71,493",
+"Year5Pounds":"59,154",
+"Year4Pounds":null,
+"Year3Pounds":"85,184",
+"Year2Pounds":"256,980",
+"Year1Pounds":"316,340"
+}
+,
+{
+"ChemicalName":"Hydrogen sulfide",
+"Year10Pounds":"126",
+"Year9Pounds":"333",
+"Year8Pounds":"268",
+"Year7Pounds":"2,634",
+"Year6Pounds":"2,597",
+"Year5Pounds":"2,184",
+"Year4Pounds":"3,748",
+"Year3Pounds":"4,996",
+"Year2Pounds":"1,234",
+"Year1Pounds":"2,298"
+}
+,
+{
+"ChemicalName":"Lead",
+"Year10Pounds":null,
+"Year9Pounds":null,
+"Year8Pounds":null,
+"Year7Pounds":null,
+"Year6Pounds":null,
+"Year5Pounds":"333",
+"Year4Pounds":"270",
+"Year3Pounds":"591",
+"Year2Pounds":"629",
+"Year1Pounds":"1,071"
+}
+,
+{
+"ChemicalName":"Lead compounds",
+"Year10Pounds":"100",
+"Year9Pounds":"56",
+"Year8Pounds":"2",
+"Year7Pounds":"222",
+"Year6Pounds":"330",
+"Year5Pounds":null,
+"Year4Pounds":null,
+"Year3Pounds":null,
+"Year2Pounds":null,
+"Year1Pounds":null
+}
+,
+{
+"ChemicalName":"Mercury",
+"Year10Pounds":null,
+"Year9Pounds":"0",
+"Year8Pounds":"0",
+"Year7Pounds":"0",
+"Year6Pounds":"0",
+"Year5Pounds":"0",
+"Year4Pounds":"<0.5",
+"Year3Pounds":"0",
+"Year2Pounds":"0",
+"Year1Pounds":null
+}
+,
+{
+"ChemicalName":"Mercury compounds",
+"Year10Pounds":"8",
+"Year9Pounds":"5",
+"Year8Pounds":"0",
+"Year7Pounds":"3",
+"Year6Pounds":"8",
+"Year5Pounds":"49",
+"Year4Pounds":"8",
+"Year3Pounds":"59",
+"Year2Pounds":"12",
+"Year1Pounds":"26"
+}
+,
+{
+"ChemicalName":"Methanol",
+"Year10Pounds":"154",
+"Year9Pounds":"1",
+"Year8Pounds":"1",
+"Year7Pounds":"11",
+"Year6Pounds":"14",
+"Year5Pounds":"15",
+"Year4Pounds":"20",
+"Year3Pounds":"18",
+"Year2Pounds":"11",
+"Year1Pounds":"21"
+}
+,
+{
+"ChemicalName":"Molybdenum trioxide",
+"Year10Pounds":"1,804",
+"Year9Pounds":"1,567",
+"Year8Pounds":null,
+"Year7Pounds":null,
+"Year6Pounds":null,
+"Year5Pounds":"1,310",
+"Year4Pounds":"6,500",
+"Year3Pounds":"1,216",
+"Year2Pounds":"R",
+"Year1Pounds":"39,251"
+}
+,
+{
+"ChemicalName":"Naphthalene",
+"Year10Pounds":"258",
+"Year9Pounds":"169",
+"Year8Pounds":"139",
+"Year7Pounds":"264",
+"Year6Pounds":"402",
+"Year5Pounds":"551",
+"Year4Pounds":"646",
+"Year3Pounds":"887",
+"Year2Pounds":"662",
+"Year1Pounds":"623"
+}
+,
+{
+"ChemicalName":"Nickel compounds",
+"Year10Pounds":null,
+"Year9Pounds":"190",
+"Year8Pounds":null,
+"Year7Pounds":"121",
+"Year6Pounds":"155",
+"Year5Pounds":"8,714",
+"Year4Pounds":"208",
+"Year3Pounds":"224",
+"Year2Pounds":"147",
+"Year1Pounds":"63,598"
+}
+,
+{
+"ChemicalName":"Nitrate compounds (water dissociable; reportable only when in aqueous solution)",
+"Year10Pounds":"2,051,661",
+"Year9Pounds":"1,962,354",
+"Year8Pounds":"2,057,066",
+"Year7Pounds":"1,844,037",
+"Year6Pounds":"1,752,891",
+"Year5Pounds":"1,191,331",
+"Year4Pounds":"950,000",
+"Year3Pounds":"236,983",
+"Year2Pounds":"238,210",
+"Year1Pounds":"357,677"
+}
+,
+{
+"ChemicalName":"Ozone",
+"Year10Pounds":"198",
+"Year9Pounds":null,
+"Year8Pounds":null,
+"Year7Pounds":"180",
+"Year6Pounds":"3",
+"Year5Pounds":"3",
+"Year4Pounds":"9",
+"Year3Pounds":"175",
+"Year2Pounds":"30,078",
+"Year1Pounds":"29,344"
+}
+,
+{
+"ChemicalName":"Phenanthrene",
+"Year10Pounds":"36",
+"Year9Pounds":"34",
+"Year8Pounds":"23",
+"Year7Pounds":"90",
+"Year6Pounds":"157",
+"Year5Pounds":"222",
+"Year4Pounds":"111",
+"Year3Pounds":"84",
+"Year2Pounds":"76",
+"Year1Pounds":"104"
+}
+,
+{
+"ChemicalName":"Phenol",
+"Year10Pounds":"890",
+"Year9Pounds":"153",
+"Year8Pounds":"119",
+"Year7Pounds":"129",
+"Year6Pounds":"506",
+"Year5Pounds":"573",
+"Year4Pounds":"524",
+"Year3Pounds":"512",
+"Year2Pounds":"394",
+"Year1Pounds":"391"
+}
+,
+{
+"ChemicalName":"Polycyclic aromatic compounds",
+"Year10Pounds":"1",
+"Year9Pounds":null,
+"Year8Pounds":null,
+"Year7Pounds":null,
+"Year6Pounds":"124",
+"Year5Pounds":"102",
+"Year4Pounds":"342",
+"Year3Pounds":"232",
+"Year2Pounds":"261",
+"Year1Pounds":"615"
+}
+,
+{
+"ChemicalName":"Propylene",
+"Year10Pounds":"3,529",
+"Year9Pounds":"5,040",
+"Year8Pounds":"3,918",
+"Year7Pounds":"7,645",
+"Year6Pounds":"3,182",
+"Year5Pounds":"9,895",
+"Year4Pounds":"9,014",
+"Year3Pounds":"4,043",
+"Year2Pounds":"3,993",
+"Year1Pounds":"2,199"
+}
+,
+{
+"ChemicalName":"Styrene",
+"Year10Pounds":"159",
+"Year9Pounds":"151",
+"Year8Pounds":"75",
+"Year7Pounds":"76",
+"Year6Pounds":"98",
+"Year5Pounds":"34",
+"Year4Pounds":"173",
+"Year3Pounds":"131",
+"Year2Pounds":"284",
+"Year1Pounds":"481"
+}
+,
+{
+"ChemicalName":"Sulfuric acid (acid aerosols including mists, vapors, gas, fog, and other airborne forms of any particle size)",
+"Year10Pounds":"101",
+"Year9Pounds":"221",
+"Year8Pounds":"555",
+"Year7Pounds":"820",
+"Year6Pounds":"1,001",
+"Year5Pounds":"609",
+"Year4Pounds":"105",
+"Year3Pounds":"765",
+"Year2Pounds":"1,065",
+"Year1Pounds":"829"
+}
+,
+{
+"ChemicalName":"Toluene",
+"Year10Pounds":"6,133",
+"Year9Pounds":"6,294",
+"Year8Pounds":"5,554",
+"Year7Pounds":"6,937",
+"Year6Pounds":"7,354",
+"Year5Pounds":"7,557",
+"Year4Pounds":"9,575",
+"Year3Pounds":"18,214",
+"Year2Pounds":"8,661",
+"Year1Pounds":"10,731"
+}
+,
+{
+"ChemicalName":"Vanadium compounds",
+"Year10Pounds":null,
+"Year9Pounds":null,
+"Year8Pounds":null,
+"Year7Pounds":null,
+"Year6Pounds":null,
+"Year5Pounds":"22",
+"Year4Pounds":"29",
+"Year3Pounds":"196",
+"Year2Pounds":"359",
+"Year1Pounds":"5,555"
+}
+,
+{
+"ChemicalName":"Xylene (mixed isomers)",
+"Year10Pounds":"4,357",
+"Year9Pounds":"4,336",
+"Year8Pounds":"3,777",
+"Year7Pounds":"4,068",
+"Year6Pounds":"5,144",
+"Year5Pounds":"5,163",
+"Year4Pounds":"7,811",
+"Year3Pounds":"9,324",
+"Year2Pounds":"15,248",
+"Year1Pounds":"8,698"
+}
+,
+{
+"ChemicalName":"n-Hexane",
+"Year10Pounds":"607",
+"Year9Pounds":"6,668",
+"Year8Pounds":"5,362",
+"Year7Pounds":"6,523",
+"Year6Pounds":"7,461",
+"Year5Pounds":"8,245",
+"Year4Pounds":"10,410",
+"Year3Pounds":"11,790",
+"Year2Pounds":"5,659",
+"Year1Pounds":"5,880"
+}
+]
+}
+,
+"DmrPollLoads":{
+"Header":[
+{
+"Year5":"2026",
+"Year4":"2025",
+"Year3":"2024",
+"Year2":"2023",
+"Year1":"2022"
+}
+]
+,
+"Loads":[
+{
+"SourceID":"TX0002976",
+"LoadingsType":"DMR Pollutant Loadings (lb/year)",
+"Year5Value":"1,152,769",
+"Year4Value":"1,443,248",
+"Year3Value":"1,287,935",
+"Year2Value":"1,142,989",
+"Year1Value":"1,199,849"
+}
+,
+{
+"SourceID":"TX0002976",
+"LoadingsType":"DMR Pollutant Loadings - Load Over Limit (lb/year)",
+"Year5Value":"0",
+"Year4Value":"16,545",
+"Year3Value":"14,781",
+"Year2Value":"0",
+"Year1Value":"0"
+}
+,
+{
+"SourceID":"TX0002976",
+"LoadingsType":"DMR Conventional Loadings (lb/year)",
+"Year5Value":null,
+"Year4Value":"204,906",
+"Year3Value":null,
+"Year2Value":null,
+"Year1Value":null
+}
+,
+{
+"SourceID":"TX0002976",
+"LoadingsType":"DMR Conventional Loadings - Load Over Limit (lb/year)",
+"Year5Value":null,
+"Year4Value":"5,428",
+"Year3Value":null,
+"Year2Value":null,
+"Year1Value":null
+}
+,
+{
+"SourceID":"TX0002976",
+"LoadingsType":"DMR Toxic-Weighted Loadings (lb-eq/year)",
+"Year5Value":"500",
+"Year4Value":"1,511",
+"Year3Value":"1,434",
+"Year2Value":"1,331",
+"Year1Value":"1,288"
+}
+,
+{
+"SourceID":"TX0002976",
+"LoadingsType":"DMR Toxic-Weighted Loadings - Load Over Limit (lb-eq/year)",
+"Year5Value":"0",
+"Year4Value":"0",
+"Year3Value":"0",
+"Year2Value":"0",
+"Year1Value":"0"
+}
+]
+}
+,
+"RCRAWasteHistory":{
+"Header":[
+{
+"Year4":"2026",
+"Year3":"2025",
+"Year2":"2024",
+"Year1":"2023"
+}
+]
+,
+"WasteHistory":[
+{
+"SourceID":"TXD053624193",
+"WasteType":"Hazardous Waste",
+"Year4Value":"135,323",
+"Year3Value":"267,327",
+"Year2Value":"6,165,579",
+"Year1Value":"1,179,567"
+}
+,
+{
+"SourceID":"TXD053624193",
+"WasteType":"Acute Hazardous Waste",
+"Year4Value":"0",
+"Year3Value":"0",
+"Year2Value":"0",
+"Year1Value":"0"
+}
+,
+{
+"SourceID":"TXD053624193",
+"WasteType":"Pharmaceutical Hazardous Waste",
+"Year4Value":"0",
+"Year3Value":"0",
+"Year2Value":"0",
+"Year1Value":"0"
+}
+]
+}
+,
+"AirQuality":{
+"Ozone8hr1997Area":null,
+"Ozone8hr2008Area":"Houston-Galveston-Brazoria TX",
+"Ozone8hr2015Area":"Houston-Galveston-Brazoria TX",
+"Lead1978Area":null,
+"Lead2008Area":null,
+"CarbonMonoxide1971Area":null,
+"NitrogenDioxide1971Area":null,
+"SulfurDioxide1971Area":null,
+"SulfurDioxide2010Area":null,
+"ParticulateMatter1987Area":null,
+"ParticulateMatter1997Area":null,
+"ParticulateMatter2006Area":null,
+"ParticulateMatter2012Area":null
+}
+,
+"AirQualityNAAs":{
+"AirQualityNAA":[
+{
+"Pollutant":"Ozone",
+"WithinNAStatusArea":"Yes",
+"NAStatusStandards":"1-Hour Ozone (1979); 8-Hour Ozone (2008); 8-Hour Ozone (2015)",
+"WithinMaintStatusArea":"No",
+"MaintStatusStandards":null
+}
+,{
+"Pollutant":"Lead",
+"WithinNAStatusArea":"No",
+"NAStatusStandards":null,
+"WithinMaintStatusArea":"No",
+"MaintStatusStandards":null
+}
+,{
+"Pollutant":"Particulate Matter",
+"WithinNAStatusArea":"No",
+"NAStatusStandards":null,
+"WithinMaintStatusArea":"No",
+"MaintStatusStandards":null
+}
+,{
+"Pollutant":"Carbon Monoxide",
+"WithinNAStatusArea":"No",
+"NAStatusStandards":null,
+"WithinMaintStatusArea":"No",
+"MaintStatusStandards":null
+}
+,{
+"Pollutant":"Sulfur Dioxide",
+"WithinNAStatusArea":"No",
+"NAStatusStandards":null,
+"WithinMaintStatusArea":"No",
+"MaintStatusStandards":null
+}
+]
+}
+,
+"SiteVisits":{
+}
+,
+"SanitarySurveys":{
+}
+,
+"ViolationsEnforcementActions":{
+}
+,
+"LeadAndCopperRule5Yr":{
+}
+,
+"Tribes":[
+]
+,
+"WebFireDocuments":[
+{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2026-07-28",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=87241417"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2026-07-24",
+"DocumentName":"1H26 63.7951f_semiannual_compliance_report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=87229326"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2026-04-21",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=87064510"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2026-01-29",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86928685"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO ENERGY PARTNERS LP",
+"ReportSubmissionDate":"2026-01-27",
+"DocumentName":"2025_63-ddddd-63.7550c_consolidated_compliance_report_template.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86918602"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2026-01-27",
+"DocumentName":"2H25 63.7951f_semiannual_compliance_report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86918021"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-10-28",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86609884"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-07-28",
+"DocumentName":"1H25 63.7951f_semiannual_compliance_report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86367432"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-07-28",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86367424"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-04-23",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86237942"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-01-27",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86152589"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-01-27",
+"DocumentName":"2H24 63.7951f_semiannual_compliance_report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86152661"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-01-27",
+"DocumentName":"63.7550c1-2024.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86152581"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2024-11-26",
+"DocumentName":"FCCU Stack PM_11-15-2024_16-12_PKG.zip",
+"ReportDocType":"ST",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86133306"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2024-11-26",
+"DocumentName":"FCCU Stack PM_11-15-2024_16-12_PKG.zip",
+"ReportDocType":"ST",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86133313"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2024-10-21",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85932287"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2024-07-23",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85848288"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2024-04-24",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85814018"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2024-01-26",
+"DocumentName":"4Q23 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85767320"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2024-01-26",
+"DocumentName":"63.7550c1.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85767316"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2023-11-09",
+"DocumentName":"3Q23 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85733540"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2023-07-20",
+"DocumentName":"2Q23 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85455780"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2023-07-03",
+"DocumentName":"VHR1H2023 63.7951f.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85450687"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2023-04-25",
+"DocumentName":"1Q23 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85434043"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2023-01-27",
+"DocumentName":"63.7550c1.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85404791"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2023-01-27",
+"DocumentName":"4Q22 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=85404787"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2022-10-27",
+"DocumentName":"3Q22 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=84799733"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2022-08-02",
+"DocumentName":"2Q22 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81507309"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2022-05-03",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81469790"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2022-01-28",
+"DocumentName":"4Q21 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81433431"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2022-01-28",
+"DocumentName":"63.7550c1.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81433435"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2021-10-28",
+"DocumentName":"3Q21 CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81289009"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2021-07-29",
+"DocumentName":"CEDRI Report.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81159282"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2021-04-29",
+"DocumentName":"CEDRIReport (1).zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81136902"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2021-01-27",
+"DocumentName":"FLM Valero Houston 2020 Q4.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81100513"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2021-01-27",
+"DocumentName":"Copy of 63.7550c1_compliance_report_for_facilities_subject_to_the_requirements_of_a_tune_up_-_bulk_upload_template.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81100517"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-10-27",
+"DocumentName":"FLM Valero Houston 2020 Q3.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80849297"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-08-11",
+"DocumentName":"FLM Valero Houston 2020 Q2.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80790561"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-05-06",
+"DocumentName":"63.655h_8_FencelineMonitoringReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80676551"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-02-12",
+"DocumentName":"FLM Valero Houston 2019 Q4.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80651249"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-01-27",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3).xml",
+"ReportDocType":"AER",
+"DocumentType":"XML",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80631667"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-01-27",
+"DocumentName":"DDDDDTuneupBulkUpload.xlsx",
+"ReportDocType":"AER",
+"DocumentType":"XLSX",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80631669"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-01-27",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3).pdf",
+"ReportDocType":"AER",
+"DocumentType":"PDF",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80631668"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-11-18",
+"DocumentName":"63.655h_8_FencelineMonitoringReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80441210"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-11-15",
+"DocumentName":"63.655h_8_FencelineMonitoringReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80440706"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-11-14",
+"DocumentName":"63.655h_8_FencelineMonitoringReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80440132"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-11-14",
+"DocumentName":"63.655h_8_FencelineMonitoringReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80440278"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-09-20",
+"DocumentName":"Valero FCC Unit Stack_09-17-2019_12-02_PKG.zip",
+"ReportDocType":"ST",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80430509"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-08-12",
+"DocumentName":"63.655h_8_FencelineMonitoringReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80412009"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-07-24",
+"DocumentName":"Valero Houston TX FMP.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80364521"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-05-10",
+"DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348724"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-05-10",
+"DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348736"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-05-10",
+"DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348720"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-05-10",
+"DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348732"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-05-10",
+"DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348728"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-01-25",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .xml",
+"ReportDocType":"AER",
+"DocumentType":"XML",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80067697"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-01-25",
+"DocumentName":"DDDDDTuneupBulkUpload.xlsx",
+"ReportDocType":"AER",
+"DocumentType":"XLSX",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80067699"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-01-25",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .pdf",
+"ReportDocType":"AER",
+"DocumentType":"PDF",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80067698"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2018-12-07",
+"DocumentName":"Valero Houston TX FMP.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=79839822"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2018-09-07",
+"DocumentName":"Houston Refining Houston TX FMP Public Nov2015.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=7873812"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2018-01-18",
+"DocumentName":"2017ValeroHoustonAnnualReport.pdf",
+"ReportDocType":"AER",
+"DocumentType":"PDF",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=2355864"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2018-01-18",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .xml",
+"ReportDocType":"AER",
+"DocumentType":"XML",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=2355862"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2018-01-18",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .pdf",
+"ReportDocType":"AER",
+"DocumentType":"PDF",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=2355863"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2017-10-05",
+"DocumentName":"FCCU HCN Test_10-05-2017_08-57_PKG.zip",
+"ReportDocType":"ST",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80283345"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2017-01-20",
+"DocumentName":"Boiler MACT Submittal.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=1180201"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2017-01-20",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .xml",
+"ReportDocType":"AER",
+"DocumentType":"XML",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=1180199"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2017-01-20",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .pdf",
+"ReportDocType":"AER",
+"DocumentType":"PDF",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=1180200"
+}
+]
+,
+"CAEDDocuments":[
+{
+"RegistryId":"110000460885",
+"FacilityName":"Valero Refining – Texas, LP.",
+"PublishDate":"2023-08-08T04:00:00Z",
+"EPAProgram":"Air",
+"DocumentLink":"https://caedtor.epa.gov/ords/caedtor/tocar/resp/attach/8947"
+}
+]
+,
+"SpatialMetadata":{
+"RegistryID":"110000460885",
+"Latitude83":"29.722274",
+"Longitude83":"-95.254401",
+"CollectionMethod":null,
+"ReferencePoint":"CENTER OF A FACILITY OR STATION",
+"CalculatedAccuracy":"17600 Meters",
+"CoordinateSourceSystem":"EIS",
+"CoordinateSourceSystemId":"4182511"
+}
+,
+"ACS2023Demographics":{
+"Radius":"1",
+"CenterLatitude":"29.722274",
+"CenterLongitude":"-95.254401",
+"TotalAreaSQMiles":"3.14 sq.mi.",
+"LandArea":"90%",
+"WaterArea":"10%",
+"PopulationDensity":"1,678/sq.mi.",
+"PercentMinority":"88%",
+"Households":"1,660",
+"HousingUnits":"1,782",
+"HouseholdsPublicAssistance":"5",
+"PersonsBelowPovertyLevel":"1,456",
+"PercentBelowPovertyLevel":"31%",
+"PersonsBelowLowIncomeLevel":"2,269",
+"PercentBelowLowIncomeLevel":"48%",
+"ACSPopulation":"4,758",
+"ACSPovertyBasis":"4,740",
+"PercentPeopleOfColor":"88%",
+"White":"1,223 (26%)",
+"AfricanAmerican":"1,722 (36%)",
+"HispanicOrigin":"2,483 (52%)",
+"Asian":"30 (1%)",
+"HawaiinPacificIslander":"0 (0%)",
+"AmericanIndian":"20 (0%)",
+"OtherMultiracial":"1,114 (23%)",
+"Child":"283 (6%)",
+"Minors":"1,319 (28%)",
+"Adults":"3,439 (72%)",
+"Seniors":"448 (9%)",
+"Less9thGrade":"364 (12.35%)",
+"Grades9to12":"270 (9.16%)",
+"HSDiploma":"1,005 (34.1%)",
+"SomeCollege":"684 (23.21%)",
+"BSBA":"411 (13.95%)",
+"IncomeLess15k":"165 (9.95%)",
+"Income15to25k":"193 (11.64%)",
+"Income25to50k":"407 (24.55%)",
+"Income50to75k":"271 (16.34%)",
+"Income75kPlus":"622 (37.52%)"
+}
+,
+"SABACSDemographics":{
+}
+,
+"ACS2024Demographics":{
+"Radius":"1",
+"CenterLatitude":"29.722274",
+"CenterLongitude":"-95.254401",
+"TotalAreaSQMiles":"3.14 sq.mi.",
+"LandArea":"90%",
+"WaterArea":"10%",
+"PopulationDensity":"715/sq.mi.",
+"PercentMinority":"94%",
+"Households":"724",
+"HousingUnits":"860",
+"HouseholdsPublicAssistance":"34",
+"PersonsBelowPovertyLevel":"542",
+"PercentBelowPovertyLevel":"27%",
+"PersonsBelowLowIncomeLevel":"1,032",
+"PercentBelowLowIncomeLevel":"51%",
+"ACSPopulation":"2,026",
+"ACSPovertyBasis":"2,016",
+"PercentPeopleOfColor":"94%",
+"White":"417 (21%)",
+"AfricanAmerican":"302 (15%)",
+"HispanicOrigin":"1,602 (79%)",
+"Asian":"0 (0%)",
+"HawaiinPacificIslander":"0 (0%)",
+"AmericanIndian":"13 (1%)",
+"OtherMultiracial":"287 (14%)",
+"Child":"155 (8%)",
+"Minors":"557 (27%)",
+"Adults":"1,469 (73%)",
+"Seniors":"322 (16%)",
+"Less9thGrade":"321 (23.62%)",
+"Grades9to12":"212 (15.6%)",
+"HSDiploma":"492 (36.2%)",
+"SomeCollege":"178 (13.1%)",
+"BSBA":"122 (8.98%)",
+"IncomeLess15k":"89 (12.34%)",
+"Income15to25k":"101 (14.01%)",
+"Income25to50k":"183 (25.38%)",
+"Income50to75k":"200 (27.74%)",
+"Income75kPlus":"148 (20.53%)"
+}
+,
+"SABACSDemographics":{
+}
+,
+"MinorTTDemographics":{
+}
+,
+"AWSDocs":{
+}
+,
+"Industries":"Merchant Wholesalers, Nondurable Goods",
+"MapOutput":{
+"IconBaseURL":"https://echo.epa.gov/themes/custom/echo/images/map/",
+"PopUpBaseURL":"https://echodata.epa.gov/echo/echo_rest_services.pop_up?p_id=",
+"CenterLatitude":"29.722274",
+"CenterLongitude":"-95.254401",
+"LocationalDataSource":"EIS",
+"EstimatedAccuracyMeters":"17600",
+"ReferencePoint":"CENTER OF A FACILITY OR STATION",
+"MapData":[
+{
+"LAT":"29.722274",
+"LON":"-95.254401",
+"ICON":"MULT-IC-MJ-1.png",
+"TYPE":"Facility",
+"NAME":"HOUSTON REFINERY",
+"PUV":"110000460885"
+}
+]
+}
+}
+}

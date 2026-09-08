@@ -1,0 +1,21 @@
+{
+"Results":{
+"Message":"Success",
+"Version":"ALL DATA v2017-06-16 0923",
+"QueryRows":"1686",
+"IndianCountryRows":"0",
+"SVRows":"10",
+"CVRows":"41",
+"V3Rows":"75",
+"FEARows":"40",
+"InfFEARows":"43",
+"INSPRows":"89",
+"TotalPenalties":"$20,254,146",
+"CAARows":"124",
+"CWARows":"803",
+"RCRRows":"924",
+"TRIRows":"51",
+"BadSystemIDs":null,
+"QueryID":"613"
+}
+}

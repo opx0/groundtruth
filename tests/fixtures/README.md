@@ -44,3 +44,38 @@ are null on real rows in `sems/arcgis-5mi-houston.json`.
 ECHO and the authoritative FEMA NFHL endpoint both refuse connections from the
 machine this was built on. See the blocker note in `.dev/PLAN.md`.
 AQS and AirNow need free keys that have not been registered.
+
+## ECHO, recorded 2026-09-16
+
+ECHO refused this machine on the first attempts and then answered once the
+request carried retries and a longer timeout. It is reachable; it is just slow
+and flaky to open. The capture script keeps the retries for that reason.
+
+**ECHO hides the longitude unless you ask for it.** `FAC_LONG` is column 18 of
+ECHO's own metadata and it is absent from the default response, while `FacLat`
+is present. A facility then has a latitude, no longitude, and no computable
+distance. `facilities-page-quarter-mi.json` was captured with an explicit
+`qcolumns` list for that reason, and the capture script now always sends one.
+
+**Everything is a string.** `FacLat` is `"29.72263"`, `QueryRows` is `"7"`, and
+a penalty is `"$0"` with the currency symbol attached. Nothing is a JSON number.
+
+**Dates are US order.** `FacDateLastFormalAction` is `08/12/2024`, meaning
+August, not December.
+
+**Two calls, and the second word differs.** `get_facilities` returns counts and
+a `QueryID` with `Message: "Success"`. `get_qid` returns the rows with
+`Message: "Working"`. Neither word means failure.
+
+**Zero rows is still Success.** `facilities-none-nevada.json` has
+`QueryRows: "0"` and `Message: "Success"`, which is the no-data state.
+
+**Errors come back 200 again.** `error-unknown-queryid.json` is an HTTP 200
+whose body is `Results.Error.ErrorMessage`. That is a different error shape
+from the ArcGIS one above, so the two adapters cannot share a check.
+
+## FEMA NFHL, still not recorded
+
+`hazards.fema.gov` resets the TLS handshake before any HTTP exchange, from
+every route tried. Unlike ECHO this is not flakiness and retries do not help.
+`scripts/setup.sh` walks through capturing it from a US-reachable host.

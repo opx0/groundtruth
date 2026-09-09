@@ -67,3 +67,33 @@ Work is assigned by how much judgment it needs, not by size.
   git remote so a CI runner can record the fixtures.
 - AQS and AirNow need free keys the operator must register. Both adapters are
   built and tested against fixtures meanwhile.
+
+## Queued after the adapter fan-out
+
+These touch `lib/evidence/**`, which five adapter agents are reading right now.
+Editing it mid-run would make their typechecks fail for reasons that have
+nothing to do with their work, so they wait.
+
+1. **A status join that failed is not a status that is absent.** The SEMS
+   adapter currently fails the whole source when one Envirofacts request errors,
+   because the registry-only sentence says "the Superfund inventory returned no
+   status row", and after a fetch error that sentence is a lie. The reasoning is
+   right and the cost is wrong: one blipped request out of fifteen should not
+   remove fourteen good sites. Add a third state so a record can say its status
+   could not be retrieved, which is honest and keeps the other fourteen. This is
+   the same no-data versus unavailable distinction the report already makes for
+   whole sources, applied one level down.
+
+2. **`SourceIo.get` cannot express a top-level JSON array.** Its `Raw` is
+   constrained to `JsonObject`, and Envirofacts returns a bare array. The SEMS
+   adapter worked around it inside its own file without an assertion. Widen the
+   constraint to `JsonValue` and drop the workaround.
+
+3. **Fifteen sites means fifteen parallel Envirofacts requests per report**,
+   unthrottled. Fine against fixtures, rude against a government endpoint. Cap
+   the concurrency.
+
+4. **Deduplicate the ArcGIS query building.** Three adapters were told to keep
+   their own copy so they would not serialize on one file. Now that they exist,
+   fold the shared query shape into one place if it earns it, and leave it
+   duplicated if it does not.

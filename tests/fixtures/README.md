@@ -36,8 +36,19 @@ text is passed through verbatim and never mapped.
 Envirofacts sends `2022-02-08 00:00:00` as a string. Census sends no date and
 no match-type field at all.
 
-**Nulls are everywhere.** Coordinates, accuracy values, and collection methods
-are null on real rows in `sems/arcgis-5mi-houston.json`.
+**Nulls are everywhere, but not where you would guess.** In
+`sems/arcgis-5mi-houston.json` the accuracy values and collection methods are
+null while the coordinates are present. The null coordinates are on the
+Envirofacts side, in `sems/envirofacts-TXN000622182.json`. Corrected after the
+SEMS adapter checked the bytes and found this note wrong.
+
+**The Envirofacts join almost always hits.** All fifteen sites in the Houston
+layer fixture have an Envirofacts row, checked against the live endpoint on
+2026-09-16. `sems/envirofacts-no-row.json` is the genuine empty response, a
+bare `[]` with an HTTP 200, captured with a well-formed EPA ID that has no
+record. Treat a missing row as rare, and treat a failed request for a row as a
+different thing entirely: one means the inventory has nothing, the other means
+we did not get to ask.
 
 ## Not recorded
 

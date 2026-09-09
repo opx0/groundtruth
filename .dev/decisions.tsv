@@ -6,3 +6,5 @@ ts	phase	decision	why	evidence	result
 2026-09-15T19:45:09Z	U0.2	arm-b design landed, cursor-reader shape	reading a field returns the citation, so an adapter cannot produce a value without provenance	.dev/designs/arm-b.md	candidate, flagged aggregate-sentence gap
 2026-09-15T19:50:44Z	U0.2	arm A wins, five grafts	only arm A makes the product rule a compile error rather than a review item	.dev/designs/SYNTHESIS.md	design settled, implementation next
 2026-09-15T19:52:15Z	fixtures	recorded 14 real payloads incl. error and no-data cases	adapters need the awkward real shapes, not clean examples; found that ArcGIS returns errors with HTTP 200	tests/fixtures/README.md	done for reachable sources
+2026-09-15T20:18:18Z	U0.3	split the agency status fields and fixed the resulting copy	printing the same fact twice in two capitalizations reads as a defect; the summary takes SEMS, the trace carries both	28e6e5d	35 tests green
+2026-09-15T20:19:19Z	U1.x	declared all record kinds before adapter fan-out	five agents would otherwise serialize on records.ts; separate before sharing	d2b2987	typecheck green, 35 tests

@@ -9,6 +9,7 @@ export {
 	ReaderInvariant,
 	seal,
 	UnbrandedValue,
+	urlFrom,
 } from "./sourced";
 export type {
 	AbsentProvenance,

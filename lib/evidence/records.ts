@@ -26,11 +26,78 @@ type Kinds = {
 			readonly frsName: Sourced<string>;
 			readonly semsName: Sourced<string> | null;
 			readonly interestType: Sourced<string>;
-			readonly nplStatus: Sourced<string | null>;
+			/** Envirofacts `npl_status_name`. Null when no Envirofacts row joined; never filled from FRS. */
+			readonly semsNplStatus: Sourced<string> | null;
+			/** The FRS layer's `ACTIVE_STATUS`. A different agency's field with a different vocabulary; never a stand-in for the SEMS status. */
+			readonly frsActiveStatus: Sourced<string | null>;
 			readonly nonNplStatus: Sourced<string | null> | null;
 			readonly statusDate: Sourced<string | null> | null;
 			readonly archived: Sourced<boolean | null> | null;
 			readonly semsCoordinate: GeoPoint | null;
+		};
+	};
+	readonly "echo-facility": {
+		readonly source: "echo";
+		readonly fields: {
+			readonly registryId: Sourced<string>;
+			/** `FacComplianceStatus`. Null on real rows in the fixture. Verbatim, never mapped. */
+			readonly complianceStatus: Sourced<string | null>;
+			/** `FacSNCFlg`. ECHO's significant-noncompliance flag, kept as the letter it sends. */
+			readonly significantNoncomplianceFlag: Sourced<string | null>;
+			/** `FacQtrsWithNC`, arrives as a string like "0". */
+			readonly quartersInNoncompliance: Sourced<number | null>;
+			readonly lastFormalActionDate: Sourced<string | null>;
+			readonly formalActionCount: Sourced<number | null>;
+			readonly penaltyCount: Sourced<number | null>;
+			readonly lastPenaltyDate: Sourced<string | null>;
+			/** `FacLastPenaltyAmt`, arrives as "$0" with the symbol attached. */
+			readonly lastPenaltyAmountUsd: Sourced<number | null>;
+			readonly lastInspectionDate: Sourced<string | null>;
+			readonly activeFlag: Sourced<string | null>;
+			/** Per-programme compliance, each verbatim. Absent programmes are simply not keys. */
+			readonly programStatuses: Sourced<readonly { readonly program: string; readonly status: string }[]>;
+			readonly naicsCodes: Sourced<string | null>;
+			readonly sicCodes: Sourced<string | null>;
+		};
+	};
+	readonly "frs-facility": {
+		readonly source: "frs";
+		readonly fields: {
+			readonly registryId: Sourced<string>;
+			/** One row per programme interest. Registry 110000460885 has 38 of them across 15 programmes. */
+			readonly programInterests: Sourced<
+				readonly {
+					readonly program: string;
+					readonly programId: string;
+					readonly interestType: string | null;
+					readonly activeStatus: string | null;
+				}[]
+			>;
+		};
+	};
+	readonly "aqs-monitor-summary": {
+		readonly source: "aqs";
+		readonly fields: {
+			readonly monitorId: Sourced<string>;
+			readonly pollutant: Sourced<"PM2.5" | "Ozone">;
+			readonly period: Sourced<string>;
+			readonly statistic: Sourced<string>;
+			readonly value: Sourced<number>;
+			readonly unit: Sourced<string>;
+			/** AQS lags collection by six months or more, so the reader is told how stale this is. */
+			readonly observationCount: Sourced<number | null>;
+		};
+	};
+	readonly "airnow-observation": {
+		readonly source: "airnow";
+		readonly fields: {
+			readonly reportingArea: Sourced<string>;
+			readonly pollutant: Sourced<"PM2.5" | "Ozone">;
+			readonly observedAt: Sourced<string>;
+			readonly aqi: Sourced<number | null>;
+			readonly category: Sourced<string | null>;
+			readonly concentration: Sourced<number | null>;
+			readonly unit: Sourced<string | null>;
 		};
 	};
 	readonly "fema-flood-zone": {
@@ -50,7 +117,14 @@ type Kinds = {
 export type Kind = keyof Kinds;
 export type SourceOf<K extends Kind> = Kinds[K]["source"];
 
-export const KINDS: readonly [Kind, ...Kind[]] = ["sems-site", "fema-flood-zone"];
+export const KINDS: readonly [Kind, ...Kind[]] = [
+	"sems-site",
+	"echo-facility",
+	"frs-facility",
+	"aqs-monitor-summary",
+	"airnow-observation",
+	"fema-flood-zone",
+];
 
 export const AGENCY: { readonly [S in SourceId]: string } = {
 	census: "US Census Bureau Geocoder",
@@ -81,7 +155,8 @@ type Provided<K extends Kind> = {
 	readonly kind: K;
 	readonly source: SourceOf<K>;
 	readonly sourceRecordId: string;
-	readonly sourceUrl: string;
+	/** The agency's own page for this record. Sourced, so the one link the reader clicks has a trace like every other value. */
+	readonly sourceUrl: Sourced<string>;
 	readonly subject: Sourced<string>;
 	readonly location: GeoPoint | null;
 	readonly effectiveAt: Sourced<string | null>;
@@ -129,6 +204,10 @@ type KindMaps = { readonly [K in Kind]: ReadonlyMap<string, Sealed<RecordOf<K>>>
 function emptyMaps(): KindMaps {
 	return {
 		"sems-site": new Map(),
+		"echo-facility": new Map(),
+		"frs-facility": new Map(),
+		"aqs-monitor-summary": new Map(),
+		"airnow-observation": new Map(),
 		"fema-flood-zone": new Map(),
 	};
 }
@@ -157,6 +236,10 @@ function storeFromMaps(maps: KindMaps): EvidenceStore {
 		without(id) {
 			const copies: { [K in Kind]: Map<string, Sealed<RecordOf<K>>> } = {
 				"sems-site": new Map(maps["sems-site"]),
+				"echo-facility": new Map(maps["echo-facility"]),
+				"frs-facility": new Map(maps["frs-facility"]),
+				"aqs-monitor-summary": new Map(maps["aqs-monitor-summary"]),
+				"airnow-observation": new Map(maps["airnow-observation"]),
 				"fema-flood-zone": new Map(maps["fema-flood-zone"]),
 			};
 			copies[id.kind].delete(id.sourceRecordId);
@@ -177,6 +260,10 @@ function insert<K extends Kind>(
 export function storeOf(records: Iterable<Sealed<EvidenceRecord>>): EvidenceStore {
 	const maps: { readonly [K in Kind]: Map<string, Sealed<RecordOf<K>>> } = {
 		"sems-site": new Map(),
+		"echo-facility": new Map(),
+		"frs-facility": new Map(),
+		"aqs-monitor-summary": new Map(),
+		"airnow-observation": new Map(),
 		"fema-flood-zone": new Map(),
 	};
 	for (const record of records) insert(maps, record.kind, record);

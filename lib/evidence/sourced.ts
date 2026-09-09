@@ -2,10 +2,10 @@
  * The provenance-carrying value.
  *
  * The only ways to obtain a `Sourced<T>` are the readers returned by
- * `fieldsOf`, the formulas `haversine` and `coalesce`, and `fromQuery`. Each of
- * those captures where the value came from at the moment it is read. The brand
- * symbol is not exported, so no other module can build one by hand, and `seal`
- * rejects any lookalike at runtime.
+ * `fieldsOf`, the formulas `haversine`, `coalesce`, and `urlFrom`, and
+ * `fromQuery`. Each of those captures where the value came from at the moment
+ * it is read. The brand symbol is not exported, so no other module can build
+ * one by hand, and `seal` rejects any lookalike at runtime.
  *
  * This module must never contain a type assertion or a non-null assertion.
  * `eslint.config.mjs` enforces that under `lib/evidence/`.
@@ -31,7 +31,7 @@ export type TransformName =
 	| "map-boolean"
 	| "join-fields";
 
-export type Formula = "haversine" | "coalesce";
+export type Formula = "haversine" | "coalesce" | "url-template";
 
 /** One response the record was built from. `url` carries coordinates only, never an address. */
 export type PayloadRef = {
@@ -359,6 +359,35 @@ export function coalesce<A extends JsonValue, B extends JsonValue>(
 		return make(first.value, provenance);
 	}
 	return make(second.value, provenance);
+}
+
+/** The one slot a source-record URL template may carry. */
+const SLOT = "{id}";
+
+/**
+ * The record's link on the agency's own site, built from an identifier the
+ * kernel read from the source. The template names the slot exactly once as
+ * `{id}`, so the trace shows both the raw field the identifier came from and
+ * the template that shaped the URL, and a template that lost its slot, or an
+ * empty identifier, is a `ReaderInvariant` rather than a confident wrong link.
+ */
+export function urlFrom(template: string, id: Sourced<string>): Sourced<string> {
+	if (template.split(SLOT).length !== 2) {
+		throw new ReaderInvariant(`url template "${template}" must contain ${SLOT} exactly once`);
+	}
+	if (id.value === "") throw new ReaderInvariant(`url template "${template}" was given an empty identifier`);
+	const url = template.replace(SLOT, encodeURIComponent(id.value));
+	return make(url, [
+		{
+			kind: "computation",
+			formula: "url-template",
+			computedBy: KERNEL_VERSION,
+			inputs: [
+				{ name: "template", value: template, provenance: [] },
+				{ name: "id", value: id.value, provenance: id.provenance },
+			],
+		},
+	]);
 }
 
 export function fromQuery<T extends JsonValue>(q: QueryProvenance, value: T): Sourced<T> {

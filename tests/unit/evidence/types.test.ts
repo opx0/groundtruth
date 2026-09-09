@@ -62,13 +62,13 @@ export function mustNotCompile(): void {
 
 	// km() only accepts a numeric field.
 	defineTemplate("sems-site", "sems-site/km-on-text@1", (field) => [
-		// @ts-expect-error -- nplStatus is a string field, not a distance
-		sentence`${km(field("nplStatus"))}`,
+		// @ts-expect-error -- frsActiveStatus is a string field, not a distance
+		sentence`${km(field("frsActiveStatus"))}`,
 	]);
 
 	// A sealed record is readonly.
 	// @ts-expect-error -- value is readonly
-	built.nplStatus.value = "x";
+	built.frsActiveStatus.value = "x";
 }
 
 export function mustCompile(): void {

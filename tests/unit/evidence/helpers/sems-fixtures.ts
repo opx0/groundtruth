@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import type { Built, EvidenceStore, GeoPoint, Locus, PayloadRef, RecordId, Sealed, SemsSiteRecord } from "@/lib/evidence";
-import { coalesce, complete, fieldsOf, recordId, storeOf } from "@/lib/evidence";
+import { coalesce, complete, fieldsOf, recordId, storeOf, urlFrom } from "@/lib/evidence";
 import type { Fetched, JsonValue } from "@/lib/evidence";
 
 const fixturesDir = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
@@ -94,6 +94,8 @@ export function houstonLocus(): Locus {
 	return { point: censusOrigin(), radiusMeters: 8047 };
 }
 
+export const SEMS_SITE_URL = "https://cumulis.epa.gov/supercpad/cursites/csitinfo.cfm?id={id}";
+
 export const SEMS_CAVEATS: readonly string[] = [
 	"A SEMS record can mean assessment, proposed action, active cleanup, or completed work.",
 	"The coordinate is a reference point, not a boundary.",
@@ -137,10 +139,9 @@ export function semsBuilt(
 		kind: "sems-site",
 		source: "sems",
 		sourceRecordId: epaId,
-		sourceUrl:
-			site === null
-				? frsRow.raw.FAC_URL
-				: `https://cumulis.epa.gov/supercpad/cursites/csitinfo.cfm?id=${site.raw.site_id}`,
+		// The link is derived, not asserted: either the FRS layer's own URL field,
+		// or the SEMS site page built from the Envirofacts site_id it interpolates.
+		sourceUrl: site === null ? frs.text("FAC_URL") : urlFrom(SEMS_SITE_URL, site.text("site_id")),
 		subject: coalesce(site === null ? null : site.text("name"), frs.text("PRIMARY_NAME")),
 		location: frs.point("LATITUDE83", "LONGITUDE83", {
 			accuracy: "ACCURACY_VALUE",
@@ -156,7 +157,8 @@ export function semsBuilt(
 		frsName: frs.text("PRIMARY_NAME"),
 		semsName: site === null ? null : site.text("name"),
 		interestType: frs.text("INTEREST_TYPE"),
-		nplStatus: site === null ? frs.text("ACTIVE_STATUS") : site.text("npl_status_name"),
+		semsNplStatus: site === null ? null : site.text("npl_status_name"),
+		frsActiveStatus: frs.text("ACTIVE_STATUS"),
 		nonNplStatus: site === null ? null : site.text("non_npl_status_name"),
 		statusDate: site === null ? null : site.date("non_npl_status_date"),
 		archived: site === null ? null : site.flag("archived_ind", { Y: true, N: false }),

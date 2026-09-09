@@ -53,14 +53,15 @@ export type Trace = {
 		readonly source: SourceId;
 		readonly agency: string;
 		readonly sourceRecordId: string;
-		readonly sourceUrl: string;
+		/** The agency link, with the identifier field and template that produced it. */
+		readonly sourceUrl: ValueTrace;
 		readonly payloads: readonly PayloadRef[];
 		readonly caveats: readonly string[];
 		readonly effectiveAt: ValueTrace;
 		readonly sourceUpdatedAt: ValueTrace;
 	};
 	readonly clicked: ValueTrace;
-	/** Every Sourced field on the record, found by brand at runtime. Nested points appear as "location.latitude". */
+	/** Every Sourced value on the record at any depth, found by brand at runtime, named by path: "location.latitude". */
 	readonly values: readonly ValueTrace[];
 };
 
@@ -174,21 +175,31 @@ function valueTrace(field: string, sourced: Sourced<unknown>, displayed: string 
 	return { field, displayed, normalized: toJson(sourced.value), provenance: sourced.provenance };
 }
 
-/** Walks the record one level into non-Sourced objects (GeoPoint), naming nested values "location.latitude". */
+/**
+ * Every `Sourced` on the record, at any depth, found by brand and named by its
+ * path: "location.latitude", "zones.0.code". A `Sourced` is a leaf, so the walk
+ * never descends into a provenance chain. Only the ancestors of the current
+ * path are held, so one object reachable by two paths is reported under both
+ * and a cycle still cannot spin.
+ */
 function sourcedValues(record: Bag, shown: ReadonlyMap<string, string>): ValueTrace[] {
 	const out: ValueTrace[] = [];
-	const visit = (bag: Bag, prefix: string, depth: number): void => {
+	const ancestors = new Set<Bag>();
+	const visit = (bag: Bag, prefix: string): void => {
+		if (ancestors.has(bag)) return;
+		ancestors.add(bag);
 		for (const key of Object.keys(bag)) {
 			const path = prefix === "" ? key : `${prefix}.${key}`;
 			const v = bag[key];
 			if (isSourced(v)) {
 				out.push(valueTrace(path, v, shown.get(path) ?? null));
-			} else if (depth < 1 && isBag(v) && !Array.isArray(v)) {
-				visit(v, path, depth + 1);
+			} else if (isBag(v)) {
+				visit(v, path);
 			}
 		}
+		ancestors.delete(bag);
 	};
-	visit(record, "", 0);
+	visit(record, "");
 	return out;
 }
 
@@ -198,7 +209,7 @@ function recordTrace<K extends Kind>(record: Sealed<RecordOf<K>>, shown: Readonl
 		source: record.source,
 		agency: AGENCY[record.source],
 		sourceRecordId: record.sourceRecordId,
-		sourceUrl: record.sourceUrl,
+		sourceUrl: valueTrace("sourceUrl", record.sourceUrl, shown.get("sourceUrl") ?? null),
 		payloads: record.payloads,
 		caveats: record.caveats,
 		effectiveAt: valueTrace("effectiveAt", record.effectiveAt, shown.get("effectiveAt") ?? null),

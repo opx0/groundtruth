@@ -97,3 +97,28 @@ nothing to do with their work, so they wait.
    their own copy so they would not serialize on one file. Now that they exist,
    fold the shared query shape into one place if it earns it, and leave it
    duplicated if it does not.
+
+### Raised by the ECHO adapter, in priority order
+
+5. **The trace currently shows a penalty value ECHO did not send.** ECHO sends
+   `"$0"`. The kernel's number reader throws on a currency symbol, so the
+   adapter strips it before reading, and the trace then names the field and the
+   transform but reports the raw value as `"0"`. That is a false statement about
+   what a government source sent, inside the one panel whose entire job is
+   reporting exactly that. A record caveat discloses it, which is honest, but
+   disclosure is not a fix. Add a `parse-currency` transform so the symbol is
+   removed by a named transform with the original kept in provenance. **Do this
+   one first.**
+
+6. **Array-valued fields have no per-element trace.** `programStatuses` and
+   `programInterests` are typed as lists of objects, and no reader produces one,
+   so the ECHO adapter fell back to a query-level provenance naming `qcolumns`.
+   Each programme's compliance status is therefore displayed with no trace to
+   the field it came from. Arm B predicted this exact gap in the design race and
+   the FRS adapter has the same shape. A `fields.list(...)` reader is the fix.
+
+7. **Dates are inconsistent across sources.** ECHO records hold `08/12/2024`
+   while SEMS records hold `2022-02-08`. The ECHO adapter passed the value
+   through verbatim rather than rewriting it, which was the right call, since
+   rewriting would have made the trace claim ECHO sent an ISO date. A
+   `parse-us-date` transform closes it properly.

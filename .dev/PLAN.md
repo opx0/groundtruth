@@ -122,3 +122,22 @@ nothing to do with their work, so they wait.
    through verbatim rather than rewriting it, which was the right call, since
    rewriting would have made the trace claim ECHO sent an ISO date. A
    `parse-us-date` transform closes it properly.
+
+### Raised by the FEMA adapter
+
+8. **A no-data note cannot say which source answered.** `runSource` hard-codes
+   the note, so the fan-out's flood slot cannot carry whether the authoritative
+   layer or the fallback returned nothing, which is the one distinction that
+   card exists to make. Until an adapter can supply its own no-data note, the
+   report must call the flood adapter's own entry point rather than read the
+   slot. Let an adapter supply the note.
+
+9. **One timeout covers the whole flood source.** The fallback only runs after
+   the authoritative layer fails, so a hang rather than a fast reset would eat
+   the budget and the reader would get nothing instead of the fallback. Give the
+   first leg a shorter deadline than the source as a whole.
+
+10. **`FLD_AR_ID` is required by the schema.** It is the layer's primary key and
+    the adapter needs it for a record id, but no authoritative row has ever been
+    seen, so a null there would read as malformed. Worth re-checking against the
+    first real capture.

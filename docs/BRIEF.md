@@ -131,7 +131,7 @@ Closing line:
 
 - Next.js App Router. Server-only source adapters. Zod at every external boundary. Native `fetch` with `AbortController`. Streamed per-source results. Vitest for adapters, renderer, and policy. Playwright for the address-to-trace path.
 - Keys live only in server environment variables. AQS and AirNow keys never reach the browser.
-- **The server runs in a US region.** Verified 2026-09-15: EPA's ECHO REST host (`echodata.epa.gov`) and FEMA's NFHL host (`hazards.fema.gov`) reject connections from an India egress. ECHO resets the HTTP/2 stream after about ten seconds and times out on HTTP/1.1, with or without browser headers. NFHL resets the TCP connection at the TLS handshake. A US-hosted fetch service also failed against both, and got 403 from EPA's Envirofacts web host, so datacenter egress may also be filtered.
+- **One host is unreachable, not two.** Corrected 2026-09-16. ECHO was assumed to refuse non-US traffic after it reset the stream on several attempts. It does not. It is slow and flaky to open, and it answers once the request carries retries and a longer timeout. Every ECHO payload in `tests/fixtures/echo/` was recorded from this machine. FEMA's NFHL host (`hazards.fema.gov`) genuinely does reset the TLS handshake before any HTTP exchange, from every route tried, and retries do not help. Only that one needs a US-reachable host, and `scripts/capture-us-fixtures.sh` captures it.
 - Build step 0 deploys a probe route to the chosen region and calls ECHO `echo_rest_services.metadata` and NFHL layer 28. If either rejects the deployment's egress, the fallbacks in B2 apply and the card names the dataset it used.
 - Fixtures are recorded by a CI job on a US runner and committed under the test directory.
 
@@ -140,7 +140,7 @@ Closing line:
 | Source | Product use | Endpoint | Access | Verified facts and quirks |
 |---|---|---|---|---|
 | US Census Geocoder | Address to point | `geocoding.geo.census.gov/geocoder/locations/onelineaddress`, benchmark `Public_AR_Current`, JSON | None | Reachable worldwide. Returns `matchedAddress`, `coordinates`, `tigerLine.{tigerLineId,side}`, and `addressComponents.{fromAddress,toAddress}`. **No match-type field exists.** Precision is expressed as the address range and street side. Vague input returns several candidates across states. Some real addresses return none. |
-| EPA ECHO | Regulated facilities, compliance, enforcement | `echodata.epa.gov/echo/echo_rest_services.get_facilities` with `p_lat`, `p_long`, `p_radius` (miles), then `get_qid` pages; `dfr_rest_services.get_dfr` per facility | None | **Unverified from this network.** Host refuses non-US traffic. Field names come from the recorded fixture, not from memory. Fallback if the deployment is also refused: ECHO bulk export files, labelled with their snapshot date. |
+| EPA ECHO | Regulated facilities, compliance, enforcement | `echodata.epa.gov/echo/echo_rest_services.get_facilities` with `p_lat`, `p_long`, `p_radius` (miles) and `qcolumns`, then `get_qid` pages | None | Verified and fixtured. **Send `qcolumns` or there is no longitude.** `FAC_LONG` is column 18 of ECHO's own metadata and is absent from the default response while `FacLat` is present, so every facility would arrive with no computable distance. Every value is a string, including coordinates and a penalty of `"$0"`. Dates are month/day/year. The first call says `Message: "Success"`, the second says `"Working"`, and neither means failure. Zero rows with `Success` is the no-data case. Errors arrive at HTTP 200 as `Results.Error.ErrorMessage`, a different shape from ArcGIS's. Slow: needs retries and a timeout far longer than the default. |
 | EPA FRS | Facility identity, program IDs, coordinate quality | ArcGIS layer `FRS_INTERESTS` on `services.arcgis.com/cJ9YHowT8TU7DUyn`, query by `REGISTRY_ID` or by point plus `distance`; REST `frs-public.epa.gov/ords/frs_public2/frs_rest_services.get_facilities` (`search_radius` in miles) | None | Reachable worldwide. One row per program interest with `PGM_SYS_ID`, `PGM_SYS_ACRNM`, `INTEREST_TYPE`, `ACCURACY_VALUE`, `COLLECT_MTH_DESC`, `REF_POINT_DESC`, `UPDATE_DATE` (epoch ms). 2,000 rows per page. 6,915 interest rows within 5 miles of the Houston test point, so FRS is an identity lookup, not a list. Data edited 2026-09-14. |
 | EPA SEMS | Superfund assessment and cleanup sites | ArcGIS layer `FRS_INTERESTS_SEMS` (same org) for radius search; Envirofacts `data.epa.gov/efservice/envirofacts_site/epa_id/{EPA_ID}/JSON` for status, status date, archived flag, SEMS site ID; profile `cumulis.epa.gov/supercpad/cursites/csitinfo.cfm?id={site_id}` | None | Reachable worldwide. The table names behind EPA's older SEMS links no longer exist. Envirofacts has no radius query and its coordinate is sometimes null or differs from FRS (Rhodia: 10 km apart). Distance uses the FRS coordinate; a differing SEMS coordinate is shown in the trace. FRS name and SEMS name differ for the same site. 55,632 sites nationally, 40,823 archived. |
 | EPA AQS | Historical PM2.5 and ozone monitor summaries | `aqs.epa.gov/data/api/monitors/byBox`, `annualData/byBox`, `dailyData/byBox`; params `88101` PM2.5, `44201` ozone | Free key by email | Docs verified. 10 requests per minute, 5-second pause requested. Begin and end dates must fall in one year except for `monitors`. Data can lag 6 months or more. The shared test account is capped daily and was exhausted on 2026-09-15. |
@@ -473,15 +473,20 @@ Playwright drives: a precise match; an ambiguous match; a no-match; a SEMS resul
 
 No new source until the current one passes its adapter, rendering, failure, and trace tests.
 
-### B14. Verification log, 2026-09-15
+### B14. Verification log, 2026-09-15, corrected and extended 2026-09-16
 
 | Check | Result |
 |---|---|
 | Census, 1600 Pennsylvania Ave NW | Match. Range 1600 to 1648, side L, TIGER line 76225813. No match-type field. |
 | Census, 100 Main St, Springfield | Multiple candidates, MA and VT among them. |
 | Census, 9400 Clinton Dr, Houston | No match. |
-| ECHO REST, from India and from a US-hosted fetcher | Stream reset, timeout, 502. Unverified. |
-| FEMA NFHL host, both paths | Connection reset. Unverified. |
+| ECHO REST, first attempts | Stream reset, timeout, 502. **This conclusion was wrong.** |
+| ECHO REST, with retries and a 120s timeout | Answers. Seven payloads recorded, including the zero-rows case and an error envelope. |
+| ECHO, longitude | `FacLong` absent from the default response, present in the metadata as column 18, returned once `qcolumns` asks for it. |
+| ECHO, 5 miles from 9311 E Ave P | 1,686 facilities, $20,254,146 in total penalties, 40 formal enforcement actions. |
+| FEMA NFHL host, every route tried | TLS handshake reset, with and without retries. Genuinely unreachable from here. |
+| Envirofacts join rate, all 15 Houston layer sites | 15 of 15 have a status row. A missing row is rare, not common. |
+| FRS, registry 110000460885 | 38 programme-interest rows across 15 programmes, 14 distinct update dates, one facility. |
 | Esri flood layer, three points | New Orleans CBD: X, 0.2% annual chance. Meyerland: AE, SFHA. Houston Ship Channel: no polygon. |
 | Esri flood layer, distinct classes | A, A99, AE, AH, AO, D, V, VE, X (shaded only). |
 | FRS REST, 2-mile radius at the Houston test point | 467 facilities. Farthest 3.219 km, so the unit is miles. |

@@ -110,7 +110,18 @@ nothing to do with their work, so they wait.
    removed by a named transform with the original kept in provenance. **Do this
    one first.**
 
-6. **Array-valued fields have no per-element trace.** `programStatuses` and
+6. **No reader produces a structured value, and three adapters have now hit
+   it.** ECHO needs a list of programme statuses, the registry needs a list of
+   programme interests, and the geocoder needs an address range of two strings.
+   Each worked around it differently and none could do it cleanly. The geocoder
+   had to export its own match type because the kernel's declared one is
+   literally unconstructable without hand-writing provenance, which is the one
+   thing adapters are forbidden to do. Three independent hits makes this the
+   most systemic gap open. Add a reader that builds a structured value and
+   reconcile the geocoder's type back into the kernel.
+
+   Original note, still accurate:
+   **Array-valued fields have no per-element trace.** `programStatuses` and
    `programInterests` are typed as lists of objects, and no reader produces one,
    so the ECHO adapter fell back to a query-level provenance naming `qcolumns`.
    Each programme's compliance status is therefore displayed with no trace to

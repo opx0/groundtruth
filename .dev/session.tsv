@@ -6,3 +6,6 @@ ts	event	unit	detail	elapsed_s
 2026-09-15T20:11:22Z	start	U0.3	close kernel gaps	
 2026-09-15T20:18:18Z	end	U0.3	four gaps closed, copy fixed	416
 2026-09-15T20:19:35Z	start	U1.x	five adapters in parallel	
+2026-09-15T20:36:35Z	end	U1.x	five adapters green	1020
+2026-09-15T20:36:48Z	start	U1.8	pay down kernel debt	
+2026-09-16T00:13:20Z	end	U1.8	kernel debt paid (clock spans a rate-limit outage, not work time)	1800

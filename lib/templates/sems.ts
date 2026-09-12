@@ -15,8 +15,12 @@
  * summary prints the Superfund inventory's own answer and the trace panel
  * carries every other field including the registry's.
  *
- * Which of these three a record gets is the selection policy's decision, not a
+ * Which of these a record gets is the selection policy's decision, not a
  * branch inside a template, and that keeps the choice visible and testable.
+ * The record's `statusRow` is the input to that decision: `joined` may print
+ * the summary, `no-row` the registry-only wording, `unavailable` only the
+ * status-unavailable wording, since the other two would each state something
+ * about the inventory's answer that is not known.
  */
 
 import { defineTemplate, fallback, km, sentence } from "@/lib/evidence/templates";
@@ -39,6 +43,18 @@ export const semsSiteRegistryOnly = defineTemplate("sems-site", "sems-site/regis
 ]);
 
 /**
+ * The Envirofacts request for this site failed. Nothing about the inventory's
+ * answer is known, so the sentence says so and stops: it must not print the
+ * registry-only wording, which claims the inventory answered with no row.
+ * The record's `statusRow` is what tells the selection policy this is the one.
+ */
+export const semsSiteStatusUnavailable = defineTemplate("sems-site", "sems-site/status-unavailable@1", (field) => [
+	sentence`${field("subject")}, ${km(field("distanceMeters"))}.`,
+	sentence`EPA's facility registry lists it as ${field("frsActiveStatus")}.`,
+	sentence`The Superfund inventory's status for ${field("epaSiteId")} could not be retrieved.`,
+]);
+
+/**
  * The two agencies disagree. Both are printed, attributed, because a
  * disagreement between government systems is the fact worth showing.
  */
@@ -53,4 +69,10 @@ export const semsSiteNpl = defineTemplate("sems-site", "sems-site/npl@1", (field
 	sentence`${field("subject")} is listed by SEMS as ${field("semsNplStatus")}, ${km(field("distanceMeters"))} from the mapped point.`,
 ]);
 
-export const semsTemplates = [semsSiteSummary, semsSiteRegistryOnly, semsSiteDisagreement, semsSiteNpl];
+export const semsTemplates = [
+	semsSiteSummary,
+	semsSiteRegistryOnly,
+	semsSiteStatusUnavailable,
+	semsSiteDisagreement,
+	semsSiteNpl,
+];

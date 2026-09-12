@@ -11,9 +11,38 @@
  * `Kinds` and one map in `emptyMaps`; the compiler names anything else missed.
  */
 
+import type { SourceUnavailable } from "./source";
 import type { GeoPoint, PayloadRef, Sealed, Sourced } from "./sourced";
 
 export type SourceId = "census" | "echo" | "frs" | "sems" | "aqs" | "airnow" | "fema";
+
+/**
+ * How the Envirofacts status request for one SEMS site went. The same three
+ * outcomes the report makes for a whole source, one level down: the inventory
+ * answered with a row, answered with none, or could not be asked. Only the
+ * second means "the inventory holds no status row for this site"; after the
+ * third, every Envirofacts-side field is null because nothing was retrieved.
+ */
+export type StatusRowOutcome =
+	| { readonly status: "joined" }
+	| { readonly status: "no-row" }
+	| SourceUnavailable;
+
+/** ECHO's four statute columns. Each leaf traces to its own column; null is what ECHO sent for a programme it does not track at the facility. */
+export type EchoProgramStatuses = {
+	readonly CAA: Sourced<string | null>;
+	readonly CWA: Sourced<string | null>;
+	readonly RCRA: Sourced<string | null>;
+	readonly SDWA: Sourced<string | null>;
+};
+
+/** One FRS programme-interest row, every field its own leaf. */
+export type FrsProgramInterest = {
+	readonly program: Sourced<string>;
+	readonly programId: Sourced<string>;
+	readonly interestType: Sourced<string | null>;
+	readonly activeStatus: Sourced<string | null>;
+};
 
 /** Kind -> the source it comes from and the fields only that kind has. */
 type Kinds = {
@@ -26,6 +55,8 @@ type Kinds = {
 			readonly frsName: Sourced<string>;
 			readonly semsName: Sourced<string> | null;
 			readonly interestType: Sourced<string>;
+			/** Whether the Envirofacts row joined, was absent, or could not be fetched. Decides which template may print. */
+			readonly statusRow: StatusRowOutcome;
 			/** Envirofacts `npl_status_name`. Null when no Envirofacts row joined; never filled from FRS. */
 			readonly semsNplStatus: Sourced<string> | null;
 			/** The FRS layer's `ACTIVE_STATUS`. A different agency's field with a different vocabulary; never a stand-in for the SEMS status. */
@@ -50,12 +81,12 @@ type Kinds = {
 			readonly formalActionCount: Sourced<number | null>;
 			readonly penaltyCount: Sourced<number | null>;
 			readonly lastPenaltyDate: Sourced<string | null>;
-			/** `FacLastPenaltyAmt`, arrives as "$0" with the symbol attached. */
+			/** `FacLastPenaltyAmt`, arrives as "$0" with the symbol attached; the trace keeps that string. */
 			readonly lastPenaltyAmountUsd: Sourced<number | null>;
 			readonly lastInspectionDate: Sourced<string | null>;
 			readonly activeFlag: Sourced<string | null>;
-			/** Per-programme compliance, each verbatim. Absent programmes are simply not keys. */
-			readonly programStatuses: Sourced<readonly { readonly program: string; readonly status: string }[]>;
+			/** Per-programme compliance, each verbatim, each traced to its own column. */
+			readonly programStatuses: EchoProgramStatuses;
 			readonly naicsCodes: Sourced<string | null>;
 			readonly sicCodes: Sourced<string | null>;
 		};
@@ -64,15 +95,8 @@ type Kinds = {
 		readonly source: "frs";
 		readonly fields: {
 			readonly registryId: Sourced<string>;
-			/** One row per programme interest. Registry 110000460885 has 38 of them across 15 programmes. */
-			readonly programInterests: Sourced<
-				readonly {
-					readonly program: string;
-					readonly programId: string;
-					readonly interestType: string | null;
-					readonly activeStatus: string | null;
-				}[]
-			>;
+			/** One entry per programme-interest row, each field its own leaf. Registry 110000460885 has 38 of them across 15 programmes. */
+			readonly programInterests: readonly FrsProgramInterest[];
 		};
 	};
 	readonly "aqs-monitor-summary": {
@@ -188,14 +212,19 @@ export type EvidenceRecord = RecordTable[Kind];
 export type SemsSiteRecord = RecordOf<"sems-site">;
 export type FemaFloodZoneRecord = RecordOf<"fema-flood-zone">;
 
-/** The Census match. Not an EvidenceRecord: it holds the address and never reaches an adapter. */
+/**
+ * The Census match. Not an EvidenceRecord: it holds the address and never
+ * reaches an adapter. `addressRange` is a container of two leaves, built by
+ * `pick`, so each end of the range traces to its own field. How many
+ * candidates a lookup produced is the shape of the outcome that carries the
+ * match, not a number on the match itself.
+ */
 export type GeocodeMatch = {
 	readonly matchedAddress: Sourced<string>;
 	readonly point: GeoPoint;
-	readonly addressRange: Sourced<{ readonly from: string; readonly to: string }>;
+	readonly addressRange: { readonly from: Sourced<string>; readonly to: Sourced<string> };
 	readonly tigerLineId: Sourced<string>;
 	readonly streetSide: Sourced<string>;
-	readonly candidateCount: number;
 	readonly payload: PayloadRef;
 };
 

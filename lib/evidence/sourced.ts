@@ -7,6 +7,14 @@
  * it is read. The brand symbol is not exported, so no other module can build
  * one by hand, and `seal` rejects any lookalike at runtime.
  *
+ * A `Sourced<T>` is always a scalar leaf. A value with structure, an address
+ * range of two strings or a facility's status under each of four statutes, is
+ * a plain frozen container of leaves, built by `pick`, never one `Sourced`
+ * wrapping an object. That is what lets the trace list every element by its
+ * own path ("programStatuses.CAA") with the field it came from, instead of one
+ * provenance for the whole container. `GeoPoint` is the same shape, built by
+ * `point`.
+ *
  * This module must never contain a type assertion or a non-null assertion.
  * `eslint.config.mjs` enforces that under `lib/evidence/`.
  */
@@ -26,7 +34,9 @@ export type AdapterVersion = `${string}@${number}`;
 export type TransformName =
 	| "identity"
 	| "parse-number"
+	| "parse-currency"
 	| "normalize-date"
+	| "parse-us-date"
 	| "parse-epoch-ms"
 	| "map-boolean"
 	| "join-fields";
@@ -113,7 +123,8 @@ export type GeoPoint = {
 	readonly referencePoint: Sourced<string | null>;
 };
 
-export type Fetched<Raw extends JsonObject> = {
+/** One validated response. `Raw` is any JSON value: Envirofacts answers with a bare array, and that is a payload too. */
+export type Fetched<Raw extends JsonValue> = {
 	readonly raw: Raw;
 	readonly payload: PayloadRef;
 };
@@ -122,6 +133,17 @@ export type Fetched<Raw extends JsonObject> = {
 export type KeysWhere<Raw, T> = {
 	[P in keyof Raw & string]: Raw[P] extends T ? P : never;
 }[keyof Raw & string];
+
+/**
+ * The spec of a structured value: each name the record will use, mapped to the
+ * text field of the row it is read from. Only text fields, because every
+ * structured value an adapter has needed so far is made of them; a shape that
+ * needs another transform is a new reader, not a loosened spec.
+ */
+export type PickSpec<Raw> = { readonly [name: string]: KeysWhere<Raw, string | null> };
+
+/** What `pick` builds: a frozen container with one `Sourced` leaf per name, typed from the field it names. */
+export type Picked<Raw, S extends PickSpec<Raw>> = { readonly [N in keyof S]: Sourced<Raw[S[N]]> };
 
 export class ReaderInvariant extends Error {
 	constructor(message: string) {
@@ -147,8 +169,16 @@ export type FieldReader<Raw extends JsonObject> = {
 	number<P extends KeysWhere<Raw, string | number>>(field: P): Sourced<number>;
 	number<P extends KeysWhere<Raw, string | number | null>>(field: P): Sourced<number | null>;
 
+	/** "$0" or "$1,250.00" to a number. The string the source sent, symbol and all, is the trace's raw value. */
+	currency<P extends KeysWhere<Raw, string>>(field: P): Sourced<number>;
+	currency<P extends KeysWhere<Raw, string | null>>(field: P): Sourced<number | null>;
+
 	date<P extends KeysWhere<Raw, string>>(field: P): Sourced<string>;
 	date<P extends KeysWhere<Raw, string | null>>(field: P): Sourced<string | null>;
+
+	/** "08/12/2024", month first, to "2024-08-12". The raw string survives in the trace, so the reordering is visible. */
+	usDate<P extends KeysWhere<Raw, string>>(field: P): Sourced<string>;
+	usDate<P extends KeysWhere<Raw, string | null>>(field: P): Sourced<string | null>;
 
 	epochMs<P extends KeysWhere<Raw, number>>(field: P): Sourced<string>;
 	epochMs<P extends KeysWhere<Raw, number | null>>(field: P): Sourced<string | null>;
@@ -164,6 +194,15 @@ export type FieldReader<Raw extends JsonObject> = {
 	): Sourced<string | null>;
 
 	absent(field: string): Sourced<null>;
+
+	/**
+	 * A structured value: several text fields of this row, read at once into
+	 * one frozen container keyed by the names the record uses. Each leaf is an
+	 * ordinary `text` read with its own field provenance, so the trace lists
+	 * "addressRange.from" against `fromAddress`, not one provenance for the
+	 * pair. A list is many rows picked the same way, one reader per row.
+	 */
+	pick<S extends PickSpec<Raw>>(spec: S): Picked<Raw, S>;
 
 	point<
 		La extends KeysWhere<Raw, string | number | null>,
@@ -197,6 +236,43 @@ function parseNumber(raw: string | number): number {
 	const n = Number(raw.trim());
 	if (raw.trim() === "" || Number.isNaN(n)) throw new ReaderInvariant(`"${raw}" is not a number`);
 	return n;
+}
+
+/**
+ * "$0" -> 0, "$1,250.50" -> 1250.5, "-$40" -> -40. An optional sign, an
+ * optional dollar sign, digits with optional thousands separators, an optional
+ * fraction. Anything else is a `ReaderInvariant`, not a guess.
+ */
+function parseCurrency(raw: string): number {
+	const match = /^\s*(-?)\s*\$?\s*(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*$/.exec(raw);
+	const sign = match?.[1];
+	const whole = match?.[2];
+	if (match === null || sign === undefined || whole === undefined) {
+		throw new ReaderInvariant(`"${raw}" is not a currency amount`);
+	}
+	return Number(`${sign}${whole.replace(/,/g, "")}${match[3] ?? ""}`);
+}
+
+function twoDigits(n: number): string {
+	return n < 10 ? `0${n}` : String(n);
+}
+
+/** "08/12/2024" -> "2024-08-12". Month first, always; a day past the month's end or any other shape is a `ReaderInvariant`. */
+function usDateToIso(raw: string): string {
+	const match = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(raw);
+	const month = Number(match?.[1]);
+	const day = Number(match?.[2]);
+	const year = Number(match?.[3]);
+	const d = new Date(Date.UTC(year, month - 1, day));
+	if (
+		match === null ||
+		d.getUTCFullYear() !== year ||
+		d.getUTCMonth() !== month - 1 ||
+		d.getUTCDate() !== day
+	) {
+		throw new ReaderInvariant(`"${raw}" is not a month/day/year date`);
+	}
+	return `${year}-${twoDigits(month)}-${twoDigits(day)}`;
 }
 
 export function fieldsOf<Raw extends JsonObject>(
@@ -233,6 +309,18 @@ export function fieldsOf<Raw extends JsonObject>(
 		return readNumber(name);
 	}
 
+	function currency<P extends KeysWhere<Raw, string>>(name: P): Sourced<number>;
+	function currency<P extends KeysWhere<Raw, string | null>>(name: P): Sourced<number | null>;
+	function currency(name: string): Sourced<number | null> {
+		const v = bag[name];
+		// The provenance is built first, from the untouched raw value: the trace
+		// reports "$0" because that is what arrived, whatever the value became.
+		const p = field(name, "parse-currency");
+		if (v === null) return make(null, [p]);
+		if (typeof v === "string") return make(parseCurrency(v), [p]);
+		throw new ReaderInvariant(`${dataset}.${name} is not a currency string`);
+	}
+
 	function date<P extends KeysWhere<Raw, string>>(name: P): Sourced<string>;
 	function date<P extends KeysWhere<Raw, string | null>>(name: P): Sourced<string | null>;
 	function date(name: string): Sourced<string | null> {
@@ -241,6 +329,39 @@ export function fieldsOf<Raw extends JsonObject>(
 		if (v === null) return make(null, [p]);
 		if (typeof v === "string") return make(normalizeDate(v), [p]);
 		throw new ReaderInvariant(`${dataset}.${name} is not a date string`);
+	}
+
+	function usDate<P extends KeysWhere<Raw, string>>(name: P): Sourced<string>;
+	function usDate<P extends KeysWhere<Raw, string | null>>(name: P): Sourced<string | null>;
+	function usDate(name: string): Sourced<string | null> {
+		const v = bag[name];
+		const p = field(name, "parse-us-date");
+		if (v === null) return make(null, [p]);
+		if (typeof v === "string") return make(usDateToIso(v), [p]);
+		throw new ReaderInvariant(`${dataset}.${name} is not a month/day/year string`);
+	}
+
+	/** `text` for one name of a spec, checked at runtime as well as by type because the field name arrived through data. */
+	function textLeaf<S extends PickSpec<Raw>, K extends keyof S & string>(spec: S, name: K): Sourced<Raw[S[K]]> {
+		const sourceField: S[K] = spec[name];
+		const v = raw[sourceField];
+		if (v !== null && typeof v !== "string") throw new ReaderInvariant(`${dataset}.${sourceField} is not a string`);
+		return make(v, [field(sourceField, "identity")]);
+	}
+
+	/** True once every name in the spec has its leaf: the one place a container-in-progress becomes a `Picked`. */
+	function isPicked<S extends PickSpec<Raw>>(spec: S, out: Partial<Picked<Raw, S>>): out is Picked<Raw, S> {
+		return Object.keys(spec).every((name) => name in out);
+	}
+
+	function pick<S extends PickSpec<Raw>>(spec: S): Picked<Raw, S> {
+		if (Object.keys(spec).length === 0) {
+			throw new ReaderInvariant(`${dataset}: a structured value needs at least one field`);
+		}
+		const out: Partial<Picked<Raw, S>> = {};
+		for (const name in spec) out[name] = textLeaf(spec, name);
+		if (!isPicked(spec, out)) throw new ReaderInvariant(`${dataset}: a picked field was not read`);
+		return Object.freeze(out);
 	}
 
 	function epochMs<P extends KeysWhere<Raw, number>>(name: P): Sourced<string>;
@@ -309,7 +430,7 @@ export function fieldsOf<Raw extends JsonObject>(
 		throw new ReaderInvariant(`${dataset}.${name} is not a string`);
 	}
 
-	return { raw, dataset, payload, text, number, date, epochMs, flag, join, absent, point };
+	return { raw, dataset, payload, text, number, currency, date, usDate, epochMs, flag, join, absent, pick, point };
 }
 
 const EARTH_RADIUS_METERS = 6371008.8;

@@ -21,7 +21,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
-import type { JsonObject, PayloadRef, RecordOf, Sealed, SourceIo } from "@/lib/evidence";
+import type { JsonValue, PayloadRef, RecordOf, Sealed, SourceIo } from "@/lib/evidence";
 import { complete, SourceFailure } from "@/lib/evidence";
 import { houstonLocus } from "@/tests/unit/evidence/helpers/sems-fixtures";
 import {
@@ -51,7 +51,7 @@ type Step = { readonly fixture: string } | { readonly fail: SourceFailure };
 function stubIo(step: Step): { readonly io: SourceIo; readonly calls: URL[] } {
 	const calls: URL[] = [];
 	const io: SourceIo = {
-		get<Raw extends JsonObject>(url: URL, schema: z.ZodType<Raw>) {
+		get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>) {
 			calls.push(url);
 			if ("fail" in step) return Promise.reject(step.fail);
 			const bytes = bytesOf(step.fixture);
@@ -113,8 +113,8 @@ describe("a facility with 38 programme-interest rows across 15 programmes", () =
 		expect(record.effectiveAt.value).toBeNull();
 		expect(record.caveats).toEqual(FRS_CAVEATS);
 
-		expect(record.programInterests.value).toHaveLength(38);
-		expect(new Set(record.programInterests.value.map((interest) => interest.program)).size).toBe(15);
+		expect(record.programInterests).toHaveLength(38);
+		expect(new Set(record.programInterests.map((interest) => interest.program.value)).size).toBe(15);
 	});
 
 	it("carries the coordinate's own quality fields into location, null on this real facility", async () => {
@@ -128,21 +128,36 @@ describe("a facility with 38 programme-interest rows across 15 programmes", () =
 	it("passes an active-status code it has never catalogued through unchanged", async () => {
 		const record = await facilityFrom(HOUSTON_REFINERY, "110000460885");
 
-		const tsca = record.programInterests.value.find((interest) => interest.programId === "TSCA10169492");
+		const tsca = record.programInterests.find((interest) => interest.programId.value === "TSCA10169492");
 		if (tsca === undefined) throw new Error("expected the TSCA10169492 programme-interest row");
-		expect(tsca.program).toBe("TSCA");
-		expect(tsca.interestType).toBe("TSCA SUBMITTER");
-		expect(tsca.activeStatus).toBe("***UNCHANGED***");
+		expect(tsca.program.value).toBe("TSCA");
+		expect(tsca.interestType.value).toBe("TSCA SUBMITTER");
+		expect(tsca.activeStatus.value).toBe("***UNCHANGED***");
 	});
 
-	it("sources programInterests through the outFields request parameter", async () => {
+	it("traces a single programme interest's status to its own row's column, not to a request parameter", async () => {
 		const record = await facilityFrom(HOUSTON_REFINERY, "110000460885");
 
-		const [provenance] = record.programInterests.provenance;
-		expect(provenance.kind).toBe("query");
-		if (provenance.kind !== "query") throw new Error("expected query provenance");
-		expect(provenance.parameter).toBe("outFields");
-		expect(provenance.value).toBe("*");
+		const tsca = record.programInterests.find((interest) => interest.programId.value === "TSCA10169492");
+		if (tsca === undefined) throw new Error("expected the TSCA10169492 programme-interest row");
+		expect(tsca.activeStatus.provenance).toEqual([
+			{
+				kind: "field",
+				dataset: "frs_interests",
+				sourceField: "ACTIVE_STATUS",
+				rawValue: "***UNCHANGED***",
+				transform: "identity",
+				adapterVersion: "frs@1",
+				payload: record.payloads[0],
+			},
+		]);
+		expect(tsca.programId.provenance[0]).toMatchObject({ sourceField: "PGM_SYS_ID", rawValue: "TSCA10169492" });
+		// Every leaf of every row is a field read; none is a query parameter.
+		for (const interest of record.programInterests) {
+			for (const leaf of Object.values(interest)) {
+				expect(leaf.provenance.every((p) => p.kind === "field")).toBe(true);
+			}
+		}
 	});
 
 	it("names exactly the one payload it was built from", async () => {
@@ -171,7 +186,14 @@ describe("one registry ID, two Superfund site IDs", () => {
 
 		expect(record.sourceRecordId).toBe("110000462703");
 		expect(record.subject.value).toBe("PASADENA REFINING SYSTEM, INC.");
-		expect(record.programInterests.value).toEqual([
+		expect(
+			record.programInterests.map((interest) => ({
+				program: interest.program.value,
+				programId: interest.programId.value,
+				interestType: interest.interestType.value,
+				activeStatus: interest.activeStatus.value,
+			})),
+		).toEqual([
 			{ program: "SEMS", programId: "TXN000607355", interestType: "SUPERFUND (NON-NPL)", activeStatus: "NOT ON THE NPL" },
 			{ program: "SEMS", programId: "TXN000605303", interestType: "SUPERFUND (NON-NPL)", activeStatus: "NOT ON THE NPL" },
 		]);
@@ -218,7 +240,7 @@ describe("facility-identity fields that disagree across a registry ID's rows", (
 			"PRIMARY_NAME",
 		]);
 
-		const built = frsFacility([disagreeing, ...rest], layer.payload, stubIo({ fixture: HOUSTON_REFINERY }).io);
+		const built = frsFacility([disagreeing, ...rest], layer.payload);
 		expect(built.caveats).toContain(
 			"FRS's own programme-interest rows disagree on PRIMARY_NAME for this registry ID; the first row's values are shown.",
 		);
@@ -233,7 +255,7 @@ describe("facility-identity fields that disagree across a registry ID's rows", (
 
 		const [first, ...rest] = layer.features;
 		if (first === undefined) throw new Error("fixture has no features");
-		const built = frsFacility([first, ...rest], layer.payload, stubIo({ fixture: HOUSTON_REFINERY }).io);
+		const built = frsFacility([first, ...rest], layer.payload);
 		expect(built.caveats).toEqual(FRS_CAVEATS);
 	});
 });

@@ -13,9 +13,10 @@
  *
  * Nothing ECHO sends is a JSON number. Counts, quarters and coordinates are
  * numeric strings, which the kernel's `number` and `point` readers parse while
- * keeping the original string as the trace's raw value. Dates are month/day/
- * year and are passed through exactly as sent, because guessing at a reordering
- * would turn 08/12/2024 from August into December.
+ * keeping the original string as the trace's raw value. The penalty amount is
+ * a currency string, "$0", read by `currency` so the trace reports the dollar
+ * sign ECHO sent. Dates are month/day/year, read by `usDate`, which never
+ * guesses at the order: 08/12/2024 is August and the trace keeps the string.
  *
  * Neither call's `Message` means anything about success: the first says
  * "Success" and the second says "Working". A failure arrives as HTTP 200 with
@@ -24,7 +25,7 @@
  */
 
 import { z } from "zod";
-import { coalesce, fieldsOf, fromQuery, SourceFailure, urlFrom } from "@/lib/evidence";
+import { coalesce, fieldsOf, SourceFailure, urlFrom } from "@/lib/evidence";
 import type {
 	Adapter,
 	AdapterVersion,
@@ -66,8 +67,7 @@ const MAX_PAGES = 20;
 export const ECHO_CAVEATS: readonly string[] = [
 	"ECHO reports what a facility told EPA under its permits. A facility listed here is regulated and reporting, not necessarily polluting.",
 	"Compliance status covers the last twelve quarters of federally reported data and is not a statement about conditions today.",
-	"ECHO dates are month/day/year, so 08/12/2024 is August 2024. They are shown exactly as ECHO sends them.",
-	'Penalty amounts arrive as currency strings such as "$0"; the currency symbol is removed before the amount is parsed.',
+	"ECHO sends dates as month/day/year. They are shown as year-month-day, and the trace keeps the string ECHO sent.",
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -169,49 +169,9 @@ export function qidUrl(queryId: string, pageNo: number): URL {
 /* Reading a row                                                              */
 /* -------------------------------------------------------------------------- */
 
-type ProgramColumn = {
-	readonly program: string;
-	readonly column: "CAAComplianceStatus" | "CWAComplianceStatus" | "RCRAComplianceStatus" | "SDWAComplianceStatus";
-};
-
-/** The statute acronyms are ECHO's own column names, not a vocabulary of ours. */
-const PROGRAM_COLUMNS: readonly ProgramColumn[] = [
-	{ program: "CAA", column: "CAAComplianceStatus" },
-	{ program: "CWA", column: "CWAComplianceStatus" },
-	{ program: "RCRA", column: "RCRAComplianceStatus" },
-	{ program: "SDWA", column: "SDWAComplianceStatus" },
-];
-
-type ProgramStatus = { readonly program: string; readonly status: string };
-
-/**
- * ECHO sends `FacLastPenaltyAmt` as "$0" or "$1,250" even though its own
- * metadata calls the column a NUMBER. The kernel's `number` reader rejects it,
- * so the symbol and separators are stripped before the reader runs. The trace
- * therefore names the right column and the right transform but shows "0" where
- * ECHO sent "$0" — see the unit report; the kernel needs a currency transform
- * for the raw string to survive into provenance.
- */
-function withParsedMoney(row: FacilityRow): FacilityRow {
-	const raw = row.FacLastPenaltyAmt;
-	if (raw === null) return row;
-	const stripped = raw.replace(/[$,\s]/g, "");
-	return { ...row, FacLastPenaltyAmt: stripped === "" ? null : stripped };
-}
-
-function buildFacility(
-	row: Fetched<FacilityRow>,
-	summary: Fetched<SummaryResults>,
-	io: SourceIo,
-): Built<"echo-facility"> {
+function buildFacility(row: Fetched<FacilityRow>, summary: Fetched<SummaryResults>): Built<"echo-facility"> {
 	const f = fieldsOf(row, DATASET_ROWS, ECHO_VERSION);
 	const head = fieldsOf(summary, DATASET_SUMMARY, ECHO_VERSION);
-	const money = fieldsOf({ raw: withParsedMoney(row.raw), payload: row.payload }, DATASET_ROWS, ECHO_VERSION);
-
-	const statuses: readonly ProgramStatus[] = PROGRAM_COLUMNS.flatMap((column) => {
-		const status = row.raw[column.column];
-		return status === null ? [] : [{ program: column.program, status }];
-	});
 
 	return {
 		kind: "echo-facility",
@@ -224,7 +184,7 @@ function buildFacility(
 		location: f.point("FacLat", "FacLong", {}),
 		// ECHO has no as-of column. The most recent compliance event it names is
 		// the closest honest thing, and the trace shows both candidates.
-		effectiveAt: coalesce(f.date("FacDateLastFormalAction"), f.date("FacDateLastInspection")),
+		effectiveAt: coalesce(f.usDate("FacDateLastFormalAction"), f.usDate("FacDateLastInspection")),
 		// ECHO's own data-version stamp, which only the first call carries.
 		sourceUpdatedAt: head.text("Version"),
 		caveats: ECHO_CAVEATS,
@@ -232,20 +192,24 @@ function buildFacility(
 		complianceStatus: f.text("FacComplianceStatus"),
 		significantNoncomplianceFlag: f.text("FacSNCFlg"),
 		quartersInNoncompliance: f.number("FacQtrsWithNC"),
-		lastFormalActionDate: f.date("FacDateLastFormalAction"),
+		lastFormalActionDate: f.usDate("FacDateLastFormalAction"),
 		// ECHO exposes one formal-action count column, the Clean Air Act one.
 		formalActionCount: f.number("CAAFormalActionCount"),
 		penaltyCount: f.number("FacPenaltyCount"),
-		lastPenaltyDate: f.date("FacDateLastPenalty"),
-		lastPenaltyAmountUsd: money.number("FacLastPenaltyAmt"),
-		lastInspectionDate: f.date("FacDateLastInspection"),
+		lastPenaltyDate: f.usDate("FacDateLastPenalty"),
+		// "$0" as sent; the trace's raw value is that string and the transform is named.
+		lastPenaltyAmountUsd: f.currency("FacLastPenaltyAmt"),
+		lastInspectionDate: f.usDate("FacDateLastInspection"),
 		activeFlag: f.text("FacActiveFlag"),
-		// The kernel has no reader that yields a structured value, so the one
-		// array field on this record kind can only be sourced through
-		// `fromQuery`, naming the request parameter that selected these columns.
-		// Reported as a kernel gap: the per-programme statuses have no
-		// field-level provenance until a list reader exists.
-		programStatuses: fromQuery(io.query("qcolumns", QCOLUMNS, ECHO_VERSION, row.payload), statuses),
+		// One leaf per statute column; the acronyms are the prefixes of ECHO's
+		// own column names, not a vocabulary of ours. A programme ECHO does not
+		// track at this facility is a null leaf that still names its column.
+		programStatuses: f.pick({
+			CAA: "CAAComplianceStatus",
+			CWA: "CWAComplianceStatus",
+			RCRA: "RCRAComplianceStatus",
+			SDWA: "SDWAComplianceStatus",
+		}),
 		naicsCodes: f.text("FacNAICSCodes"),
 		sicCodes: f.text("FacSICCodes"),
 	};
@@ -323,7 +287,7 @@ async function run(locus: Locus, io: SourceIo, limits: Attempts): Promise<readon
 		const before = built.size;
 		for (const facility of rows.Facilities) {
 			if (built.has(facility.RegistryID)) continue;
-			built.set(facility.RegistryID, buildFacility({ raw: facility, payload: page.payload }, summary, io));
+			built.set(facility.RegistryID, buildFacility({ raw: facility, payload: page.payload }, summary));
 		}
 		if (built.size >= expected) break;
 		// A page that adds no new facility is the end of the set, whatever the

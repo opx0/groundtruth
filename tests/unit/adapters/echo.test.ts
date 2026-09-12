@@ -16,7 +16,8 @@ import { z } from "zod";
 import { fieldsOf, runSource, SourceFailure } from "@/lib/evidence";
 import type {
 	Fetched,
-	JsonObject,
+	FieldProvenance,
+	JsonValue,
 	Locus,
 	PayloadRef,
 	Provenance,
@@ -79,7 +80,7 @@ function stubIo(steps: readonly Step[]): { readonly io: SourceIo; readonly calls
 	const calls: URL[] = [];
 	let index = 0;
 	const io: SourceIo = {
-		get<Raw extends JsonObject>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> {
+		get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> {
 			calls.push(url);
 			const step = steps[Math.min(index, steps.length - 1)];
 			index += 1;
@@ -130,12 +131,7 @@ function firstProvenance(sourced: Sourced<unknown>): Provenance {
 	return head;
 }
 
-function fieldProvenance(sourced: Sourced<unknown>): {
-	readonly sourceField: string;
-	readonly rawValue: unknown;
-	readonly transform: string;
-	readonly dataset: string;
-} {
+function fieldProvenance(sourced: Sourced<unknown>): FieldProvenance {
 	const head = firstProvenance(sourced);
 	if (head.kind !== "field") throw new Error(`expected field provenance, got ${head.kind}`);
 	return head;
@@ -193,35 +189,84 @@ describe("echo adapter", () => {
 		expect(portTerminal.distanceMeters?.value).toBe(266);
 	});
 
-	it("strips the currency symbol from a penalty and leaves month/day/year dates alone", async () => {
+	it("reads the penalty as a number and reports the exact bytes ECHO sent, dollar sign included, in the trace", async () => {
 		const { records } = await quarterMileRecords();
 		const southCoast = byId(records, "110064116987");
 
 		expect(southCoast.penaltyCount.value).toBe(1);
 		expect(southCoast.lastPenaltyAmountUsd.value).toBe(0);
-		expect(fieldProvenance(southCoast.lastPenaltyAmountUsd).sourceField).toBe("FacLastPenaltyAmt");
+		// The trace panel's whole job is to report what the agency sent. EPA sent
+		// "$0", not "0", and the transform that removed the symbol is named.
+		expect(fieldProvenance(southCoast.lastPenaltyAmountUsd)).toEqual({
+			kind: "field",
+			dataset: "echo_get_qid",
+			sourceField: "FacLastPenaltyAmt",
+			rawValue: "$0",
+			transform: "parse-currency",
+			adapterVersion: ECHO_VERSION,
+			payload: fieldProvenance(southCoast.registryId).payload,
+		});
+		expect(southCoast.caveats.some((caveat) => caveat.includes("currency symbol is removed"))).toBe(false);
+	});
 
-		// 08/12/2024 is August 2024. It is passed through exactly as ECHO sent it
-		// rather than reordered into an ISO date that could say December.
-		expect(southCoast.lastFormalActionDate.value).toBe("08/12/2024");
-		expect(southCoast.lastPenaltyDate.value).toBe("08/12/2024");
-		expect(southCoast.lastInspectionDate.value).toBe("11/17/2023");
+	it("reorders month/day/year dates into ISO by a named transform, keeping ECHO's string in the trace", async () => {
+		const { records } = await quarterMileRecords();
+		const southCoast = byId(records, "110064116987");
+
+		// 08/12/2024 is August 2024. The record holds the ISO date so it sorts
+		// with every other source's; the trace shows the reordering happened.
+		expect(southCoast.lastFormalActionDate.value).toBe("2024-08-12");
+		expect(southCoast.lastPenaltyDate.value).toBe("2024-08-12");
+		expect(southCoast.lastInspectionDate.value).toBe("2023-11-17");
+		expect(fieldProvenance(southCoast.lastFormalActionDate)).toMatchObject({
+			sourceField: "FacDateLastFormalAction",
+			rawValue: "08/12/2024",
+			transform: "parse-us-date",
+		});
+		expect(southCoast.effectiveAt.value).toBe("2024-08-12");
 		expect(southCoast.caveats).toContain(
-			"ECHO dates are month/day/year, so 08/12/2024 is August 2024. They are shown exactly as ECHO sends them.",
+			"ECHO sends dates as month/day/year. They are shown as year-month-day, and the trace keeps the string ECHO sent.",
 		);
 	});
 
-	it("lists only the programmes ECHO returned, in ECHO's own words", async () => {
+	it("reads every programme column in ECHO's own words, null where ECHO left it empty", async () => {
 		const { records } = await quarterMileRecords();
 
-		expect(byId(records, "110005085898").programStatuses.value).toEqual([
-			{ program: "CAA", status: "No Violation Identified" },
-			{ program: "RCRA", status: "No Violation Identified" },
-		]);
-		expect(byId(records, "110009747514").programStatuses.value).toEqual([
-			{ program: "CWA", status: "Violation Identified" },
-		]);
-		expect(byId(records, "110035313844").programStatuses.value).toEqual([]);
+		const cargill = byId(records, "110005085898").programStatuses;
+		expect(cargill.CAA.value).toBe("No Violation Identified");
+		expect(cargill.CWA.value).toBeNull();
+		expect(cargill.RCRA.value).toBe("No Violation Identified");
+		expect(cargill.SDWA.value).toBeNull();
+
+		const portTerminal = byId(records, "110009747514").programStatuses;
+		expect(portTerminal.CWA.value).toBe("Violation Identified");
+		expect(portTerminal.CAA.value).toBeNull();
+
+		const westway = byId(records, "110035313844").programStatuses;
+		expect(Object.values(westway).map((status) => status.value)).toEqual([null, null, null, null]);
+	});
+
+	it("traces a single programme's status to its own column, not to a request parameter", async () => {
+		const { records } = await quarterMileRecords();
+		const portTerminal = byId(records, "110009747514");
+
+		expect(fieldProvenance(portTerminal.programStatuses.CWA)).toEqual({
+			kind: "field",
+			dataset: "echo_get_qid",
+			sourceField: "CWAComplianceStatus",
+			rawValue: "Violation Identified",
+			transform: "identity",
+			adapterVersion: ECHO_VERSION,
+			payload: fieldProvenance(portTerminal.registryId).payload,
+		});
+		// A null status still names its column; nothing about it came from the request.
+		expect(fieldProvenance(portTerminal.programStatuses.SDWA)).toMatchObject({
+			sourceField: "SDWAComplianceStatus",
+			rawValue: null,
+		});
+		for (const status of Object.values(portTerminal.programStatuses)) {
+			expect(status.provenance.every((p) => p.kind === "field")).toBe(true);
+		}
 	});
 
 	it("reads a column that is null on a real row as null, with its origin recorded", async () => {
@@ -234,6 +279,7 @@ describe("echo adapter", () => {
 		expect(westway.quartersInNoncompliance.value).toBeNull();
 		expect(westway.activeFlag.value).toBeNull();
 		expect(westway.lastInspectionDate.value).toBeNull();
+		expect(fieldProvenance(westway.lastInspectionDate)).toMatchObject({ rawValue: null, transform: "parse-us-date" });
 		expect(westway.lastPenaltyAmountUsd.value).toBe(0);
 		expect(fieldProvenance(westway.complianceStatus)).toMatchObject({
 			dataset: "echo_get_qid",
@@ -258,10 +304,8 @@ describe("echo adapter", () => {
 
 		const cargill = byId(outcome.records, "110005085898");
 		expect(cargill.complianceStatus.value).toBe(invented);
-		expect(cargill.programStatuses.value).toEqual([
-			{ program: "CAA", status: "No Violation Identified" },
-			{ program: "RCRA", status: "No Violation Identified" },
-		]);
+		expect(cargill.programStatuses.CAA.value).toBe("No Violation Identified");
+		expect(cargill.programStatuses.RCRA.value).toBe("No Violation Identified");
 	});
 
 	it("carries both calls' payloads and both datasets into the record", async () => {
@@ -456,7 +500,7 @@ describe("echo adapter", () => {
 describe.skipIf(process.env["ECHO_LIVE"] !== "1")("echo adapter, live", () => {
 	it("answers the demo address from the real endpoint", async () => {
 		const io: SourceIo = {
-			async get<Raw extends JsonObject>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> {
+			async get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> {
 				const response = await fetch(url, { signal: AbortSignal.timeout(ECHO_POLICY.timeoutMs) });
 				if (!response.ok) throw new SourceFailure("http", response.status);
 				const text = await response.text();

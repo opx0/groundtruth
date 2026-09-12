@@ -157,6 +157,7 @@ export function semsBuilt(
 		frsName: frs.text("PRIMARY_NAME"),
 		semsName: site === null ? null : site.text("name"),
 		interestType: frs.text("INTEREST_TYPE"),
+		statusRow: { status: site === null ? "no-row" : "joined" },
 		semsNplStatus: site === null ? null : site.text("npl_status_name"),
 		frsActiveStatus: frs.text("ACTIVE_STATUS"),
 		nonNplStatus: site === null ? null : site.text("non_npl_status_name"),

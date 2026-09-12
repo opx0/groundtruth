@@ -19,8 +19,8 @@
  */
 
 import { z } from "zod";
-import type { AdapterVersion, Built, PayloadRef, SourceIo } from "@/lib/evidence";
-import { fieldsOf, fromQuery, SourceFailure, urlFrom } from "@/lib/evidence";
+import type { AdapterVersion, Built, FrsProgramInterest, PayloadRef, SourceIo } from "@/lib/evidence";
+import { fieldsOf, SourceFailure, urlFrom } from "@/lib/evidence";
 
 export const FRS_VERSION: AdapterVersion = "frs@1";
 
@@ -118,23 +118,25 @@ function mostRecentlyUpdated(features: readonly [FrsFeature, ...FrsFeature[]]): 
 	return best;
 }
 
+/** One programme-interest row, each of its four fields a leaf that traces to that row's column. */
+function programInterest(feature: FrsFeature, payload: PayloadRef): FrsProgramInterest {
+	return fieldsOf({ raw: feature.attributes, payload }, DATASET, FRS_VERSION).pick({
+		program: "PGM_SYS_ACRNM",
+		programId: "PGM_SYS_ID",
+		interestType: "INTEREST_TYPE",
+		activeStatus: "ACTIVE_STATUS",
+	});
+}
+
 /**
  * One FRS facility, collapsed from every programme-interest row the registry
- * ID carries.
- *
- * `programInterests` is the one field none of the kernel's readers can
- * produce: `text`/`number`/`date`/`epochMs` each read one scalar out of one
- * row, and `join` only concatenates several fields of one row into a single
- * string. None of them yields a structured array built across many rows. It is
- * sourced through `fromQuery`, naming the `outFields` request parameter that
- * is why every row's columns were available to collapse — the same gap and the
- * same workaround the ECHO adapter's `programStatuses` field already reports.
- * This is a kernel gap, not a hand-built provenance: see the unit report.
+ * ID carries. The identity fields come from the first row; `programInterests`
+ * is every row, picked the same way, so the trace can name the row and column
+ * behind any one programme's status.
  */
 export function frsFacility(
 	features: readonly [FrsFeature, ...FrsFeature[]],
 	payload: PayloadRef,
-	io: SourceIo,
 ): Built<"frs-facility"> {
 	const [first] = features;
 	const frs = fieldsOf({ raw: first.attributes, payload }, DATASET, FRS_VERSION);
@@ -149,13 +151,6 @@ export function frsFacility(
 					...FRS_CAVEATS,
 					`FRS's own programme-interest rows disagree on ${mismatches.join(", ")} for this registry ID; the first row's values are shown.`,
 				];
-
-	const programInterests = features.map((feature) => ({
-		program: feature.attributes.PGM_SYS_ACRNM,
-		programId: feature.attributes.PGM_SYS_ID,
-		interestType: feature.attributes.INTEREST_TYPE,
-		activeStatus: feature.attributes.ACTIVE_STATUS,
-	}));
 
 	return {
 		kind: "frs-facility",
@@ -173,7 +168,7 @@ export function frsFacility(
 		sourceUpdatedAt: latestReader.epochMs("UPDATE_DATE"),
 		caveats,
 		registryId: frs.text("REGISTRY_ID"),
-		programInterests: fromQuery(io.query("outFields", "*", FRS_VERSION, payload), programInterests),
+		programInterests: features.map((feature) => programInterest(feature, payload)),
 	};
 }
 
@@ -193,5 +188,5 @@ export async function lookupFrsFacility(registryId: string, io: SourceIo): Promi
 	if ("error" in body) throw new SourceFailure("http", body.error.code);
 	const [first, ...rest] = body.features;
 	if (first === undefined) return [];
-	return [frsFacility([first, ...rest], fetched.payload, io)];
+	return [frsFacility([first, ...rest], fetched.payload)];
 }

@@ -24,25 +24,15 @@
  * whatever `SourceIo.get` recorded, because we do not control that
  * implementation and must not trust it to have redacted anything.
  *
- * KERNEL GAP (worked around, not fixed; see the report): `GeocodeMatch` in
- * `lib/evidence/records.ts` declares `addressRange: Sourced<{ from: string;
- * to: string }>`, one `Sourced` wrapping a compound literal. Nothing in
- * `FieldReader` can produce that shape: every reader (`text`, `number`,
- * `date`, `epochMs`, `flag`, `join`) is typed to a scalar leaf, and the only
- * exported general constructor, `fromQuery`, takes a `QueryProvenance`, which
- * `SourceIo.query` can only build from a `string | number` value, not an
- * object, and hand-building one ourselves is exactly the "never hand-write
- * provenance" rule this unit must not break. So this file exports its own
- * `GeocodeMatch`, matching that shape everywhere except `addressRange`, which
- * follows the `GeoPoint` pattern instead: one plain object of two
- * individually `Sourced<string>` fields, each fully traceable. Scope forbids
- * editing `lib/evidence/**`, so this is flagged here rather than patched
- * there.
+ * The match is the kernel's own `GeocodeMatch`. Its address range is a
+ * container of two leaves built by the `pick` reader, the same shape as
+ * `GeoPoint`, so each end of the range traces to the Census field it came
+ * from.
  */
 
 import { z } from "zod";
 import { fieldsOf, ReaderInvariant } from "@/lib/evidence";
-import type { AdapterVersion, GeoPoint, PayloadRef, Sourced, SourceIo } from "@/lib/evidence";
+import type { AdapterVersion, GeocodeMatch, PayloadRef, SourceIo } from "@/lib/evidence";
 
 export const CENSUS_VERSION: AdapterVersion = "census@1";
 
@@ -80,15 +70,7 @@ export const CensusResponse = z.object({
 });
 export type CensusResponse = z.infer<typeof CensusResponse>;
 
-/** Not `lib/evidence`'s `GeocodeMatch`: see the kernel-gap note above. */
-export type GeocodeMatch = {
-	readonly matchedAddress: Sourced<string>;
-	readonly point: GeoPoint;
-	readonly addressRange: { readonly from: Sourced<string>; readonly to: Sourced<string> };
-	readonly tigerLineId: Sourced<string>;
-	readonly streetSide: Sourced<string>;
-	readonly payload: PayloadRef;
-};
+export type { GeocodeMatch };
 
 /**
  * Three outcomes, distinguishable by shape rather than by counting an array.
@@ -139,7 +121,7 @@ function buildMatch(match: CensusAddressMatch, payload: PayloadRef): GeocodeMatc
 	return {
 		matchedAddress: top.text("matchedAddress"),
 		point,
-		addressRange: { from: range.text("fromAddress"), to: range.text("toAddress") },
+		addressRange: range.pick({ from: "fromAddress", to: "toAddress" }),
 		tigerLineId: tiger.text("tigerLineId"),
 		streetSide: tiger.text("side"),
 		payload,

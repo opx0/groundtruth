@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { SourceIo } from "@/lib/evidence";
+import type { GeocodeMatch, SourceIo } from "@/lib/evidence";
 import { SourceFailure } from "@/lib/evidence";
 import { geocode, type GeocodeOutcome } from "@/lib/adapters/census";
 
@@ -71,6 +71,11 @@ describe("a clean single match", () => {
 		const [fromProv] = match.addressRange.from.provenance;
 		if (fromProv?.kind !== "field") throw new Error("expected field provenance");
 		expect(fromProv).toMatchObject({ dataset: "census_geocoder", sourceField: "fromAddress", rawValue: "9301" });
+		const [toProv] = match.addressRange.to.provenance;
+		if (toProv?.kind !== "field") throw new Error("expected field provenance");
+		expect(toProv).toMatchObject({ dataset: "census_geocoder", sourceField: "toAddress", rawValue: "9399" });
+		// Each end of the range is its own leaf; the pair is a frozen container, not one Sourced wrapping an object.
+		expect(Object.isFrozen(match.addressRange)).toBe(true);
 
 		const [latProv] = match.point.latitude.provenance;
 		if (latProv?.kind !== "field") throw new Error("expected field provenance");
@@ -151,9 +156,15 @@ function mustNotCompile(outcome: GeocodeOutcome): void {
 	}
 }
 
+/** The match the adapter builds is the kernel's own `GeocodeMatch`, not a local near-copy of it. */
+function isKernelMatch(outcome: GeocodeOutcome): GeocodeMatch | null {
+	return outcome.status === "matched" ? outcome.match : null;
+}
+
 describe("the three outcomes are distinguishable by type", () => {
 	it("is checked by tsc, not at runtime", () => {
 		expect(typeof mustNotCompile).toBe("function");
+		expect(typeof isKernelMatch).toBe("function");
 	});
 });
 

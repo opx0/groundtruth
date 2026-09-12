@@ -270,7 +270,7 @@ describe("the outcomes that are not records", () => {
 		expect(outcome).toEqual({ status: "unavailable", cause: "http", rawCode: 400, retryAfter: null });
 	});
 
-	it("fails the source when the status join fails, rather than claiming no status row exists", async () => {
+	it("costs one site its status when a join fails, never the other fourteen their records", async () => {
 		const io: SourceIo = {
 			get(url, schema) {
 				if (epaIdOf(url) !== null) return Promise.reject(new SourceFailure("rate-limited", "429", "60"));
@@ -286,7 +286,22 @@ describe("the outcomes that are not records", () => {
 			now: () => RETRIEVED_AT,
 		};
 		const outcome = await runSource(locus, semsAdapter, io, policy);
-		expect(outcome).toEqual({ status: "unavailable", cause: "rate-limited", rawCode: "429", retryAfter: "60" });
+		// A failed request is not an empty answer. Every site keeps its record and
+		// its registry-side fields; only the inventory's answer is missing, and
+		// `statusRow` says so verbatim rather than letting the error pose as
+		// "the inventory has no row for this site".
+		if (outcome.status !== "ok") throw new Error(`expected ok, got ${outcome.status}`);
+		expect(outcome.records).toHaveLength(15);
+		for (const record of outcome.records) {
+			expect(record.statusRow).toEqual({
+				status: "unavailable",
+				cause: "rate-limited",
+				rawCode: "429",
+				retryAfter: "60",
+			});
+			expect(record.semsNplStatus).toBeNull();
+			expect(record.frsActiveStatus.value).not.toBeNull();
+		}
 	});
 });
 

@@ -25,6 +25,8 @@ export type {
 	JsonValue,
 	KeysWhere,
 	PayloadRef,
+	Picked,
+	PickSpec,
 	Provenance,
 	QueryProvenance,
 	Sealed,
@@ -35,9 +37,11 @@ export type {
 export { AGENCY, emptyStore, KINDS, recordId, sameId, storeOf } from "./records";
 export type {
 	Built,
+	EchoProgramStatuses,
 	EvidenceRecord,
 	EvidenceStore,
 	FemaFloodZoneRecord,
+	FrsProgramInterest,
 	GeocodeMatch,
 	Kind,
 	RecordId,
@@ -45,6 +49,7 @@ export type {
 	SemsSiteRecord,
 	SourceId,
 	SourceOf,
+	StatusRowOutcome,
 } from "./records";
 
 export { defineTemplate, fallback, isSlotRef, km, sentence } from "./templates";
@@ -66,11 +71,13 @@ export type { Placement, Sentence, Span, Trace, ValueTrace } from "./sentence";
 export {
 	complete,
 	DEFAULT_POLICY,
+	NO_DATA_NOTE,
 	NoPayload,
 	runSource,
 	runSources,
 	SourceFailure,
 	storeOfSources,
+	unavailableOf,
 } from "./source";
 export type {
 	Adapter,

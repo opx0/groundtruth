@@ -20,11 +20,13 @@
  * an Esri result.
  *
  * So this module never blends the two. Each dataset is its own `Adapter`, so a
- * caller that runs one knows which one answered. `floodZoneOutcome` runs NFHL
+ * caller that runs one knows which one answered. Each adapter declares its
+ * dataset's B10 wording as its `noDataNote`, so the kernel's no-data outcome
+ * already says which dataset answered empty. `floodZoneOutcome` runs NFHL
  * first, falls back to Esri only when NFHL is unavailable (never when NFHL
- * answers empty), and returns the dataset beside the outcome with the no-data
- * note already set to that dataset's B10 wording. Every record carries the
- * dataset as a `Sourced` field whose provenance is the request we made.
+ * answers empty), and returns the dataset beside the outcome. Every record
+ * carries the dataset as a `Sourced` field whose provenance is the request we
+ * made.
  *
  * No type assertions, no non-null assertions, no `any`. Lint enforces it.
  */
@@ -181,6 +183,7 @@ export function femaAdapter(dataset: FemaDataset): FemaAdapter {
 		source: "fema",
 		version: FEMA_VERSION,
 		dataset,
+		noDataNote: spec.noPolygonNote,
 		async run(locus: Locus, io: SourceIo): Promise<readonly Built<"fema-flood-zone">[]> {
 			const fetched = await io.get(floodZoneQueryUrl(dataset, locus), ArcgisQueryBody);
 			const body = fetched.raw;
@@ -199,16 +202,11 @@ export const esriReducedSetAdapter: FemaAdapter = femaAdapter("ESRI_REDUCED_SET"
 export type FloodZoneResult = {
 	/** Which dataset produced `outcome`. Present on every status, so an empty answer is never anonymous. */
 	readonly dataset: FemaDataset;
-	/** A no-data outcome carries the dataset's own B10 wording, not the kernel's generic note. */
+	/** A no-data outcome carries the dataset's own B10 wording, declared on the adapter that answered. */
 	readonly outcome: SourceOutcome<"fema-flood-zone">;
 	/** The NFHL failure that forced the fallback. Null when NFHL itself answered, with or without a polygon. */
 	readonly nfhl: SourceUnavailable | null;
 };
-
-function withDatasetNote(dataset: FemaDataset, outcome: SourceOutcome<"fema-flood-zone">): SourceOutcome<"fema-flood-zone"> {
-	if (outcome.status !== "no-data") return outcome;
-	return { ...outcome, note: FEMA_DATASETS[dataset].noPolygonNote };
-}
 
 /**
  * NFHL first. Esri only when NFHL is unavailable. An empty NFHL answer is an
@@ -221,8 +219,8 @@ export async function floodZoneOutcome(
 ): Promise<FloodZoneResult> {
 	const nfhl = await runSource(locus, nfhlAdapter, io, policy);
 	if (nfhl.status !== "unavailable") {
-		return { dataset: "NFHL", outcome: withDatasetNote("NFHL", nfhl), nfhl: null };
+		return { dataset: "NFHL", outcome: nfhl, nfhl: null };
 	}
 	const esri = await runSource(locus, esriReducedSetAdapter, io, policy);
-	return { dataset: "ESRI_REDUCED_SET", outcome: withDatasetNote("ESRI_REDUCED_SET", esri), nfhl };
+	return { dataset: "ESRI_REDUCED_SET", outcome: esri, nfhl };
 }

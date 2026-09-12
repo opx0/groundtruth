@@ -74,7 +74,7 @@ These touch `lib/evidence/**`, which five adapter agents are reading right now.
 Editing it mid-run would make their typechecks fail for reasons that have
 nothing to do with their work, so they wait.
 
-1. **A status join that failed is not a status that is absent.** The SEMS
+1. [DONE c2b836a] **A status join that failed is not a status that is absent.** The SEMS
    adapter currently fails the whole source when one Envirofacts request errors,
    because the registry-only sentence says "the Superfund inventory returned no
    status row", and after a fetch error that sentence is a lie. The reasoning is
@@ -84,12 +84,12 @@ nothing to do with their work, so they wait.
    the same no-data versus unavailable distinction the report already makes for
    whole sources, applied one level down.
 
-2. **`SourceIo.get` cannot express a top-level JSON array.** Its `Raw` is
+2. [DONE c2b836a] **`SourceIo.get` cannot express a top-level JSON array.** Its `Raw` is
    constrained to `JsonObject`, and Envirofacts returns a bare array. The SEMS
    adapter worked around it inside its own file without an assertion. Widen the
    constraint to `JsonValue` and drop the workaround.
 
-3. **Fifteen sites means fifteen parallel Envirofacts requests per report**,
+3. [DONE c2b836a] **Fifteen sites means fifteen parallel Envirofacts requests per report**,
    unthrottled. Fine against fixtures, rude against a government endpoint. Cap
    the concurrency.
 
@@ -100,7 +100,7 @@ nothing to do with their work, so they wait.
 
 ### Raised by the ECHO adapter, in priority order
 
-5. **The trace currently shows a penalty value ECHO did not send.** ECHO sends
+5. [DONE c2b836a] **The trace currently shows a penalty value ECHO did not send.** ECHO sends
    `"$0"`. The kernel's number reader throws on a currency symbol, so the
    adapter strips it before reading, and the trace then names the field and the
    transform but reports the raw value as `"0"`. That is a false statement about
@@ -110,7 +110,7 @@ nothing to do with their work, so they wait.
    removed by a named transform with the original kept in provenance. **Do this
    one first.**
 
-6. **No reader produces a structured value, and three adapters have now hit
+6. [DONE c2b836a] **No reader produces a structured value, and three adapters have now hit
    it.** ECHO needs a list of programme statuses, the registry needs a list of
    programme interests, and the geocoder needs an address range of two strings.
    Each worked around it differently and none could do it cleanly. The geocoder
@@ -128,7 +128,7 @@ nothing to do with their work, so they wait.
    the field it came from. Arm B predicted this exact gap in the design race and
    the FRS adapter has the same shape. A `fields.list(...)` reader is the fix.
 
-7. **Dates are inconsistent across sources.** ECHO records hold `08/12/2024`
+7. [DONE c2b836a] **Dates are inconsistent across sources.** ECHO records hold `08/12/2024`
    while SEMS records hold `2022-02-08`. The ECHO adapter passed the value
    through verbatim rather than rewriting it, which was the right call, since
    rewriting would have made the trace claim ECHO sent an ISO date. A
@@ -152,3 +152,27 @@ nothing to do with their work, so they wait.
     the adapter needs it for a record id, but no authoritative row has ever been
     seen, so a null there would read as malformed. Worth re-checking against the
     first real capture.
+
+## Queue status after U1.8
+
+Closed: 1, 2, 3, 5, 6, 7. The trace no longer misreports a value, structured
+values have provenance, a failed join no longer costs fourteen good records,
+top-level arrays parse, and both date shapes are named transforms.
+
+Still open, none of them blocking:
+
+- **4**, deduplicating the ArcGIS query building across three adapters. Left
+  alone deliberately. The duplication is small and the abstraction has not
+  earned itself yet.
+- **8**, an adapter supplying its own no-data note, so the flood card can say
+  which of its two datasets returned nothing. Needed before the flood card is
+  wired to the shared fan-out; until then the report calls the flood adapter
+  directly, which works.
+- **9**, a shorter deadline for the authoritative flood layer so a hang cannot
+  eat the budget before the fallback runs. Only matters once that host is
+  reachable.
+- **10**, re-checking that the flood layer's primary key is never null. Blocked
+  on capturing one real response from that host.
+
+Items 8, 9 and 10 all sit behind the same blocker: nobody has ever seen a
+response from FEMA's authoritative flood layer.

@@ -25,7 +25,6 @@ import {
 	type AdapterVersion,
 	type Fetched,
 	type GeoPoint,
-	type JsonObject,
 	type JsonValue,
 	type PayloadRef,
 	type Provenance,
@@ -75,16 +74,26 @@ export type SourceOutcome<K extends Kind = Kind> =
 	| SourceUnavailable;
 
 export type SourceIo = {
-	/** Fetch, hash, stamp, parse. Throws SourceFailure on timeout, http, or malformed. */
-	get<Raw extends JsonObject>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>>;
+	/** Fetch, hash, stamp, parse. Throws SourceFailure on timeout, http, or malformed. `Raw` may be a bare array: Envirofacts sends one. */
+	get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>>;
 	query(parameter: string, value: string | number, adapterVersion: AdapterVersion, payload: PayloadRef): QueryProvenance;
 	now(): string;
 };
+
+/** The wording of a no-data outcome when nothing better is known about why the source answered empty. */
+export const NO_DATA_NOTE = "No matching records within the stated boundary.";
 
 export type Adapter<K extends Kind> = {
 	readonly kind: K;
 	readonly source: RecordOf<K>["source"];
 	readonly version: AdapterVersion;
+	/**
+	 * What an empty answer from this adapter means, in its own words, when it
+	 * means something more specific than `NO_DATA_NOTE`. The flood adapters
+	 * need it: an empty answer from FEMA's layer and from Esri's reduced copy
+	 * are different facts.
+	 */
+	readonly noDataNote?: string;
 	run(locus: Locus, io: SourceIo): Promise<readonly Built<K>[]>;
 };
 
@@ -143,8 +152,16 @@ export function complete<K extends Kind>(locus: Locus, built: Built<K> & { reado
 	});
 }
 
-/** A kernel invariant (a reader given the wrong shape, a lookalike, no payload) means our parse of the response failed: malformed, named. */
-function failureOf(error: unknown): SourceUnavailable {
+/**
+ * Classifies a thrown error as an unavailable outcome. A `SourceFailure`
+ * carries its own cause; a kernel invariant (a reader given the wrong shape, a
+ * lookalike, no payload) means our parse of the response failed: malformed,
+ * named. Anything else is unknown, with no body carried out. Exported so an
+ * adapter that fans out to per-record requests can classify one failed
+ * request the same way the kernel classifies a failed source, rather than
+ * inventing a cause of its own.
+ */
+export function unavailableOf(error: unknown): SourceUnavailable {
 	if (error instanceof SourceFailure) {
 		return { status: "unavailable", cause: error.reason, rawCode: error.rawCode, retryAfter: error.retryAfter };
 	}
@@ -181,11 +198,11 @@ export async function runSource<K extends Kind>(
 		const retrievedAt = io.now();
 		const [first, ...rest] = built.map((b) => complete(locus, b));
 		if (first === undefined) {
-			return { status: "no-data", note: "No matching records within the stated boundary.", retrievedAt };
+			return { status: "no-data", note: adapter.noDataNote ?? NO_DATA_NOTE, retrievedAt };
 		}
 		return { status: "ok", records: [first, ...rest], retrievedAt };
 	} catch (error) {
-		return failureOf(error);
+		return unavailableOf(error);
 	}
 }
 

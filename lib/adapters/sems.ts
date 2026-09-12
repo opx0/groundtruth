@@ -22,14 +22,30 @@
  *
  * A site with no Envirofacts row at all is a real and common case (the call
  * answers `[]`). Such a record keeps every Superfund-side field null, which is
- * what `sems-site/registry-only@1` prints, and is distinct from a status the
- * inventory failed to answer for: if the join call fails, this adapter fails
- * the whole source rather than let a fetch error pose as "no status row".
+ * what `sems-site/registry-only@1` prints. That is a different fact from a
+ * status the inventory could not be asked for, and the record's `statusRow`
+ * keeps the two apart: `no-row` when the inventory answered empty,
+ * `unavailable` with the kernel's own classification when the request failed.
+ * One failed join therefore costs one site its status, never the other
+ * fourteen their records, and never lets a fetch error pose as "no status row".
+ *
+ * The status joins run at most `STATUS_CONCURRENCY` at a time. Fifteen sites
+ * in the demo radius would otherwise be fifteen simultaneous requests to one
+ * government endpoint per report.
  */
 
 import { z } from "zod";
-import type { Adapter, AdapterVersion, Built, Fetched, Locus, SourceIo } from "@/lib/evidence";
-import { coalesce, fieldsOf, SourceFailure, urlFrom } from "@/lib/evidence";
+import type {
+	Adapter,
+	AdapterVersion,
+	Built,
+	Fetched,
+	Locus,
+	SourceIo,
+	SourceUnavailable,
+	StatusRowOutcome,
+} from "@/lib/evidence";
+import { coalesce, fieldsOf, SourceFailure, unavailableOf, urlFrom } from "@/lib/evidence";
 
 export const SEMS_VERSION: AdapterVersion = "sems@1";
 
@@ -47,6 +63,9 @@ export const SEMS_CAVEATS: readonly string[] = [
 	"A SEMS record can mean assessment, proposed action, active cleanup, or completed work.",
 	"The coordinate is a reference point, not a boundary.",
 ];
+
+/** How many Envirofacts status requests may be in flight at once for one report. */
+export const STATUS_CONCURRENCY = 4;
 
 /**
  * Status and interest fields are `z.string()`, never `z.enum()`. The inventory
@@ -93,14 +112,18 @@ const EnvirofactsSite = z.object({
 });
 type EnvirofactsSite = z.infer<typeof EnvirofactsSite>;
 
+/** Envirofacts answers with a top-level JSON array: zero rows or one, for an EPA ID. */
+const EnvirofactsRows = z.array(EnvirofactsSite);
+
 /**
- * Envirofacts answers with a top-level JSON array, which `SourceIo.get` cannot
- * name because its raw type is a `JsonObject`. The rows are wrapped into one
- * during validation; the payload is still hashed over the bytes as sent.
+ * What one status request produced: the row, no row, or the failure that
+ * stopped us finding out. Only the middle one means the inventory holds
+ * nothing for the site.
  */
-const EnvirofactsRows: z.ZodType<{ readonly rows: readonly EnvirofactsSite[] }> = z
-	.array(EnvirofactsSite)
-	.transform((rows) => ({ rows }));
+export type StatusAnswer =
+	| { readonly status: "joined"; readonly row: Fetched<EnvirofactsSite> }
+	| { readonly status: "no-row" }
+	| SourceUnavailable;
 
 export function layerUrl(locus: Locus): URL {
 	const url = new URL(LAYER_URL);
@@ -120,17 +143,29 @@ export function statusUrl(epaId: string): URL {
 	return new URL(`${ENVIROFACTS_URL}/${encodeURIComponent(epaId)}/JSON`);
 }
 
+/** The record's join state, which carries the failure verbatim and nothing else. */
+function statusRowOf(answer: StatusAnswer): StatusRowOutcome {
+	switch (answer.status) {
+		case "joined":
+			return { status: "joined" };
+		case "no-row":
+			return { status: "no-row" };
+		case "unavailable":
+			return answer;
+	}
+}
+
 /**
  * One SEMS site: the FRS layer row, joined to its Envirofacts row when the
  * inventory has one. Every value is read through a kernel reader, so the two
  * payloads and the two dataset names stay attached to the fields they fed.
+ * Whether the join happened, found nothing, or failed is `statusRow`; the
+ * Envirofacts-side fields are null in the last two cases alike, and only
+ * `statusRow` says which.
  */
-export function semsSite(
-	frsRow: Fetched<FrsAttrs>,
-	efRow: Fetched<EnvirofactsSite> | null,
-): Built<"sems-site"> {
+export function semsSite(frsRow: Fetched<FrsAttrs>, answer: StatusAnswer): Built<"sems-site"> {
 	const frs = fieldsOf(frsRow, FRS_DATASET, SEMS_VERSION);
-	const site = efRow === null ? null : fieldsOf(efRow, ENVIROFACTS_DATASET, SEMS_VERSION);
+	const site = answer.status === "joined" ? fieldsOf(answer.row, ENVIROFACTS_DATASET, SEMS_VERSION) : null;
 	return {
 		kind: "sems-site",
 		source: "sems",
@@ -154,6 +189,7 @@ export function semsSite(
 		frsName: frs.text("PRIMARY_NAME"),
 		semsName: site === null ? null : site.text("name"),
 		interestType: frs.text("INTEREST_TYPE"),
+		statusRow: statusRowOf(answer),
 		semsNplStatus: site === null ? null : site.text("npl_status_name"),
 		frsActiveStatus: frs.text("ACTIVE_STATUS"),
 		nonNplStatus: site === null ? null : site.text("non_npl_status_name"),
@@ -166,11 +202,33 @@ export function semsSite(
 	};
 }
 
-async function statusFor(io: SourceIo, epaId: string): Promise<Fetched<EnvirofactsSite> | null> {
-	const fetched = await io.get(statusUrl(epaId), EnvirofactsRows);
-	const row = fetched.raw.rows[0];
-	// An empty array is the inventory saying it holds no row for this EPA ID.
-	return row === undefined ? null : { raw: row, payload: fetched.payload };
+/**
+ * One status request. A failure is classified by the kernel, exactly as a
+ * failed source would be, and returned rather than thrown: it belongs to this
+ * site, not to the source.
+ */
+async function statusFor(io: SourceIo, epaId: string): Promise<StatusAnswer> {
+	try {
+		const fetched = await io.get(statusUrl(epaId), EnvirofactsRows);
+		const row = fetched.raw[0];
+		// An empty array is the inventory saying it holds no row for this EPA ID.
+		return row === undefined ? { status: "no-row" } : { status: "joined", row: { raw: row, payload: fetched.payload } };
+	} catch (error) {
+		return unavailableOf(error);
+	}
+}
+
+/** Every distinct EPA ID's status, at most `STATUS_CONCURRENCY` requests in flight. */
+async function statusRows(io: SourceIo, epaIds: readonly string[]): Promise<ReadonlyMap<string, StatusAnswer>> {
+	const answers = new Map<string, StatusAnswer>();
+	const queue = [...epaIds];
+	const worker = async (): Promise<void> => {
+		for (let epaId = queue.shift(); epaId !== undefined; epaId = queue.shift()) {
+			answers.set(epaId, await statusFor(io, epaId));
+		}
+	};
+	await Promise.all(Array.from({ length: Math.min(STATUS_CONCURRENCY, queue.length) }, worker));
+	return answers;
 }
 
 async function run(locus: Locus, io: SourceIo): Promise<readonly Built<"sems-site">[]> {
@@ -180,15 +238,12 @@ async function run(locus: Locus, io: SourceIo): Promise<readonly Built<"sems-sit
 	// No features is no-data, which `runSource` reads off an empty return. It is
 	// not a failure and must never be reported as one.
 	const features = body.features;
-	const rows = new Map<string, Fetched<EnvirofactsSite> | null>();
-	const epaIds = [...new Set(features.map((feature) => feature.attributes.PGM_SYS_ID))];
-	await Promise.all(
-		epaIds.map(async (epaId) => {
-			rows.set(epaId, await statusFor(io, epaId));
-		}),
-	);
+	const answers = await statusRows(io, [...new Set(features.map((feature) => feature.attributes.PGM_SYS_ID))]);
 	return features.map((feature) =>
-		semsSite({ raw: feature.attributes, payload: layer.payload }, rows.get(feature.attributes.PGM_SYS_ID) ?? null),
+		semsSite(
+			{ raw: feature.attributes, payload: layer.payload },
+			answers.get(feature.attributes.PGM_SYS_ID) ?? { status: "no-row" },
+		),
 	);
 }
 

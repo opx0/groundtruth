@@ -58,15 +58,43 @@ export type {
 	Clause,
 	DisplayFormat,
 	FieldRef,
+	GroupSubject,
 	NumericKeys,
+	OriginSubject,
+	Reported,
+	SectionSubject,
+	SlotKeys,
 	SlotRef,
 	SourcedKeys,
+	SourceSubject,
+	SubjectKey,
+	SubjectOf,
 	Template,
 	TemplateRegistry,
+	WideScope,
 } from "./templates";
 
-export { formatValue, KindMismatch, render, renderAll, trace, verify } from "./sentence";
-export type { Placement, Sentence, Span, Trace, ValueTrace } from "./sentence";
+export { defineSection, formatValue, KindMismatch, render, renderAll, sectionOrdering, trace, verify } from "./sentence";
+export type {
+	GroupPlacement,
+	GroupTrace,
+	OriginPlacement,
+	OriginTrace,
+	Placement,
+	RecordPlacement,
+	RecordTrace,
+	SectionFilter,
+	SectionPlacement,
+	SectionSpec,
+	SectionTrace,
+	Sentence,
+	SentenceSubject,
+	SourcePlacement,
+	SourceTrace,
+	Span,
+	Trace,
+	ValueTrace,
+} from "./sentence";
 
 export {
 	complete,

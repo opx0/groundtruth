@@ -10,3 +10,4 @@ ts	phase	decision	why	evidence	result
 2026-09-15T20:19:19Z	U1.x	declared all record kinds before adapter fan-out	five agents would otherwise serialize on records.ts; separate before sharing	d2b2987	typecheck green, 35 tests
 2026-09-15T20:25:00Z	U1.1	SEMS adapter green; queued the failed-join-vs-absent-row fix	after a fetch error we cannot claim the inventory has no row, but losing 14 good sites to one blip is the wrong trade	bcd7a33	50 tests green
 2026-09-15T20:36:35Z	U1.x	all five adapters landed, 106 tests	parallel fan-out across three models, each owning its own file	215ff2a	green
+2026-09-16T00:13:20Z	U1.8	finished the rate-limited agent's work rather than restarting it	it was about 95 percent done and the tree held the work; redoing it would have cost more than repairing three small breaks	c2b836a	108 tests green

@@ -1,0 +1,27 @@
+[
+{
+  "site_id": "0607377",
+  "fk_ref_region_code": "06",
+  "name": "DELTA SPECIALITY FIRE",
+  "epa_id": "TXN000607377",
+  "street_addr_txt": "5898 HEISER DRIVE",
+  "supplemental_addr_txt": null,
+  "city_name": "HOUTON",
+  "fk_ref_state_code": "TX",
+  "zip_code": "77087",
+  "congressional_district_code": null,
+  "county_name": "HARRIS",
+  "fips_code": "48201",
+  "primary_latitude_decimal_val": "35.449125",
+  "primary_longitude_decimal_val": "-97.680523",
+  "saa_agreement_site_ind": "N",
+  "npl_status_code": "N",
+  "npl_status_name": "Not on the NPL",
+  "federal_facility_ind": "N",
+  "non_npl_status_code": "RO",
+  "non_npl_status_name": "Removal Only Site (No Site Assessment Work Needed)",
+  "non_npl_status_date": "2012-03-12 00:00:00",
+  "archived_ind": "N",
+  "archived_date": null
+}
+]

@@ -5,9 +5,23 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { Adapter, Built, Locus, Placement, RecordId, Sourced, SourceIo } from "@/lib/evidence";
-import { defineTemplate, fallback, km, sentence } from "@/lib/evidence";
+import type {
+	Adapter,
+	Built,
+	GeocodeMatch,
+	Locus,
+	Placement,
+	RecordId,
+	SourceIo,
+	SourceOutcome,
+	Sourced,
+} from "@/lib/evidence";
+import { defineSection, defineTemplate, fallback, km, sentence } from "@/lib/evidence";
 import { semsSiteSummary } from "@/lib/templates/sems";
+import { semsSectionCount } from "@/lib/templates/sections";
+import { sourceUnavailable } from "@/lib/templates/sources";
+import { originMatch } from "@/lib/templates/origin";
+import { groupMemberCount } from "@/lib/templates/groups";
 
 declare const built: Built<"sems-site">;
 declare const somewhereSourcedNumber: Sourced<number>;
@@ -15,6 +29,18 @@ declare const semsId: RecordId<"sems-site">;
 declare const femaId: RecordId<"fema-flood-zone">;
 declare const locus: Locus;
 declare const io: SourceIo;
+declare const match: GeocodeMatch;
+declare const outcome: SourceOutcome;
+
+const semsSection = defineSection({
+	kind: "sems-site",
+	source: "sems",
+	boundary: "5 miles",
+	query: null,
+	retrievedAt: null,
+	filter: null,
+	note: "No matching records within the stated boundary.",
+});
 
 const femaTemplate = defineTemplate("fema-flood-zone", "fema-flood-zone/test@1", (field) => [
 	sentence`Zone ${field("zoneCode")}.`,
@@ -69,6 +95,56 @@ export function mustNotCompile(): void {
 	// A sealed record is readonly.
 	// @ts-expect-error -- value is readonly
 	built.frsActiveStatus.value = "x";
+
+	// (7e) One compile failure per scope added by U2.3. A template cannot
+	// render a subject of the wrong shape, whether the subject is a record or
+	// one of the four wider ones.
+
+	// section: a section subject has no record fields.
+	defineTemplate("section", "section/wrong-subject@1", (field) => [
+		// @ts-expect-error -- epaSiteId is a sems-site field; a section counts records, it is not one
+		sentence`${field("epaSiteId")}.`,
+	]);
+	// @ts-expect-error -- a section placement cannot take a record template
+	const sectionWithRecordTemplate: Placement = { scope: "section", section: semsSection, template: semsSiteSummary };
+	void sectionWithRecordTemplate;
+	defineSection({
+		kind: "sems-site",
+		source: "sems",
+		boundary: "5 miles",
+		query: null,
+		retrievedAt: null,
+		// @ts-expect-error -- zoneCode is not a slot of a sems-site record
+		filter: { field: "zoneCode", equals: "AE" },
+		note: "No matching records within the stated boundary.",
+	});
+
+	// source: a source subject has no count; that is a section's.
+	defineTemplate("source", "source/wrong-subject@1", (field) => [
+		// @ts-expect-error -- count belongs to a section, not to a source outcome
+		sentence`${field("count")}.`,
+	]);
+	// @ts-expect-error -- a source placement cannot take a section template
+	const sourceWithSectionTemplate: Placement = { scope: "source", source: "sems", outcome, template: semsSectionCount };
+	void sourceWithSectionTemplate;
+
+	// origin: a geocode match has no cause; that is a source's.
+	defineTemplate("origin", "origin/wrong-subject@1", (field) => [
+		// @ts-expect-error -- cause belongs to a source outcome, not to the geocode match
+		sentence`${field("cause")}.`,
+	]);
+	// @ts-expect-error -- an origin placement cannot take a source template
+	const originWithSourceTemplate: Placement = { scope: "origin", match, template: sourceUnavailable };
+	void originWithSourceTemplate;
+
+	// group: a group subject has no matched address; that is the origin's.
+	defineTemplate("group", "group/wrong-subject@1", (field) => [
+		// @ts-expect-error -- matchedAddress belongs to the geocode match, not to a group of records
+		sentence`${field("matchedAddress")}.`,
+	]);
+	// @ts-expect-error -- a group placement cannot take an origin template
+	const groupWithOriginTemplate: Placement = { scope: "group", members: [semsId], groupedBy: null, template: originMatch };
+	void groupWithOriginTemplate;
 }
 
 export function mustCompile(): void {
@@ -80,6 +156,18 @@ export function mustCompile(): void {
 		sentence`${field("subject")}, ${km(field("distanceMeters"))}.`,
 		sentence`as of ${fallback(field("statusDate"), "Date unavailable")}.`,
 	]);
+
+	// One well-formed placement per scope added by U2.3.
+	const okSection: Placement = { scope: "section", section: semsSection, template: semsSectionCount };
+	const okSource: Placement = { scope: "source", source: "sems", outcome, template: sourceUnavailable };
+	const okOrigin: Placement = { scope: "origin", match, template: originMatch };
+	const okGroup: Placement = {
+		scope: "group",
+		members: [semsId, semsId],
+		groupedBy: "frsRegistryId",
+		template: groupMemberCount,
+	};
+	void [okSection, okSource, okOrigin, okGroup];
 }
 
 describe("type-level guarantees", () => {

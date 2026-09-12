@@ -44,9 +44,15 @@ function mustRender(placement: Placement) {
 	return sentence;
 }
 
-function mustTrace(spanIndex: number): Trace {
+/**
+ * U2.3 widened `Trace` into a union over subject scope, so a record trace is
+ * reached by narrowing on `scope`. The narrowing is an extra assertion, not a
+ * weaker one: every use below now also proves the trace is record-scoped.
+ */
+function mustTrace(spanIndex: number): Extract<Trace, { scope: "record" }> {
 	const t = trace(store, mustRender(nearest), spanIndex);
 	if (t === null) throw new Error(`expected a trace for span ${spanIndex}`);
+	if (t.scope !== "record") throw new Error(`expected a record-scoped trace, got ${t.scope}`);
 	return t;
 }
 

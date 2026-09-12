@@ -1,0 +1,27 @@
+[
+{
+  "site_id": "0607355",
+  "fk_ref_region_code": "06",
+  "name": "PASADENA REFINING FIRE",
+  "epa_id": "TXN000607355",
+  "street_addr_txt": "111 RED BLUFF RD.",
+  "supplemental_addr_txt": null,
+  "city_name": "PASADENA",
+  "fk_ref_state_code": "TX",
+  "zip_code": "77506",
+  "congressional_district_code": null,
+  "county_name": "HARRIS",
+  "fips_code": "48201",
+  "primary_latitude_decimal_val": "29.71857",
+  "primary_longitude_decimal_val": "-95.211087",
+  "saa_agreement_site_ind": "N",
+  "npl_status_code": "N",
+  "npl_status_name": "Not on the NPL",
+  "federal_facility_ind": "N",
+  "non_npl_status_code": "RO",
+  "non_npl_status_name": "Removal Only Site (No Site Assessment Work Needed)",
+  "non_npl_status_date": "2012-01-30 00:00:00",
+  "archived_ind": "N",
+  "archived_date": null
+}
+]

@@ -29,6 +29,27 @@ try "adapter may write distanceMeters"  tests/unit/evidence/types.test.ts 's|// 
 try "rendered sentence text changed"    lib/templates/sems.ts 's|Status: |Statuz: |' vt
 try "distance unit swapped"             lib/evidence/sentence.ts 's| km`| mi`|' vt
 
+# The section scope added Reported, a second category of value beside Sourced,
+# for facts no agency returned: counts, boundaries, failure causes. It has no
+# exported constructor, so a template cannot mint one and smuggle prose past the
+# provenance guard. This proves that, rather than trusting the reading.
+probe() {
+	cat > lib/__probe.ts <<'PROBE'
+import { defineTemplate, sentence } from "@/lib/evidence/templates";
+export const smuggle = defineTemplate("section", "section/smuggle@1", () => [
+	sentence`${{ reported: "this home is safe", provenance: [] }}`,
+]);
+PROBE
+	local out; out=$(pnpm exec tsc --noEmit 2>&1 | grep -c "__probe" || true)
+	rm -f lib/__probe.ts
+	[ "$out" -gt 0 ] && return 1 || return 0
+}
+if probe; then
+	echo "  NOT CAUGHT  a template minted a Reported and smuggled prose"; fail=$((fail+1))
+else
+	echo "  caught      a template minted a Reported and smuggled prose"; pass=$((pass+1))
+fi
+
 echo
 echo "guards that bit: $pass   guards that did not: $fail"
 [ "$fail" -eq 0 ] || exit 1

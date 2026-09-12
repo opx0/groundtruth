@@ -344,8 +344,8 @@ const groupSize: Placement = { ...sharedRegistry, template: groupMemberCount };
 describe("group: several records the grouping rules tied together", () => {
 	it("renders two records as one subject", () => {
 		expect(text(mustRender(store, sharedRegistry).spans)).toBe(
-			"PASADENA REFINING SYSTEM, INC. and PASADENA REFINING SYSTEM, INC." +
-				" are one facility in EPA's records, tied together by 110000462703.",
+			"PASADENA REFINING FIRE and PRSI FIRE" +
+				" share one EPA facility registry ID, 110000462703.",
 		);
 		expect(text(mustRender(store, groupSize).spans)).toBe("2 records grouped under 110000462703.");
 	});

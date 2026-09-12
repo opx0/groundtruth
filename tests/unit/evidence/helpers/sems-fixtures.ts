@@ -172,6 +172,23 @@ export function semsRecord(locus: Locus, epaId: string): Sealed<SemsSiteRecord> 
 	return complete(locus, semsBuilt(frsRowFor(epaId), envirofactsFor(epaId)));
 }
 
+/**
+ * The same site built as though the Superfund inventory held no row for it.
+ *
+ * All fifteen sites in the layer fixture do have a row; that was checked
+ * against the live endpoint. So the rowless branch cannot be reached by
+ * picking a real site, and the honest way to exercise it is to serve the real
+ * empty response, `sems/envirofacts-no-row.json`, which is a bare `[]`
+ * captured from a well-formed EPA ID the inventory has nothing for.
+ *
+ * This is a deliberately constructed case, not a claim that this site lacks a
+ * row. Any test using it should say so.
+ */
+export function semsRecordWithoutRow(locus: Locus, epaId: string): Sealed<SemsSiteRecord> {
+	loadFixture("sems/envirofacts-no-row.json", EnvirofactsResponse);
+	return complete(locus, semsBuilt(frsRowFor(epaId), null));
+}
+
 export function semsId(epaId: string): RecordId<"sems-site"> {
 	return recordId("sems-site", epaId);
 }

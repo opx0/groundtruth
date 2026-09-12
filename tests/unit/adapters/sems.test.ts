@@ -11,7 +11,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { layerUrl, semsAdapter, statusUrl } from "@/lib/adapters/sems";
@@ -31,21 +31,29 @@ const LAYER_5MI = "sems/arcgis-5mi-houston.json";
 const LAYER_NONE = "sems/arcgis-no-records-nevada.json";
 const LAYER_ERROR = "fema/esri-error-bad-geometry.json";
 
-/** The two EPA IDs in the 5-mile layer that have a recorded Envirofacts row. */
-const JOINED: Readonly<Record<string, string>> = {
-	TXN000622182: "sems/envirofacts-TXN000622182.json",
-	TXN000607093: "sems/envirofacts-TXN000607093.json",
-};
+/**
+ * Every EPA ID in the 5-mile layer that has a recorded Envirofacts row, which
+ * is all fifteen of them. Built by reading the layer rather than by listing
+ * them, so adding a fixture cannot leave this map stale.
+ */
+const JOINED: Readonly<Record<string, string>> = Object.fromEntries(
+	frsLayer()
+		.raw.features.map((feature) => feature.attributes.PGM_SYS_ID)
+		.filter((epaId) => existsSync(`${fixturesDir}sems/envirofacts-${epaId}.json`))
+		.map((epaId) => [epaId, `sems/envirofacts-${epaId}.json`]),
+);
 
 const locus: Locus = houstonLocus();
 const policy = { timeoutMs: 5000 };
 
 /**
  * Envirofacts answers an EPA ID it holds no row for with exactly these two
- * bytes. No such response was recorded, because there is nothing in it to
- * record; every other payload below is a committed fixture read from disk.
+ * bytes, recorded in `sems/envirofacts-no-row.json` from a well-formed EPA ID
+ * the inventory has nothing for. All fifteen real sites do have a row, checked
+ * against the live endpoint, so this branch is reached deliberately rather than
+ * by picking a site.
  */
-const NO_ROWS = Buffer.from("[]", "utf8");
+const NO_ROWS = readFileSync(`${fixturesDir}sems/envirofacts-no-row.json`);
 
 function payloadFor(url: string, bytes: Buffer): PayloadRef {
 	return { url, sha256: createHash("sha256").update(bytes).digest("hex"), retrievedAt: RETRIEVED_AT };
@@ -193,9 +201,18 @@ describe("a site that exists in both systems", () => {
 	});
 });
 
+/**
+ * All fifteen real sites have an inventory row, so this branch is reached by
+ * serving the recorded empty response for one of them rather than by finding a
+ * site without one. `WITHOUT_ROW` drops that site from the joined map.
+ */
+const WITHOUT_ROW: Readonly<Record<string, string>> = Object.fromEntries(
+	Object.entries(JOINED).filter(([epaId]) => epaId !== "TXN000607155"),
+);
+
 describe("a site the Superfund inventory has no row for", () => {
 	it("keeps every Envirofacts-side field null and links to the registry instead", async () => {
-		const record = sited(ok(await run(serving(LAYER_5MI, JOINED))), "TXN000607155");
+		const record = sited(ok(await run(serving(LAYER_5MI, WITHOUT_ROW))), "TXN000607155");
 		expect(record.semsSiteId).toBeNull();
 		expect(record.semsName).toBeNull();
 		expect(record.semsNplStatus).toBeNull();
@@ -214,7 +231,7 @@ describe("a site the Superfund inventory has no row for", () => {
 	});
 
 	it("passes through a registry status string the code has never seen", async () => {
-		const record = sited(ok(await run(serving(LAYER_5MI, JOINED))), "TXN000607155");
+		const record = sited(ok(await run(serving(LAYER_5MI, WITHOUT_ROW))), "TXN000607155");
 		expect(record.frsActiveStatus.value).toBe("SITE IS PART OF NPL SITE");
 	});
 });

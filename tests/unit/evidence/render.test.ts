@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Built, PayloadRef, Placement, Trace } from "@/lib/evidence";
+import type { Built, EvidenceStore, PayloadRef, Placement, Trace } from "@/lib/evidence";
 import {
 	complete,
 	fieldsOf,
@@ -27,6 +27,7 @@ import {
 	semsBuilt,
 	semsId,
 	semsRecord,
+	semsRecordWithoutRow,
 	semsStore,
 } from "./helpers/sems-fixtures";
 
@@ -38,8 +39,8 @@ function text(spans: readonly { text: string }[]): string {
 	return spans.map((s) => s.text).join("");
 }
 
-function mustRender(placement: Placement) {
-	const sentence = render(store, placement);
+function mustRender(placement: Placement, from: EvidenceStore = store) {
+	const sentence = render(from, placement);
 	if (sentence === null) throw new Error("expected a sentence");
 	return sentence;
 }
@@ -166,12 +167,14 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 	});
 
 	it("keeps a status string the code has never seen, verbatim (acceptance 6)", () => {
-		// TXN000607155 has no Envirofacts fixture, so only the FRS status exists.
+		// Every real site has an inventory row, so this one is built from the real
+		// empty response to reach the rowless branch. It is a constructed case.
 		// No Envirofacts row, so the registry-only template is the right one: it
 		// prints the registry's status under the registry's name and states the
 		// gap rather than letting one agency's answer pose as the other's.
-		const placement: Placement = { scope: "record", recordId: semsId("TXN000607155"), template: semsSiteRegistryOnly };
-		const sentence = mustRender(placement);
+		const rowless = semsRecordWithoutRow(locus, "TXN000607155");
+		const placement: Placement = { scope: "record", recordId: rowless.id, template: semsSiteRegistryOnly };
+		const sentence = mustRender(placement, storeOf([rowless]));
 		expect(text(sentence.spans)).toBe(
 			"MCC RECYCLING, 5.50 km. EPA's facility registry lists it as SITE IS PART OF NPL SITE." +
 				" The Superfund inventory returned no status row for TXN000607155.",
@@ -310,7 +313,7 @@ describe("the four gaps U0.3 closes", () => {
 	});
 
 	it("traces a link that is a source field, not a template, to that field (gap 1)", () => {
-		const frsOnly = semsRecord(locus, "TXN000607155");
+		const frsOnly = semsRecordWithoutRow(locus, "TXN000607155");
 		const [p] = frsOnly.sourceUrl.provenance;
 		expect(p?.kind === "field" ? [p.dataset, p.sourceField] : null).toEqual(["frs_program_facility", "FAC_URL"]);
 		expect(frsOnly.sourceUrl.value).toContain("p_registry_id=110071101301");
@@ -341,11 +344,14 @@ describe("the four gaps U0.3 closes", () => {
 		]);
 
 		// No Envirofacts row joined: the SEMS field is null and the FRS field is not promoted into it.
-		const unjoined = semsRecord(locus, "TXN000607155");
+		const unjoined = semsRecordWithoutRow(locus, "TXN000607155");
 		expect(unjoined.semsNplStatus).toBeNull();
 		expect(unjoined.frsActiveStatus.value).toBe("SITE IS PART OF NPL SITE");
 		// The template's decision, in the open: the NPL sentence needs what SEMS said, so it does not render.
-		expect(render(store, { scope: "record", recordId: unjoined.id, template: semsSiteNpl })).toBeNull();
+		// Rendered from a store holding the rowless build, since the shared store joins this site.
+		expect(
+			render(storeOf([unjoined]), { scope: "record", recordId: unjoined.id, template: semsSiteNpl }),
+		).toBeNull();
 		expect(render(store, { scope: "record", recordId: joined.id, template: semsSiteNpl })).not.toBeNull();
 	});
 

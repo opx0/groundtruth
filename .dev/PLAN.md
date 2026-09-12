@@ -30,28 +30,28 @@ Work is assigned by how much judgment it needs, not by size.
 | ID | Unit | Depends on | Tier | State |
 |---|---|---|---|---|
 | U0.1 | Repo, toolchain, strict TS, vitest | none | mechanical | done |
-| U0.2 | Evidence kernel, provenance, rendering contract | U0.1 | judgment | design race |
-| U0.3 | Adapter contract, fetch wrapper, failure taxonomy | U0.2 | judgment | queued |
-| U1.1 | SEMS adapter, ArcGIS plus Envirofacts join | U0.3 | hard | queued |
-| U1.2 | Census geocoder adapter | U0.3 | specified | queued |
-| U1.3 | FEMA adapter, NFHL with Esri fallback | U0.3 | hard | queued |
-| U1.4 | FRS adapter, identity and coordinate quality | U0.3 | specified | queued |
-| U1.5 | ECHO adapter, fixture-driven | U0.3 | hard | queued |
-| U1.6 | AQS adapter | U0.3 | specified | queued |
-| U1.7 | AirNow adapter | U0.3 | specified | queued |
-| U2.1 | Selection and ordering policy | U0.2 | judgment | queued |
-| U2.2 | Facility grouping by registry and program ID | U1.1 U1.4 | hard | queued |
-| U2.3 | Template renderer, kind-gated | U0.2 | judgment | queued |
-| U3.1 | Route handlers, streamed per source | U1.x | hard | queued |
+| U0.2 | Evidence kernel, provenance, rendering contract | U0.1 | judgment | done |
+| U0.3 | Adapter contract, fetch wrapper, failure taxonomy | U0.2 | judgment | done |
+| U1.1 | SEMS adapter, ArcGIS plus Envirofacts join | U0.3 | hard | done |
+| U1.2 | Census geocoder adapter | U0.3 | specified | done |
+| U1.3 | FEMA adapter, NFHL with Esri fallback | U0.3 | hard | done (Esri only; NFHL unreachable) |
+| U1.4 | FRS adapter, identity and coordinate quality | U0.3 | specified | done |
+| U1.5 | ECHO adapter, fixture-driven | U0.3 | hard | done |
+| U1.6 | AQS adapter | U0.3 | specified | blocked, needs AQS key |
+| U1.7 | AirNow adapter | U0.3 | specified | blocked, needs AirNow key |
+| U2.1 | Selection and ordering policy | U0.2 | judgment | **next** |
+| U2.2 | Facility grouping by registry and program ID | U1.1 U1.4 | hard | done |
+| U2.3 | Template renderer, kind-gated | U0.2 | judgment | done |
+| U3.1 | Route handlers, streamed per source | U1.x | hard | geocode route done; report route **next** |
 | U3.2 | Coordinate cache with TTL, no identity | U3.1 | specified | queued |
-| U3.3 | Privacy invariants and log redaction | U3.1 | judgment | queued |
-| U4.1 | Search, examples, match confirmation | U3.1 | specified | queued |
+| U3.3 | Privacy invariants and log redaction | U3.1 | judgment | partly done in the geocode route |
+| U4.1 | Search, examples, match confirmation | U3.1 | specified | done |
 | U4.2 | Report cards, independent source states | U3.1 | specified | queued |
 | U4.3 | Trace panel | U2.3 | judgment | queued |
 | U5.1 | Adapter fixture matrix, seven cases per source | U1.x | specified | queued |
-| U5.2 | Renderer mutation tests | U2.3 | judgment | queued |
+| U5.2 | Renderer mutation tests | U2.3 | judgment | done via .dev/census/mutation-check.sh |
 | U5.3 | Selection tests | U2.1 | specified | queued |
-| U5.4 | Privacy tests | U3.3 | specified | queued |
+| U5.4 | Privacy tests | U3.3 | specified | partly done in the geocode route |
 | U5.5 | Playwright, the eight paths | U4.x | specified | queued |
 
 ## Known blockers

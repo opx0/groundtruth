@@ -10,3 +10,4 @@ ts	event	unit	detail	elapsed_s
 2026-09-15T20:36:48Z	start	U1.8	pay down kernel debt	
 2026-09-16T00:13:20Z	end	U1.8	kernel debt paid (clock spans a rate-limit outage, not work time)	1800
 2026-09-16T06:15:12Z	start	U2	report layer: scopes and grouping	
+2026-09-16T06:37:10Z	end	U2	scopes, grouping, search flow	1318

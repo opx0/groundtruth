@@ -90,3 +90,50 @@ from the ArcGIS one above, so the two adapters cannot share a check.
 `hazards.fema.gov` resets the TLS handshake before any HTTP exchange, from
 every route tried. Unlike ECHO this is not flakiness and retries do not help.
 `scripts/setup.sh` walks through capturing it from a US-reachable host.
+
+## AQS and AirNow, failures only
+
+Both air sources need a free key the operator has not registered, so neither
+has a recorded success payload. What is recorded is what each answers without
+one, captured live on 2026-09-16, and both are genuinely useful: they are the
+rate-limit and the unauthenticated cases of the seven, in real bytes.
+
+**`aqs/rate-limited.json`.** EPA publishes a shared test account
+(`email=test@aqs.api&key=test`) and it is exhausted, so every request to it —
+including `list/classes` — answers:
+
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 86400
+X-Powered-By: Air Quality Systems API, version 2
+
+{"error":"Daily limit for account use exceeded. Retry later."}
+```
+
+A real 429 with a real `Retry-After`, which is what `lib/io/fetch-source-io.ts`
+turns into `SourceFailure("rate-limited", 429, "86400")` before parsing. The
+body is recorded; the headers are documented here because a fixture file holds
+bytes, not a response.
+
+AQS's success envelope is `{"Header":[{status,request_time,url,rows}],"Body":[…]}`
+according to EPA's own published API documentation, which is reachable from
+here. It is `Body`, not `Data`. No success payload has been seen.
+
+**`airnow/unauthenticated.json`.** AirNow without a key:
+
+```
+HTTP/2 401
+www-authenticate: proprietary
+
+{"WebServiceError":[{"Message":"Request not authenticated."}]}
+```
+
+So its error envelope is `WebServiceError`, an array of `{Message}` — that much
+is now fact rather than assumption. Its success shape is still unverified, and
+`docs/BRIEF.md` B2 still says so.
+
+Neither of these is a recording of a working source, and no adapter may treat
+them as one. Any payload for the success path of either source is authored from
+published documentation, is named with a `derived-` prefix, and carries a
+sibling `.source.md` saying where the shape came from and that no real response
+backs it. That is the same rule FEMA's NFHL half is built under.

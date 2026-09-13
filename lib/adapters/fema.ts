@@ -60,6 +60,13 @@ type DatasetSpec = {
 	readonly layer: string;
 	/** The `dataset` string stamped on every field's provenance. */
 	readonly provenanceName: string;
+	/**
+	 * What the card says answered. The enum is a machine identifier and
+	 * telling a reader "ESRI_REDUCED_SET" tells them nothing; worse, the
+	 * other clauses on the flood card attribute their values to FEMA, and
+	 * for this dataset that is Esri's copy rather than FEMA's own service.
+	 */
+	readonly label: string;
 	/** docs/BRIEF.md B10, verbatim. The two differ on purpose. */
 	readonly noPolygonNote: string;
 	readonly caveats: readonly string[];
@@ -69,7 +76,12 @@ export const FEMA_DATASETS: { readonly [D in FemaDataset]: DatasetSpec } = {
 	NFHL: {
 		layer: "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28",
 		provenanceName: "nfhl_s_fld_haz_ar",
-		noPolygonNote: "No digital FEMA designation was available at this point.",
+		label: "FEMA's National Flood Hazard Layer",
+		// B10's wording, prefixed with the dataset that answered: B12 requires a
+		// no-polygon state to name its dataset, and a no-data note is the only
+		// place a `section` subject can carry it.
+		noPolygonNote:
+			"FEMA's own National Flood Hazard Layer answered with no polygon. No digital FEMA designation was available at this point.",
 		caveats: [
 			"Read from FEMA's National Flood Hazard Layer, the authoritative source.",
 			"No response from this layer has been recorded yet. The parse follows FEMA's published field names and is unverified against real bytes.",
@@ -80,10 +92,20 @@ export const FEMA_DATASETS: { readonly [D in FemaDataset]: DatasetSpec } = {
 		layer:
 			"https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Flood_Hazard_Reduced_Set_gdb/FeatureServer/0",
 		provenanceName: "esri_usa_flood_hazard_reduced_set",
+		// No date here, deliberately. `datasetLabel` is a `fromQuery` value and
+		// its provenance is the layer URL we requested, which states which
+		// service answered and nothing about the vintage of its contents. The
+		// 2026-03-11 date was checked against Esri's item page out of band on
+		// 2026-09-15, not read from any response this code parses, so a clause
+		// printing it would hand the reader a trace that does not support it
+		// and would go stale silently when Esri republishes. It stays in the
+		// caveats, which are disclosures rather than clickable values, and in
+		// the B10 no-polygon note, whose wording docs/BRIEF.md fixes verbatim.
+		label: "Esri's reduced-set copy of FEMA's National Flood Hazard Layer",
 		noPolygonNote:
 			"No 1% or 0.2% flood hazard polygon intersects this point in the Esri copy of FEMA's layer, dated 2026-03-11. This copy omits minimal-hazard areas, so it cannot tell minimal hazard from an unmapped area.",
 		caveats: [
-			"Read from Esri's reduced-set copy of FEMA's National Flood Hazard Layer, dated 2026-03-11, not from FEMA's own service.",
+			"Read from Esri's reduced-set copy of FEMA's National Flood Hazard Layer, not from FEMA's own service. Esri's item page gave 2026-03-11 as the copy's date when it was checked on 2026-09-15; no response this adapter parses states it.",
 			POINT_CAVEAT,
 		],
 	},
@@ -164,9 +186,20 @@ export function floodZoneBuilt(
 		sourceUpdatedAt: fields.absent("UPDATE_DATE"),
 		caveats: spec.caveats,
 		dataset: fromQuery(service, dataset),
+		datasetLabel: fromQuery(service, spec.label),
 		zoneCode: fields.text("FLD_ZONE"),
 		zoneSubtype: fields.text("ZONE_SUBTY"),
 		specialFloodHazardArea: fields.flag("SFHA_TF", { T: true, F: false }),
+		// The same column read twice: a boolean for filters and template
+		// requirements, and the words FEMA's field description gives the
+		// letters, because the phrase on the card has to be a value with a
+		// trace rather than connective text.
+		sfhaLabel: fields.map("SFHA_TF", {
+			T: "inside the Special Flood Hazard Area",
+			F: "outside the Special Flood Hazard Area",
+		}),
+		// And a third read, verbatim: B10 shows an unknown status as sent.
+		sfhaFlag: fields.text("SFHA_TF"),
 		firmPanelId: fields.text("DFIRM_ID"),
 		floodAreaId: fields.text("FLD_AR_ID"),
 		sourceCitation: fields.text("SOURCE_CIT"),

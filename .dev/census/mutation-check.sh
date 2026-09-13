@@ -26,7 +26,11 @@ try "wrong-kind field now allowed"      tests/unit/evidence/types.test.ts '0,/@t
 try "prose-only clause now allowed"     tests/unit/evidence/types.test.ts 's|// @ts-expect-error -- a factual sentence.*|//|' tc
 try "string interpolation now allowed"  tests/unit/evidence/types.test.ts 's|// @ts-expect-error -- a string is not a field.*|//|' tc
 try "adapter may write distanceMeters"  tests/unit/evidence/types.test.ts 's|// @ts-expect-error -- distanceMeters is kernel-owned.*|//|' tc
-try "rendered sentence text changed"    lib/templates/sems.ts 's|Status: |Statuz: |' vt
+# Retargeted 2026-09-16: the clause this mutated used to read "Status: " and
+# now reads "NPL status: " / "Non-NPL status: ", because non_npl_status_name
+# was labelled "Status:" while npl_status_name carried no label at all. The
+# case is the same one -- change a rendered sentence, watch a test catch it.
+try "rendered sentence text changed"    lib/templates/sems.ts 's|NPL status: |NPL statuz: |' vt
 try "distance unit swapped"             lib/evidence/sentence.ts 's| km`| mi`|' vt
 
 # The section scope added Reported, a second category of value beside Sourced,
@@ -49,6 +53,15 @@ if probe; then
 else
 	echo "  caught      a template minted a Reported and smuggled prose"; pass=$((pass+1))
 fi
+
+# Guard 8. A template that speaks about one state of a record now declares it,
+# and `assemble` refuses to render otherwise. Before that, the wrong Superfund
+# template rendered happily over the right record: `sems-site/registry-only@1`
+# said the inventory returned no status row over a site whose row had joined.
+# Strip the requirement and the templates go back to overlapping; the test that
+# pins which template speaks for which record is what has to notice.
+st() { pnpm exec vitest run tests/unit/templates/sems.test.ts; }
+try "template requirement removed"      lib/templates/sems.ts 's|{ state: "statusRow", is: "no-row" }|{ state: "statusRow", is: "joined" }|' st
 
 echo
 echo "guards that bit: $pass   guards that did not: $fail"

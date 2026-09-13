@@ -59,7 +59,18 @@ type Kinds = {
 			readonly statusRow: StatusRowOutcome;
 			/** Envirofacts `npl_status_name`. Null when no Envirofacts row joined; never filled from FRS. */
 			readonly semsNplStatus: Sourced<string> | null;
-			/** The FRS layer's `ACTIVE_STATUS`. A different agency's field with a different vocabulary; never a stand-in for the SEMS status. */
+			/**
+			 * The FRS layer's `ACTIVE_STATUS`. The layer's own field description
+			 * calls it "the status of the environmental interest at the facility
+			 * or site", and the interest here is Superfund: `PGM_SYS_ACRNM` is
+			 * `SEMS` on every row of `FRS_INTERESTS_SEMS`. So this is not a
+			 * different agency's vocabulary, as this comment claimed until
+			 * 2026-09-16 -- on all fifteen recorded Houston sites it is
+			 * `npl_status_name` upper-cased, differing on none. It is still not a
+			 * stand-in for the Superfund status: it belongs to the interest, it
+			 * survives a failed Envirofacts join, and a template that prints it
+			 * must say whose interest it is the status of.
+			 */
 			readonly frsActiveStatus: Sourced<string | null>;
 			readonly nonNplStatus: Sourced<string | null> | null;
 			readonly statusDate: Sourced<string | null> | null;
@@ -128,9 +139,22 @@ type Kinds = {
 		readonly source: "fema";
 		readonly fields: {
 			readonly dataset: Sourced<"NFHL" | "ESRI_REDUCED_SET">;
+			/** The same choice in words a reader can act on, so a card never has to print our enum. Its provenance is the request we made, like `dataset`'s. */
+			readonly datasetLabel: Sourced<string>;
 			readonly zoneCode: Sourced<string>;
 			readonly zoneSubtype: Sourced<string | null>;
 			readonly specialFloodHazardArea: Sourced<boolean | null>;
+			/**
+			 * `SFHA_TF` read as the words FEMA's own field description gives the
+			 * letters. Whether a point is inside the Special Flood Hazard Area is
+			 * the one phrase on the flood card a reader acts on, and a boolean
+			 * cannot be printed, so without this the phrase would be connective
+			 * text with no field behind it and nothing to click. Null for a letter
+			 * the table does not hold.
+			 */
+			readonly sfhaLabel: Sourced<string | null>;
+			/** The same column read verbatim, so B10's rule for an unknown status -- show it as sent, say the meaning is not mapped -- can be met when `sfhaLabel` is null. */
+			readonly sfhaFlag: Sourced<string | null>;
 			readonly firmPanelId: Sourced<string | null>;
 			readonly floodAreaId: Sourced<string | null>;
 			readonly sourceCitation: Sourced<string | null>;

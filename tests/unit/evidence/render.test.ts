@@ -60,9 +60,16 @@ function mustTrace(spanIndex: number): Extract<Trace, { scope: "record" }> {
 describe("render: the nearest SEMS record from the committed fixture bytes", () => {
 	it("renders the exact sentence (acceptance 2)", () => {
 		const sentence = mustRender(nearest);
+		// Relabelled in U2.0c: the distance says what it is measured from, and
+		// both status columns are named. `non_npl_status_name` was labelled
+		// "Status:" while `npl_status_name` carried no label at all, which made
+		// the reader take the labelled one as the site's status, and the date
+		// moved to its own clause so a null date stops dragging the status with
+		// it. See lib/templates/sems.ts.
 		expect(text(sentence.spans)).toBe(
-			"VALERO PLUME, 0.76 km. Not on the NPL." +
-				" Status: Removal Only Site (No Site Assessment Work Needed), as of 2022-02-08.",
+			"VALERO PLUME, 0.76 km from the mapped point. NPL status: Not on the NPL." +
+				" Non-NPL status: Removal Only Site (No Site Assessment Work Needed)." +
+				" Non-NPL status date: 2022-02-08.",
 		);
 		expect(sentence.spans.map((s) => s.slot?.field ?? null)).toEqual([
 			"subject",
@@ -70,11 +77,14 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 			"distanceMeters",
 			null,
 			null,
+			null,
 			"semsNplStatus",
 			null,
 			null,
 			null,
 			"nonNplStatus",
+			null,
+			null,
 			null,
 			"statusDate",
 			null,
@@ -176,7 +186,8 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 		const placement: Placement = { scope: "record", recordId: rowless.id, template: semsSiteRegistryOnly };
 		const sentence = mustRender(placement, storeOf([rowless]));
 		expect(text(sentence.spans)).toBe(
-			"MCC RECYCLING, 5.50 km. EPA's facility registry lists it as SITE IS PART OF NPL SITE." +
+			"MCC RECYCLING, 5.50 km from the mapped point." +
+				" EPA's facility registry records the SUPERFUND (NON-NPL) interest at MCC RECYCLING as SITE IS PART OF NPL SITE." +
 				" The Superfund inventory returned no status row for TXN000607155.",
 		);
 		const t = trace(store, sentence, sentence.spans.findIndex((s) => s.slot?.field === "frsActiveStatus"));
@@ -225,8 +236,9 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 		const sentence = render(smallStore, nearest);
 		// The distance clause dropped; the rest of the sentence stands.
 		expect(sentence === null ? null : text(sentence.spans)).toBe(
-			"Not on the NPL." +
-				" Status: Removal Only Site (No Site Assessment Work Needed), as of 2022-02-08.",
+			"NPL status: Not on the NPL." +
+				" Non-NPL status: Removal Only Site (No Site Assessment Work Needed)." +
+				" Non-NPL status date: 2022-02-08.",
 		);
 	});
 
@@ -234,9 +246,13 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 		const record = semsRecord(locus, "TXN000607093"); // NPL site; non_npl_status_name is null, date is not
 		expect(record.nonNplStatus?.value).toBeNull();
 		const sentence = render(store, { scope: "record", recordId: record.id, template: semsSiteSummary });
-		// nonNplStatus is null with no fallback, so the whole Status clause drops.
+		// nonNplStatus is null with no fallback, so its clause drops -- and only
+		// its clause. Until U2.0c the name and the date shared one clause, so a
+		// null name silently took a date the inventory did have with it.
+		expect(record.statusDate?.value).toBe("2010-07-05");
 		expect(sentence === null ? null : text(sentence.spans)).toBe(
-			"US OIL RECOVERY, 3.92 km. Currently on the Final NPL.",
+			"US OIL RECOVERY, 3.92 km from the mapped point. NPL status: Currently on the Final NPL." +
+				" Non-NPL status date: 2010-07-05.",
 		);
 	});
 });
@@ -352,7 +368,16 @@ describe("the four gaps U0.3 closes", () => {
 		expect(
 			render(storeOf([unjoined]), { scope: "record", recordId: unjoined.id, template: semsSiteNpl }),
 		).toBeNull();
-		expect(render(store, { scope: "record", recordId: joined.id, template: semsSiteNpl })).not.toBeNull();
+		// And the same decision one step finer, since U2.0c: `npl@1` is B7's
+		// separate sentence for the *final* National Priorities List, so a joined
+		// record is not enough. VALERO PLUME joined and SEMS said "Not on the
+		// NPL", so it does not render; a site SEMS put on the final list does.
+		expect(render(store, { scope: "record", recordId: joined.id, template: semsSiteNpl })).toBeNull();
+		const onTheFinalList = semsRecord(locus, "TXN000607093");
+		expect(onTheFinalList.semsNplStatus?.value).toBe("Currently on the Final NPL");
+		expect(
+			render(store, { scope: "record", recordId: onTheFinalList.id, template: semsSiteNpl }),
+		).not.toBeNull();
 	});
 
 	it("lists a Sourced value nested two containers deep in the trace (gap 3)", () => {

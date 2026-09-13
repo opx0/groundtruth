@@ -39,6 +39,8 @@ export type TransformName =
 	| "parse-us-date"
 	| "parse-epoch-ms"
 	| "map-boolean"
+	/** A code to the word the source's own field description gives it. The code and this transform's name stay in the trace, so the mapping is on screen rather than silent. */
+	| "map-code"
 	| "join-fields";
 
 export type Formula = "haversine" | "coalesce" | "url-template";
@@ -187,6 +189,19 @@ export type FieldReader<Raw extends JsonObject> = {
 		field: P,
 		map: Readonly<Record<string, boolean>>,
 	): Sourced<boolean | null>;
+
+	/**
+	 * A code read as the word the agency's own field description gives it:
+	 * FEMA's `SFHA_TF` is "T" or "F" for inside or outside the Special Flood
+	 * Hazard Area, and a boolean cannot be printed. Null for a code the table
+	 * does not hold, exactly as `flag` does, so an unmapped value is visible as
+	 * an absence rather than guessed at. The raw code is the trace's raw value
+	 * and the transform is named, so nothing here is a silent rewrite.
+	 */
+	map<P extends KeysWhere<Raw, string | null>>(
+		field: P,
+		table: Readonly<Record<string, string>>,
+	): Sourced<string | null>;
 
 	join<P extends KeysWhere<Raw, string | null>>(
 		fields: readonly [P, ...P[]],
@@ -382,6 +397,14 @@ export function fieldsOf<Raw extends JsonObject>(
 		return make(mapped === undefined ? null : mapped, [p]);
 	}
 
+	function mapCode(name: string, table: Readonly<Record<string, string>>): Sourced<string | null> {
+		const v = bag[name];
+		const p = field(name, "map-code");
+		if (typeof v !== "string") return make(null, [p]);
+		const mapped = table[v];
+		return make(mapped === undefined ? null : mapped, [p]);
+	}
+
 	function join(names: readonly [string, ...string[]], separator: string): Sourced<string | null> {
 		const parts: string[] = [];
 		const provenance: [Provenance, ...Provenance[]] = [field(names[0], "join-fields")];
@@ -430,7 +453,23 @@ export function fieldsOf<Raw extends JsonObject>(
 		throw new ReaderInvariant(`${dataset}.${name} is not a string`);
 	}
 
-	return { raw, dataset, payload, text, number, currency, date, usDate, epochMs, flag, join, absent, pick, point };
+	return {
+		raw,
+		dataset,
+		payload,
+		text,
+		number,
+		currency,
+		date,
+		usDate,
+		epochMs,
+		flag,
+		map: mapCode,
+		join,
+		absent,
+		pick,
+		point,
+	};
 }
 
 const EARTH_RADIUS_METERS = 6371008.8;

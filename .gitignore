@@ -47,3 +47,7 @@ playwright-report/
 !.env.example
 *.tsbuildinfo
 next-env.d.ts
+
+# Harness-managed workflow scripts. The durable record of how a unit was
+# briefed lives in .dev/briefs/; this directory is scaffolding.
+.claude/

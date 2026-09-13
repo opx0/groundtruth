@@ -40,6 +40,7 @@ import {
 import type {
 	AnyRef,
 	DisplayFormat,
+	Requirement,
 	GroupSubject,
 	OriginSubject,
 	Reported,
@@ -62,7 +63,9 @@ import type {
  */
 export type SectionFilter<F extends string = string> =
 	| { readonly field: F; readonly equals: string | number | boolean | null }
-	| { readonly field: F; readonly atLeast: number };
+	| { readonly field: F; readonly atLeast: number }
+	/** The field holds a value rather than null. "Has a formal enforcement action on record" is this, and is not expressible as an equals or a threshold. */
+	| { readonly field: F; readonly present: true };
 
 /**
  * One source's records within its stated boundary, described well enough that
@@ -310,6 +313,12 @@ export function formatValue(value: unknown, display: DisplayFormat): string | nu
 			if (typeof value !== "number") return null;
 			return `${(Math.round(value / 10) / 100).toFixed(2)} km`;
 		}
+		case "date": {
+			// The date part of an ISO instant, and anything else verbatim: this
+			// narrows what is shown, it never reinterprets what was read.
+			if (typeof value !== "string") return null;
+			return /^(\d{4}-\d{2}-\d{2})(?:[T ]|$)/.exec(value)?.[1] ?? value;
+		}
 		case "text": {
 			if (typeof value === "string") return value;
 			if (typeof value === "number" || typeof value === "boolean") return String(value);
@@ -345,7 +354,42 @@ function clauseSpans(
 	return spans;
 }
 
+/** A plain tagged outcome, the shape `Requirement`'s `state` compares against. */
+function isTagged(x: unknown): x is { readonly status: string } {
+	return isBag(x) && typeof x["status"] === "string";
+}
+
+/**
+ * Whether the subject is in the state the template says it speaks about. Every
+ * requirement must hold; a template that declares none renders as before.
+ * See `Requirement` in ./templates for why this exists.
+ */
+function satisfies(subject: Bag, requires: readonly Requirement[]): boolean {
+	for (const requirement of requires) {
+		if ("state" in requirement) {
+			const tagged = subject[requirement.state];
+			if (!isTagged(tagged) || tagged.status !== requirement.is) return false;
+			continue;
+		}
+		const slot = slotAt(subject, requirement.slot);
+		if ("present" in requirement) {
+			// A field that is null itself and a `Sourced` whose value is null are
+			// the same absence to a reader, and both count as not present.
+			if ((slot !== null && slot.value !== null) !== requirement.present) return false;
+			continue;
+		}
+		if (slot === null) return false;
+		if ("atLeast" in requirement) {
+			if (typeof slot.value !== "number" || slot.value < requirement.atLeast) return false;
+			continue;
+		}
+		if (slot.value !== requirement.equals) return false;
+	}
+	return true;
+}
+
 function assemble(subject: Bag, template: Template<SubjectKey>, remembered: SentenceSubject): Sentence | null {
+	if (!satisfies(subject, template.requires)) return null;
 	const spans: Span[] = [];
 	for (const clause of template.clauses) {
 		const rendered = clauseSpans(subject, clause.strings, clause.refs);
@@ -378,6 +422,7 @@ function matchesFilter(record: AnyRecord, filter: SectionFilter): boolean {
 	const v = bag[filter.field];
 	if (!isSourced(v)) return false;
 	if ("equals" in filter) return v.value === filter.equals;
+	if ("present" in filter) return v.value !== null;
 	return typeof v.value === "number" && v.value >= filter.atLeast;
 }
 

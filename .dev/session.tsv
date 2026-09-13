@@ -11,3 +11,5 @@ ts	event	unit	detail	elapsed_s
 2026-09-16T00:13:20Z	end	U1.8	kernel debt paid (clock spans a rate-limit outage, not work time)	1800
 2026-09-16T06:15:12Z	start	U2	report layer: scopes and grouping	
 2026-09-16T06:37:10Z	end	U2	scopes, grouping, search flow	1318
+2026-09-16T07:18:41Z	start	U2.0	record templates for the five unserved kinds	
+2026-09-16T10:53:38Z	end	U2.0	record templates, three reviews, two rechecks, 353 tests	12897

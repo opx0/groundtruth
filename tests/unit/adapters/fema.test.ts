@@ -45,7 +45,10 @@ const SHA = {
 	error: "889c681894d89d34616e16a4fd28016e321f9b7330caabfd6902aa23afe89211",
 };
 
-const NFHL_NOTE = "No digital FEMA designation was available at this point.";
+// B10's wording, prefixed with the dataset that answered so a no-polygon
+// state names its dataset (B12). The second sentence is B10 verbatim.
+const NFHL_NOTE =
+	"FEMA's own National Flood Hazard Layer answered with no polygon. No digital FEMA designation was available at this point.";
 const ESRI_NOTE =
 	"No 1% or 0.2% flood hazard polygon intersects this point in the Esri copy of FEMA's layer, dated 2026-03-11. This copy omits minimal-hazard areas, so it cannot tell minimal hazard from an unmapped area.";
 
@@ -132,7 +135,9 @@ describe("Esri fallback, zone AE, Pasadena", () => {
 		expect(record.sourceUpdatedAt.value).toBeNull();
 		expect(record.sourceUrl.value).toBe(`${ESRI_LAYER}/query?where=FLD_AR_ID%3D%2748201C_8563%27&outFields=*&f=html`);
 		expect(record.caveats).toEqual([
-			"Read from Esri's reduced-set copy of FEMA's National Flood Hazard Layer, dated 2026-03-11, not from FEMA's own service.",
+			"Read from Esri's reduced-set copy of FEMA's National Flood Hazard Layer, not from FEMA's own service."
+			+ " Esri's item page gave 2026-03-11 as the copy's date when it was checked on 2026-09-15;"
+			+ " no response this adapter parses states it.",
 			"The mapped point is a street-segment interpolation, not the parcel boundary.",
 		]);
 		expect(record.payloads).toEqual([

@@ -52,7 +52,7 @@ export type {
 	StatusRowOutcome,
 } from "./records";
 
-export { defineTemplate, fallback, isSlotRef, km, sentence } from "./templates";
+export { day, defineTemplate, fallback, isSlotRef, km, sentence } from "./templates";
 export type {
 	AnyRef,
 	Clause,
@@ -61,16 +61,20 @@ export type {
 	GroupSubject,
 	NumericKeys,
 	OriginSubject,
+	Requirement,
 	Reported,
 	SectionSubject,
 	SlotKeys,
 	SlotRef,
 	SourcedKeys,
 	SourceSubject,
+	StateKeys,
 	SubjectKey,
 	SubjectOf,
 	Template,
 	TemplateRegistry,
+	TextKeys,
+	TypedRequirement,
 	WideScope,
 } from "./templates";
 

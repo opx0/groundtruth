@@ -37,9 +37,10 @@ Work is assigned by how much judgment it needs, not by size.
 | U1.3 | FEMA adapter, NFHL with Esri fallback | U0.3 | hard | done (Esri only; NFHL unreachable) |
 | U1.4 | FRS adapter, identity and coordinate quality | U0.3 | specified | done |
 | U1.5 | ECHO adapter, fixture-driven | U0.3 | hard | done |
-| U1.6 | AQS adapter | U0.3 | specified | blocked, needs AQS key |
-| U1.7 | AirNow adapter | U0.3 | specified | blocked, needs AirNow key |
-| U2.1 | Selection and ordering policy | U0.2 | judgment | **next** |
+| U1.6 | AQS adapter | U0.3 | specified | briefed, blocked on the operator's key |
+| U1.7 | AirNow adapter | U0.3 | specified | briefed, blocked on the operator's key |
+| U2.0 | Record templates for the five unserved kinds | U0.2 | judgment | done |
+| U2.1 | Selection and ordering policy | U0.2 U2.0 | judgment | **next** |
 | U2.2 | Facility grouping by registry and program ID | U1.1 U1.4 | hard | done |
 | U2.3 | Template renderer, kind-gated | U0.2 | judgment | done |
 | U3.1 | Route handlers, streamed per source | U1.x | hard | geocode route done; report route **next** |
@@ -65,8 +66,15 @@ Work is assigned by how much judgment it needs, not by size.
   `shapeUnverified` so the gap is visible in the report rather than hidden.
   Clearing it needs one of: a US-region deploy, one curl from a US host, or a
   git remote so a CI runner can record the fixtures.
-- AQS and AirNow need free keys the operator must register. Both adapters are
-  built and tested against fixtures meanwhile.
+- AQS and AirNow need free keys the operator must register. Neither adapter is
+  written yet; `.dev/briefs/U1.6-U1.7-air.md` briefs both. What is recorded is
+  what each answers *without* a key, captured live on 2026-09-16, and both are
+  real bytes worth having: AQS answers HTTP 429 with `Retry-After: 86400` from
+  EPA's own exhausted shared test account, and AirNow answers HTTP 401 with
+  `{"WebServiceError":[{"Message":"Request not authenticated."}]}`, which pins
+  its error envelope for the first time. Neither success shape has been seen.
+  AQS's response envelope is `{"Header":[...],"Body":[...]}` per EPA's own
+  published API documentation, which is reachable from here.
 
 ## Queued after the adapter fan-out
 
@@ -176,3 +184,56 @@ Still open, none of them blocking:
 
 Items 8, 9 and 10 all sit behind the same blocker: nobody has ever seen a
 response from FEMA's authoritative flood layer.
+
+
+## Queue raised by the record templates, U2.0
+
+Three adversarial reviews and two rechecks ran over the template files. What
+they found is either fixed in `7e0360d` or listed here. Nothing below blocks
+the selection policy.
+
+11. **`TemplateRegistry` has still never been instantiated.** The type in
+    `lib/evidence/templates.ts` requires a non-empty template list per `Kind`,
+    and nothing constructs one, so no compile-time check ties `echoTemplates`,
+    `femaTemplates`, `frsTemplates` or `semsTemplates` into anything. It cannot
+    be built until `aqs-monitor-summary` and `airnow-observation` have
+    templates, which is U1.6 and U1.7. Build it in the same unit; a missing
+    kind then becomes a compile error.
+
+12. **`fema-flood-zone/unmapped-flag@1` renders null for every committed
+    record.** By construction: both Esri fixtures carry `SFHA_TF` of `"T"` or
+    `"F"`. Its three states (an unmapped letter, `""`, and null) are exercised
+    from derived rows, each altering exactly one field. A real row with an
+    unmapped flag would close it. Worth asking for in
+    `scripts/capture-us-fixtures.sh`.
+
+13. **`sems-site` never prints `archived`.** `tests/fixtures/sems/envirofacts-archived.json`
+    carries `archived_ind: "Y"` with `archived_date: 1996-01-25` beside a
+    `non_npl_status_date` of 1984-09-01, so `summary@1` would show a 1984
+    status with no sign that EPA archived the site twelve years later. It is a
+    boolean and cannot be printed, which is exactly what `sfhaLabel` solved for
+    `SFHA_TF`: the same `map` treatment applies.
+
+14. **ECHO's penalty amount loses its grouping.** `FacLastPenaltyAmt` arrives
+    as `"$0"` and is read to the number 0, so a real amount would render
+    `$20254146`. A currency `DisplayFormat` beside `distance-km` and `date`
+    would fix it. Not urgent: every recorded row is zero.
+
+15. **The record field behind FEMA's study-identifier clause is still named
+    `firmPanelId`.** The clause correctly refuses to call `DFIRM_ID` a panel;
+    the trace panel beside it still shows the old name. Renaming it touches
+    `lib/evidence/records.ts` and `lib/adapters/fema.ts`.
+
+16. **`Requirement` has no slot-to-slot arm.** `sems-site/disagreement@1` was
+    deleted because the only thing that could select it is a comparison of two
+    slots, which neither the type nor `satisfies` can express, and because no
+    recorded record is in the state it described. A `differsFrom` arm would let
+    it come back the day one is.
+
+17. **`sems-site/npl@1` is one clause, so a null coordinate takes the whole
+    sentence.** A final-NPL site with no FRS coordinate would get no B7 NPL
+    sentence at all, while `summary@1` still prints its NPL status. That is a
+    silence rather than a false claim, and no recorded site reaches it — all
+    fifteen have coordinates. Splitting the distance into its own clause fixes
+    it; `tests/unit/templates/sems.test.ts` pins the current behaviour so the
+    change is one assertion wide.

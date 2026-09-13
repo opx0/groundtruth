@@ -37,9 +37,22 @@ export const echoFormalActionCount = defineTemplate("section", "section/echo-for
 	sentence`${field("count")} of them have a formal enforcement action on record.`,
 ]);
 
-/** A2 screen 3: "{n} are listed in current noncompliance." */
+/**
+ * A2 screen 3 asks for "{n} are listed in current noncompliance." The sentence
+ * states the narrower fact the records actually support.
+ *
+ * ECHO carries two candidates for "in noncompliance". `FacComplianceStatus` is
+ * a status vocabulary ("No Violation Identified", "Violation Identified", and
+ * whatever else ECHO has not sent us yet), and counting one of its values would
+ * mean asserting that every other value means compliance -- a guess at the
+ * meaning of a status, which docs/BRIEF.md B2 forbids. `FacQtrsWithNC` is a
+ * count of quarters, so a threshold on it is exact and needs no vocabulary at
+ * all. The selection policy counts and orders on that column, and this sentence
+ * says what that column is: a twelve-quarter history, not a statement about
+ * today. ECHO_CAVEATS says the same thing on every record.
+ */
 export const echoNoncomplianceCount = defineTemplate("section", "section/echo-noncompliance@1", (field) => [
-	sentence`${field("count")} of them are listed in current noncompliance.`,
+	sentence`${field("count")} of them have at least one quarter of noncompliance in ECHO's twelve-quarter history.`,
 ]);
 
 /**

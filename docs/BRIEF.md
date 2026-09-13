@@ -40,7 +40,9 @@ Ground Truth asks all six about one address and returns one report. Every senten
 
 The flood card for the Pasadena example address:
 
-> FEMA flood map panel 48201C places the mapped point in **zone AE**, inside the Special Flood Hazard Area. The point is a street-segment interpolation, not the parcel boundary.
+> The mapped point is in **zone AE**, inside the Special Flood Hazard Area. FEMA's FIRM study identifier for this area is 48201C. Read from Esri's reduced-set copy of FEMA's National Flood Hazard Layer, dated 2026-03-11.
+>
+> *Corrected 2026-09-16.* The earlier wording called `DFIRM_ID` a flood map panel. It is not: FEMA's own column description, carried in the recorded fixture, defines it as the study identifier for a FIRM database, identical for every polygon in the county. Panels live in `S_FIRM_Pan.FIRM_PAN` and look like `48201C0810L`. The block-not-parcel notice moved to the origin sentence, which carries the address range, street side and TIGER line that establish the interpolation; a FEMA template asserting it had no field behind it.
 
 The air card, shown as its template because values come from the monitor:
 
@@ -491,6 +493,12 @@ No new source until the current one passes its adapter, rendering, failure, and 
 | Esri flood layer, distinct classes | A, A99, AE, AH, AO, D, V, VE, X (shaded only). |
 | FRS REST, 2-mile radius at the Houston test point | 467 facilities. Farthest 3.219 km, so the unit is miles. |
 | FRS ArcGIS layer, 5-mile radius | 6,915 interest rows. |
+| FEMA `DFIRM_ID`, from the recorded fixture's own field descriptions | Study identifier for a FIRM database, not a map panel, and identical across the county. A2 corrected 2026-09-16. |
+| FEMA `SOURCE_CIT`, same source | An abbreviation that must match a row in `L_Source_Cit`. A lookup key, not a citation. |
+| FEMA `SFHA_TF`, same source | "If the area is within a SFHA this field would be true." True for any A or V zone, false for X or D. |
+| AQS shared test account, 2026-09-16 | Still exhausted. HTTP 429, `Retry-After: 86400`, body `{"error":"Daily limit for account use exceeded. Retry later."}`. Recorded as `tests/fixtures/aqs/rate-limited.json`. |
+| AirNow without a key, 2026-09-16 | HTTP 401, body `{"WebServiceError":[{"Message":"Request not authenticated."}]}`. So its error envelope is `WebServiceError`, an array of `{Message}`. Recorded as `tests/fixtures/airnow/unauthenticated.json`. Its success shape is still unverified. |
+| AQS response envelope, from EPA's own published API documentation | `{"Header":[{status,request_time,url,rows}],"Body":[...]}`. It is `Body`, not `Data`. Documentation reachable from this machine; no success payload has been recorded. |
 | SEMS ArcGIS layer, 5-mile radius | Houston Ship Channel test point (29.7355, -95.2615): 19 records in about one second, 2 on the final NPL, 1 part of an NPL site. 9311 E Ave P: 15 records, 2 on the final NPL. |
 | SEMS Envirofacts join by EPA ID | Status name, status date, archived flag, SEMS site ID returned. |
 | SEMS profile link format | `cumulis.epa.gov/supercpad/cursites/csitinfo.cfm?id=0622182` returns the VALERO PLUME page. |

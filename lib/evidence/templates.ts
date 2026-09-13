@@ -24,7 +24,13 @@
 import type { Kind, RecordOf } from "./records";
 import type { Provenance, Sourced } from "./sourced";
 
-export type DisplayFormat = "text" | "distance-km";
+/**
+ * How a slot's value is written on screen. The trace always carries the
+ * normalized value and the raw one, so a display format narrows what is shown
+ * without hiding anything: `distance-km` prints metres as kilometres, `date`
+ * prints the date part of an instant.
+ */
+export type DisplayFormat = "text" | "distance-km" | "date";
 
 /**
  * A fact about our own retrieval rather than a value an agency returned: how
@@ -152,6 +158,20 @@ export type NumericKeys<T extends SubjectKey> = {
 	[P in SlotKeys<SubjectOf<T>>]: SlotValue<SubjectOf<T>, P> extends number | null ? P : never;
 }[SlotKeys<SubjectOf<T>>];
 
+export type TextKeys<T extends SubjectKey> = {
+	[P in SlotKeys<SubjectOf<T>>]: SlotValue<SubjectOf<T>, P> extends string | null ? P : never;
+}[SlotKeys<SubjectOf<T>>];
+
+/**
+ * The keys of `S` that hold a tagged outcome: a plain object with a string
+ * `status`. `sems-site`'s `statusRow` is the only one today. It is not a
+ * `Sourced` leaf and never renders; it exists so a template can declare which
+ * of those outcomes it is allowed to speak about.
+ */
+export type StateKeys<S> = {
+	[P in keyof S & string]: NonNullable<S[P]> extends { readonly status: string } ? P : never;
+}[keyof S & string];
+
 const refBrand: unique symbol = Symbol("ground-truth.slot-ref");
 
 /**
@@ -176,10 +196,48 @@ export type Clause<T extends SubjectKey> = {
 	readonly refs: readonly [AnyRef<T>, ...AnyRef<T>[]];
 };
 
+/**
+ * A condition the subject must satisfy before a template may render over it.
+ *
+ * The kind gate stops a Superfund template rendering an ECHO facility. It does
+ * not stop the *wrong* Superfund template rendering the *right* record: four of
+ * the five `sems-site` templates each assert something about what the Superfund
+ * inventory answered, and every one of them would render happily over a record
+ * in any of the three states, because none of them references the field that
+ * decides which is true. The same hole let `echo-facility/no-status@1` state
+ * that ECHO reported no compliance status over a record whose status is
+ * "Violation Identified".
+ *
+ * So a template that asserts a state declares it, and `assemble` refuses to
+ * render when the subject does not hold. The selection policy still chooses;
+ * the kernel now refuses a wrong choice instead of trusting one. The condition
+ * is data, like `SectionFilter`, not a closure, so it can be read off the
+ * template and shown.
+ *
+ * `slot` names a `Sourced` or `Reported` leaf and compares its value; `state`
+ * names a tagged outcome and compares its tag. The four comparisons are the
+ * ones `SectionFilter` has: a count of zero is present, so a template named for
+ * a threshold needs `atLeast` and not `present`, exactly as a section does.
+ */
+export type Requirement =
+	| { readonly slot: string; readonly equals: string | number | boolean | null }
+	| { readonly slot: string; readonly present: boolean }
+	| { readonly slot: string; readonly atLeast: number }
+	| { readonly state: string; readonly is: string };
+
+/** The same condition with its field names constrained to real slots of `T`. Only `defineTemplate` uses it; `Template` keeps the plain strings so it stays covariant in `T`. */
+export type TypedRequirement<T extends SubjectKey> =
+	| { readonly slot: SlotKeys<SubjectOf<T>>; readonly equals: string | number | boolean | null }
+	| { readonly slot: SlotKeys<SubjectOf<T>>; readonly present: boolean }
+	| { readonly slot: NumericKeys<T>; readonly atLeast: number }
+	| { readonly state: StateKeys<SubjectOf<T>>; readonly is: string };
+
 export type Template<T extends SubjectKey> = {
 	readonly id: string;
 	readonly kind: T;
 	readonly clauses: readonly [Clause<T>, ...Clause<T>[]];
+	/** Empty for a template that asserts nothing about the subject's state. */
+	readonly requires: readonly Requirement[];
 };
 
 /** Every kind has an allowlist of at least one template. */
@@ -209,17 +267,31 @@ export function km<T extends SubjectKey, P extends NumericKeys<T>>(
 	return Object.freeze({ ...ref, display: "distance-km" });
 }
 
+/**
+ * Prints the date part of an instant. `parse-epoch-ms` turns ArcGIS's
+ * 1710413511000 into "2024-03-14T10:51:51Z", and a clause that prints that
+ * whole string claims a clock time and a timezone FRS never stated: its
+ * UPDATE_DATE is a date. docs/BRIEF.md A3's own trace row shows this field as
+ * 2024-03-14. The instant stays in the trace as the normalized value.
+ */
+export function day<T extends SubjectKey, P extends TextKeys<T>>(
+	ref: SlotRef<T, P>,
+): SlotRef<T, P> {
+	return Object.freeze({ ...ref, display: "date" });
+}
+
 export function defineTemplate<T extends SubjectKey>(
 	kind: T,
 	id: string,
 	build: (field: FieldRef<T>) => readonly [Clause<T>, ...Clause<T>[]],
+	requires: readonly TypedRequirement<T>[] = [],
 ): Template<T> {
 	const field: FieldRef<T> = (name) => {
 		const ref: SlotRef<T, typeof name> = { [refBrand]: refBrand, kind, field: name, display: "text", fallback: null };
 		Object.freeze(ref);
 		return ref;
 	};
-	return Object.freeze({ id, kind, clauses: build(field) });
+	return Object.freeze({ id, kind, clauses: build(field), requires: Object.freeze([...requires]) });
 }
 
 export function isSlotRef(x: unknown): x is AnyRef<SubjectKey> {

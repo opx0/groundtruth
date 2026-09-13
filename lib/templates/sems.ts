@@ -75,12 +75,41 @@
  * `summary@1`'s three remaining clauses are labelled statements of their own
  * column — `NPL status: …` — that point at nothing outside themselves, so a
  * dropped lead clause costs the reader the site's name and leaves no sentence
- * false. `npl@1` is a single clause that names its subject inside itself, so a
- * null distance takes the whole sentence and not its antecedent: a final-NPL
- * site with no FRS coordinate gets no B7 sentence at all. That is a silence
- * rather than a false claim, and splitting the distance into a second clause is
- * a change this pass was not asked to make; the null-coordinate test below
- * pins the behaviour so the next pass decides it deliberately.
+ * false.
+ *
+ * THE DISTANCE IN `npl@1` IS NOW ITS OWN CLAUSE. It used to be one clause
+ * carrying the NPL status and the distance together, and a clause dies whole
+ * when any ref has nothing to show, so a final-NPL site with no FRS coordinate
+ * got no B7 sentence at all — while `section/npl-count@1` on the same card
+ * still counted it. The count said two and one sentence appeared, which is
+ * exactly the drift a separate final-NPL section exists to prevent. The
+ * previous pass filed this as "a silence rather than a false claim" and
+ * deferred it; that reason is spent, because the claim is the count standing
+ * beside the silence.
+ *
+ * Split, the naming clause cannot drop: `subject` is a coalesce over two names,
+ * and this template's own requirement is that `semsNplStatus` equals the string
+ * the clause prints, so both refs are guaranteed wherever it renders at all.
+ * B7's sentence names the site and states the listing whatever the coordinate
+ * does, and the distance drops alone. The second clause is byte-identical to
+ * `echo-facility/summary@1`'s and `echo-facility/no-status@1`'s, which split
+ * the same slot for the same reason, and `fallback` is the wrong instrument
+ * there for the reason `lib/templates/echo.ts` argues: `distanceMeters` is
+ * `Sourced<number> | null`, so a null leaves no leaf, and a fallback span would
+ * put text on screen with a dead trace behind it.
+ *
+ * The other three were then read for the same shape — one clause carrying a
+ * slot that can be null beside one that cannot — and all three have it, in the
+ * lead clause `${subject}, ${km(distanceMeters)} from the mapped point.`. In
+ * `registry-only@1` and `status-unavailable@1` the cost is bounded: the clause
+ * after it names the facility again, which is the paragraph above, so a null
+ * coordinate costs the distance and one repeat of the name and nothing that was
+ * asserted. `summary@1` is the one still open. Its other three clauses name no
+ * site, so a coordinate-less joined row renders `NPL status: Site is Part of
+ * NPL Site. Non-NPL status date: 2017-05-11.` with the site named nowhere on
+ * the card — no false sentence, but the reader cannot tell whose status it is.
+ * The fix is the same split this pass made; this pass was scoped to `npl@1`,
+ * so the string is recorded here and asserted below rather than changed.
  *
  * Which of these a record gets is still the selection policy's decision and
  * never a branch inside a template, because a visible choice is a testable
@@ -149,7 +178,13 @@ export const semsSiteSummary = defineTemplate(
 	"sems-site",
 	"sems-site/summary@1",
 	(field) => [
-		sentence`${field("subject")}, ${km(field("distanceMeters"))} from the mapped point.`,
+		// Split for the same reason `npl@1` is: `distanceMeters` is null whenever
+		// the layer sends no coordinate, and the three clauses below are labelled
+		// column readouts that name no site, so one clause carrying both would
+		// leave a joined row rendering "NPL status: ... Non-NPL status date: ..."
+		// with the site named nowhere.
+		sentence`${field("subject")}, EPA ID ${field("epaSiteId")}.`,
+		sentence`${km(field("distanceMeters"))} from the mapped point.`,
 		sentence`NPL status: ${field("semsNplStatus")}.`,
 		sentence`Non-NPL status: ${field("nonNplStatus")}.`,
 		sentence`Non-NPL status date: ${fallback(field("statusDate"), "Date unavailable")}.`,
@@ -213,12 +248,25 @@ export const semsSiteStatusUnavailable = defineTemplate(
 	[{ state: "statusRow", is: "unavailable" }],
 );
 
-/** B7: a site on the final National Priorities List is also named in its own sentence. */
+/**
+ * B7: a site on the final National Priorities List is also named in its own
+ * sentence.
+ *
+ * Two clauses, not one. The naming clause holds `subject`, which cannot be
+ * null, and `semsNplStatus`, which this template's requirement pins to the
+ * string it prints — so wherever this renders at all, the site is named and its
+ * listing is stated. The distance is a clause of its own because
+ * `distanceMeters` is the one slot here that a row the layer is allowed to send
+ * can leave null, and while it shared the clause it took B7's whole sentence
+ * with it, off a card whose final-NPL count still counted the site. The module
+ * comment argues both.
+ */
 export const semsSiteNpl = defineTemplate(
 	"sems-site",
 	"sems-site/npl@1",
 	(field) => [
-		sentence`${field("subject")} is listed by SEMS as ${field("semsNplStatus")}, ${km(field("distanceMeters"))} from the mapped point.`,
+		sentence`${field("subject")} is listed by SEMS as ${field("semsNplStatus")}.`,
+		sentence`${km(field("distanceMeters"))} from the mapped point.`,
 	],
 	[{ slot: "semsNplStatus", equals: "Currently on the Final NPL" }],
 );

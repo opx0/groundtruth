@@ -40,10 +40,10 @@ Work is assigned by how much judgment it needs, not by size.
 | U1.6 | AQS adapter | U0.3 | specified | briefed, blocked on the operator's key |
 | U1.7 | AirNow adapter | U0.3 | specified | briefed, blocked on the operator's key |
 | U2.0 | Record templates for the five unserved kinds | U0.2 | judgment | done |
-| U2.1 | Selection and ordering policy | U0.2 U2.0 | judgment | **next** |
+| U2.1 | Selection and ordering policy | U0.2 U2.0 | judgment | done |
 | U2.2 | Facility grouping by registry and program ID | U1.1 U1.4 | hard | done |
 | U2.3 | Template renderer, kind-gated | U0.2 | judgment | done |
-| U3.1 | Route handlers, streamed per source | U1.x | hard | geocode route done; report route **next** |
+| U3.1 | Route handlers, streamed per source | U1.x U2.1 | hard | geocode route done; report route **next**, briefed |
 | U3.2 | Coordinate cache with TTL, no identity | U3.1 | specified | queued |
 | U3.3 | Privacy invariants and log redaction | U3.1 | judgment | partly done in the geocode route |
 | U4.1 | Search, examples, match confirmation | U3.1 | specified | done |
@@ -51,7 +51,7 @@ Work is assigned by how much judgment it needs, not by size.
 | U4.3 | Trace panel | U2.3 | judgment | queued |
 | U5.1 | Adapter fixture matrix, seven cases per source | U1.x | specified | queued |
 | U5.2 | Renderer mutation tests | U2.3 | judgment | done via .dev/census/mutation-check.sh |
-| U5.3 | Selection tests | U2.1 | specified | queued |
+| U5.3 | Selection tests | U2.1 | specified | done with U2.1 |
 | U5.4 | Privacy tests | U3.3 | specified | partly done in the geocode route |
 | U5.5 | Playwright, the eight paths | U4.x | specified | queued |
 
@@ -237,3 +237,35 @@ the selection policy.
     fifteen have coordinates. Splitting the distance into its own clause fixes
     it; `tests/unit/templates/sems.test.ts` pins the current behaviour so the
     change is one assertion wide.
+
+## Queue raised by the selection policy, U2.1
+
+Closed in `be212c7` and the round after it. What is left:
+
+18. **One ECHO facility's name prints up to four times on its card**, in four
+    consecutive sentences, because every secondary template names its subject
+    inside its own clauses. That design is what lets a secondary be true
+    wherever it is placed, and it is the fix for the duplicated lead clause in
+    `7f2ac98` — but four is more than it should cost. The cheapest lever is
+    whether the ECHO card places `echo-facility/industry-codes@1` at all: B2
+    asks for no industry codes, and NAICS and SIC still reach the trace.
+
+19. **A final-NPL site prints its distance and its NPL status twice**, once from
+    `sems-site/summary@1` in the main listing and once from `sems-site/npl@1`
+    in the NPL listing. B7 asks for both sentences, and A2's own example has no
+    overlap only because its two NPL sites fall outside the nearest five. The
+    answer is probably a layout one: A2 puts the NPL sentence in its own block
+    under the list, which is U4.2's decision, not the policy's.
+
+20. **`SectionSubject` has no pollutant slot**, so an AQS pollutant with no
+    qualifying monitor is named in the section's note rather than in a sentence
+    of its own. B2 asks for the nearest qualified monitor *per pollutant*, so
+    the failure should be visible per pollutant. Needs a per-pollutant count
+    template and a slot to hang it on. Blocked behind the AQS adapter anyway.
+
+21. **`group/shared-identifier@1` re-seats its second subject when a member
+    leaves the store.** Deleting one of three members renders "PASADENA
+    REFINING FIRE and PASADENA REFINING SYSTEM, INC. share one EPA facility
+    registry ID, 110000462703" -- where the second is the record that ID names
+    rather than a record sharing it. `GroupSubject.otherSubject` is the second
+    live member, whatever it is.

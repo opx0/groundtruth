@@ -67,6 +67,7 @@ const allSites = defineSection({
 	retrievedAt: RETRIEVED_AT,
 	filter: null,
 	note: NO_DATA_NOTE,
+	carried: null,
 });
 
 /**
@@ -82,12 +83,13 @@ const nplSites = defineSection({
 	retrievedAt: RETRIEVED_AT,
 	filter: { field: "frsActiveStatus", equals: "CURRENTLY ON THE FINAL NPL" },
 	note: NO_DATA_NOTE,
+	carried: null,
 });
 
 const siteCount: Placement = { scope: "section", section: allSites, template: semsSectionCount };
 const nplCount: Placement = { scope: "section", section: nplSites, template: semsNplSectionCount };
 
-const SITE_COUNT_SENTENCE = "EPA's Superfund inventory lists 15 sites within 5 miles of the mapped point.";
+const SITE_COUNT_SENTENCE = "Superfund sites EPA's inventory lists within 5 miles of the mapped point: 15.";
 
 describe("section: a count is the length of an ordering, never a number anyone wrote down", () => {
 	it("renders the report's headline sentence from the committed fixture bytes", () => {
@@ -96,13 +98,13 @@ describe("section: a count is the length of an ordering, never a number anyone w
 
 	it("falls from 15 to 14 when one record leaves the store, with nothing else changed", () => {
 		const before = mustRender(store, siteCount);
-		expect(text(before.spans)).toBe("EPA's Superfund inventory lists 15 sites within 5 miles of the mapped point.");
+		expect(text(before.spans)).toBe("Superfund sites EPA's inventory lists within 5 miles of the mapped point: 15.");
 
 		const smaller = store.without(semsId("TXN000622182"));
 		expect(smaller.size).toBe(store.size - 1);
 
 		const after = mustRender(smaller, siteCount);
-		expect(text(after.spans)).toBe("EPA's Superfund inventory lists 14 sites within 5 miles of the mapped point.");
+		expect(text(after.spans)).toBe("Superfund sites EPA's inventory lists within 5 miles of the mapped point: 14.");
 
 		// Nothing else moved: same template, same spans, same slots, and the only
 		// span whose text differs is the one that reads the ordering's length.
@@ -157,7 +159,7 @@ describe("section: a count is the length of an ordering, never a number anyone w
 	it("renders the two final-NPL sites within 5 miles as their own sentence", () => {
 		const sentence = mustRender(store, nplCount);
 		expect(text(sentence.spans)).toBe(
-			"2 sites on the final National Priorities List within 5 miles of the mapped point.",
+			"Sites on the final National Priorities List within 5 miles of the mapped point: 2.",
 		);
 
 		const index = sentence.spans.findIndex((s) => s.slot?.field === "count");
@@ -173,13 +175,13 @@ describe("section: a count is the length of an ordering, never a number anyone w
 			template: semsSiteNpl,
 		});
 		expect(text(named.spans)).toBe(
-			"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL, 3.92 km from the mapped point.",
+			"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL. 3.92 km from the mapped point.",
 		);
 
 		// The NPL count is an ordering too, so it falls the same way.
 		const smaller = store.without(semsId("TXD980748453"));
 		expect(text(mustRender(smaller, nplCount).spans)).toBe(
-			"1 sites on the final National Priorities List within 5 miles of the mapped point.",
+			"Sites on the final National Priorities List within 5 miles of the mapped point: 1.",
 		);
 	});
 
@@ -209,6 +211,7 @@ const unavailablePlacement: Placement = {
 	source: "sems",
 	outcome: unavailableOutcome,
 	template: sourceUnavailable,
+	agency: null,
 };
 
 describe("source: an unavailable source and an empty section are different facts (B10)", () => {
@@ -221,7 +224,7 @@ describe("source: an unavailable source and an empty section are different facts
 	it("renders a source-unavailable claim, distinguishable from a section with zero records", () => {
 		const unavailable = mustRender(store, unavailablePlacement);
 		expect(text(unavailable.spans)).toBe(
-			"EPA Superfund Enterprise Management System could not be reached: rate-limited." +
+			"EPA Superfund Enterprise Management System could not be reached: the source rate-limited the request." +
 				" It answered 429. Retry after 120.",
 		);
 
@@ -245,13 +248,13 @@ describe("source: an unavailable source and an empty section are different facts
 
 	it("cannot render the unavailable wording over a source that answered, or the reverse", () => {
 		const answered: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT };
-		expect(render(store, { scope: "source", source: "sems", outcome: answered, template: sourceUnavailable })).toBeNull();
+		expect(render(store, { scope: "source", source: "sems", outcome: answered, agency: null, template: sourceUnavailable })).toBeNull();
 		expect(
-			render(store, { scope: "source", source: "sems", outcome: unavailableOutcome, template: sourceRetrieved }),
+			render(store, { scope: "source", source: "sems", outcome: unavailableOutcome, agency: null, template: sourceRetrieved }),
 		).toBeNull();
 		expect(
-			text(mustRender(store, { scope: "source", source: "sems", outcome: answered, template: sourceRetrieved }).spans),
-		).toBe(`EPA Superfund Enterprise Management System answered no-data, retrieved ${RETRIEVED_AT}.`);
+			text(mustRender(store, { scope: "source", source: "sems", outcome: answered, agency: null, template: sourceRetrieved }).spans),
+		).toBe(`EPA Superfund Enterprise Management System answered with no matching records, retrieved ${RETRIEVED_AT}.`);
 	});
 
 	it("round-trips through verify", () => {
@@ -347,19 +350,52 @@ describe("group: several records the grouping rules tied together", () => {
 			"PASADENA REFINING FIRE and PRSI FIRE" +
 				" share one EPA facility registry ID, 110000462703.",
 		);
-		expect(text(mustRender(store, groupSize).spans)).toBe("2 records grouped under 110000462703.");
+		expect(text(mustRender(store, groupSize).spans)).toBe("Records grouped under 110000462703: 2.");
 	});
 
 	it("shrinks when a member leaves the store, and disappears when the last one does", () => {
 		const smaller = store.without(semsId("TXN000605303"));
 		// The pair clause needs a second member, so it drops entirely.
 		expect(render(smaller, sharedRegistry)).toBeNull();
-		// The size is the number of members still there, not a number written down.
-		expect(text(mustRender(smaller, groupSize).spans)).toBe("1 records grouped under 110000462703.");
+		// The size is the number of members still there, not a number written
+		// down -- and at one member there is no group left to count, so the
+		// template's own `{ slot: "members", atLeast: 2 }` refuses it rather than
+		// rendering "1 records grouped under". A placement decided when the plan
+		// was built cannot know the store would shrink under it; the requirement
+		// is what makes that safe.
+		expect(render(smaller, groupSize)).toBeNull();
 
 		const gone = smaller.without(semsId("TXN000607355"));
 		expect(render(gone, groupSize)).toBeNull();
 		expect(trace(gone, mustRender(store, groupSize), 0)).toBeNull();
+	});
+
+	/**
+	 * The defect this pins: `groupSubject` used to read its two named records
+	 * off the members still standing, so deleting one re-seated the sentence on
+	 * the next survivor and it went on rendering -- about a different pair. A
+	 * sentence naming two records has to keep naming those two, and a deleted
+	 * record has to take its clause with it.
+	 */
+	it("names the two records the placement named, and drops the clause when one goes", () => {
+		const three: Placement = {
+			scope: "group",
+			members: [semsId("TXN000607355"), semsId("TXN000605303"), semsId("TXN000607438")],
+			groupedBy: "frsRegistryId",
+			template: groupSharedIdentifier,
+		};
+		expect(text(mustRender(store, three).spans)).toBe(
+			"PASADENA REFINING FIRE and PRSI FIRE" +
+				" share one EPA facility registry ID, 110000462703.",
+		);
+
+		// Remove the second of the three. A third member survives, so the group
+		// is still a group -- but the pair this sentence named is not.
+		const withoutSecond = store.without(semsId("TXN000605303"));
+		expect(render(withoutSecond, three)).toBeNull();
+		expect(text(mustRender(withoutSecond, { ...three, template: groupMemberCount }).spans)).toBe(
+			"Records grouped under 110000462703: 2.",
+		);
 	});
 
 	it("traces to the members still in the store", () => {

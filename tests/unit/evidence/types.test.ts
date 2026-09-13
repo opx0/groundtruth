@@ -40,6 +40,7 @@ const semsSection = defineSection({
 	retrievedAt: null,
 	filter: null,
 	note: "No matching records within the stated boundary.",
+	carried: null,
 });
 
 const femaTemplate = defineTemplate("fema-flood-zone", "fema-flood-zone/test@1", (field) => [
@@ -117,6 +118,7 @@ export function mustNotCompile(): void {
 		// @ts-expect-error -- zoneCode is not a slot of a sems-site record
 		filter: { field: "zoneCode", equals: "AE" },
 		note: "No matching records within the stated boundary.",
+		carried: null,
 	});
 
 	// source: a source subject has no count; that is a section's.
@@ -159,7 +161,7 @@ export function mustCompile(): void {
 
 	// One well-formed placement per scope added by U2.3.
 	const okSection: Placement = { scope: "section", section: semsSection, template: semsSectionCount };
-	const okSource: Placement = { scope: "source", source: "sems", outcome, template: sourceUnavailable };
+	const okSource: Placement = { scope: "source", source: "sems", outcome, agency: null, template: sourceUnavailable };
 	const okOrigin: Placement = { scope: "origin", match, template: originMatch };
 	const okGroup: Placement = {
 		scope: "group",

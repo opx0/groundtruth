@@ -67,12 +67,15 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 		// moved to its own clause so a null date stops dragging the status with
 		// it. See lib/templates/sems.ts.
 		expect(text(sentence.spans)).toBe(
-			"VALERO PLUME, 0.76 km from the mapped point. NPL status: Not on the NPL." +
+			"VALERO PLUME, EPA ID TXN000622182. 0.76 km from the mapped point. NPL status: Not on the NPL." +
 				" Non-NPL status: Removal Only Site (No Site Assessment Work Needed)." +
 				" Non-NPL status date: 2022-02-08.",
 		);
 		expect(sentence.spans.map((s) => s.slot?.field ?? null)).toEqual([
 			"subject",
+			null,
+			"epaSiteId",
+			null,
 			null,
 			"distanceMeters",
 			null,
@@ -235,8 +238,13 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 		const smallStore = storeOf([record]);
 		const sentence = render(smallStore, nearest);
 		// The distance clause dropped; the rest of the sentence stands.
+		// Only the distance clause drops. The naming clause survives because it
+		// carries the EPA site ID rather than the distance -- until U2.1b it did
+		// not, and a coordinate-less site rendered three labelled column
+		// readouts with the site named nowhere.
 		expect(sentence === null ? null : text(sentence.spans)).toBe(
-			"NPL status: Not on the NPL." +
+			"VALERO PLUME, EPA ID TXN000622182." +
+				" NPL status: Not on the NPL." +
 				" Non-NPL status: Removal Only Site (No Site Assessment Work Needed)." +
 				" Non-NPL status date: 2022-02-08.",
 		);
@@ -251,7 +259,7 @@ describe("render: the nearest SEMS record from the committed fixture bytes", () 
 		// null name silently took a date the inventory did have with it.
 		expect(record.statusDate?.value).toBe("2010-07-05");
 		expect(sentence === null ? null : text(sentence.spans)).toBe(
-			"US OIL RECOVERY, 3.92 km from the mapped point. NPL status: Currently on the Final NPL." +
+			"US OIL RECOVERY, EPA ID TXN000607093. 3.92 km from the mapped point. NPL status: Currently on the Final NPL." +
 				" Non-NPL status date: 2010-07-05.",
 		);
 	});

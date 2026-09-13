@@ -69,6 +69,13 @@ export type SectionSubject = {
 	readonly boundary: Reported<string>;
 	readonly retrievedAt: Reported<string> | null;
 	readonly note: Reported<string> | null;
+	/**
+	 * How many of the ordering the report left out, when it left any out.
+	 * Recomputed from the store on every render like `count`, so the two cannot
+	 * drift apart, and null when nothing was left out so the sentence cannot
+	 * render over a section that showed everything.
+	 */
+	readonly notShown: Reported<number> | null;
 };
 
 /**
@@ -117,7 +124,15 @@ export type OriginSubject = {
  */
 export type GroupSubject = {
 	readonly scope: "group";
-	readonly subject: Sourced<string>;
+	/**
+	 * The placement's first two members, looked up in the store, and null when
+	 * that exact record is gone -- not "the first two still standing". A
+	 * sentence naming two records has to keep naming those two: seating it on
+	 * whoever survived made deleting a member silently rewrite the claim into
+	 * one about a different pair. Now the clause drops instead, which is the
+	 * deletion guarantee rather than a substitution.
+	 */
+	readonly subject: Sourced<string> | null;
 	readonly otherSubject: Sourced<string> | null;
 	readonly groupedBy: Sourced<unknown> | null;
 	readonly distanceMeters: Sourced<number> | null;

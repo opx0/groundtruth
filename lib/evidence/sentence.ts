@@ -27,7 +27,7 @@ import {
 	type SourceId,
 	type SourceOf,
 } from "./records";
-import type { SourceOutcome } from "./source";
+import type { FailureCause, SourceOutcome } from "./source";
 import {
 	isSourced,
 	type JsonValue,
@@ -86,6 +86,16 @@ export type SectionSpec<K extends Kind = Kind, F extends string = string> = {
 	readonly retrievedAt: string | null;
 	/** Null counts every record of the kind. */
 	readonly filter: SectionFilter<F> | null;
+	/**
+	 * How many of the ordering the report actually carries, or null when it
+	 * carries all of it. A report cannot ship a sentence and a trace for every
+	 * one of the 1,686 facilities ECHO answers within five miles, so it carries
+	 * a bounded head of the ordering -- and a bound the reader cannot see is a
+	 * lie. This is what lets the section say how many it did not show, as a
+	 * number recomputed from the store like the count beside it, never one the
+	 * report wrote down.
+	 */
+	readonly carried: number | null;
 	/** What the section says when the ordering is empty. */
 	readonly note: string;
 };
@@ -120,6 +130,18 @@ export type SourcePlacement = {
 	readonly source: SourceId;
 	readonly outcome: SourceOutcome;
 	readonly template: Template<"source">;
+	/**
+	 * What this outcome is about, when the source's own name is too coarse.
+	 * FEMA is one `SourceId` and two datasets, and the flood card carries two
+	 * outcomes: the authoritative layer that refused and the Esri copy that
+	 * answered. Under `AGENCY.fema` both sentences read "FEMA National Flood
+	 * Hazard Layer", so the card said the same named source both answered and
+	 * could not be reached, in consecutive sentences. Null uses `AGENCY`.
+	 *
+	 * This names our own request, not a field any agency sent -- `agency` is a
+	 * `Reported`, like `status` and `cause` beside it.
+	 */
+	readonly agency: string | null;
 };
 
 export type OriginPlacement = {
@@ -155,7 +177,12 @@ export type Placement =
 export type SentenceSubject =
 	| { readonly scope: "record"; readonly recordId: RecordId }
 	| { readonly scope: "section"; readonly section: SectionSpec }
-	| { readonly scope: "source"; readonly source: SourceId; readonly outcome: SourceOutcome }
+	| {
+			readonly scope: "source";
+			readonly source: SourceId;
+			readonly outcome: SourceOutcome;
+			readonly agency: string | null;
+	  }
 	| { readonly scope: "origin"; readonly match: GeocodeMatch }
 	| {
 			readonly scope: "group";
@@ -448,6 +475,11 @@ export function sectionOrdering(store: EvidenceStore, section: SectionSpec): rea
 function sectionSubject(store: EvidenceStore, section: SectionSpec): SectionSubject {
 	const ordering = sectionOrdering(store, section);
 	const query: readonly Provenance[] = section.query === null ? [] : [section.query];
+	// Recomputed from the store like the count, so removing a record lowers one
+	// and raises the other by itself. Null when the report carries the whole
+	// ordering, and null when nothing was left out, so the sentence cannot
+	// render "0 not shown" over a section that showed everything.
+	const left = section.carried === null ? 0 : Math.max(0, ordering.length - section.carried);
 	return {
 		scope: "section",
 		count: reported(ordering.length, query),
@@ -455,6 +487,7 @@ function sectionSubject(store: EvidenceStore, section: SectionSpec): SectionSubj
 		retrievedAt: section.retrievedAt === null ? null : reported(section.retrievedAt, query),
 		// Only an empty section has a note, so the no-data wording cannot render over a section that holds records.
 		note: ordering.length === 0 ? reported(section.note, query) : null,
+		notShown: left === 0 ? null : reported(left, query),
 	};
 }
 
@@ -464,9 +497,32 @@ function printableCode(raw: JsonValue | null): string | null {
 	return null;
 }
 
-function sourceSubject(source: SourceId, outcome: SourceOutcome): SourceSubject {
-	const agency = reported(AGENCY[source], []);
-	const status = reported(outcome.status, []);
+/**
+ * What a source outcome says, in words. `outcome.status` and
+ * `FailureCause` are this codebase's own enums, and printing them put
+ * "answered ok" and "could not be reached: http" on every card. They are facts
+ * about our own request, so wording them renames nothing an agency sent -- and
+ * `SourceTrace` still carries the enum, the same way `sfhaFlag` keeps the
+ * letter behind `sfhaLabel`.
+ */
+const STATUS_WORDS: { readonly [S in SourceOutcome["status"]]: string } = {
+	ok: "with records",
+	"no-data": "with no matching records",
+	unavailable: "that it could not be reached",
+};
+
+const CAUSE_WORDS: { readonly [C in FailureCause]: string } = {
+	timeout: "the request timed out",
+	refused: "the host refused the connection",
+	"rate-limited": "the source rate-limited the request",
+	http: "the source answered with an error status",
+	malformed: "the response could not be read",
+	unknown: "the reason is not known",
+};
+
+function sourceSubject(source: SourceId, outcome: SourceOutcome, named: string | null): SourceSubject {
+	const agency = reported(named ?? AGENCY[source], []);
+	const status = reported(STATUS_WORDS[outcome.status], []);
 	if (outcome.status === "unavailable") {
 		const code = printableCode(outcome.rawCode);
 		return {
@@ -474,7 +530,7 @@ function sourceSubject(source: SourceId, outcome: SourceOutcome): SourceSubject 
 			agency,
 			status,
 			retrievedAt: null,
-			cause: reported(outcome.cause, []),
+			cause: reported(CAUSE_WORDS[outcome.cause], []),
 			rawCode: code === null ? null : reported(code, []),
 			retryAfter: outcome.retryAfter === null ? null : reported(outcome.retryAfter, []),
 		};
@@ -513,16 +569,28 @@ function groupSubject(
 	groupedBy: string | null,
 ): GroupSubject | null {
 	const live = liveMembers(store, members);
-	const [lead, second] = live;
-	if (lead === undefined) return null;
-	const bag: Bag = lead;
+	// The group still exists while any member does, so the count and the
+	// identifier it was grouped on read from whoever is left.
+	const [anyLive] = live;
+	if (anyLive === undefined) return null;
+	const bag: Bag = anyLive;
 	const key = groupedBy === null ? undefined : bag[groupedBy];
+	// The two named records, though, are the placement's own first two. Reading
+	// them off `live` meant deleting a member re-seated the sentence on the next
+	// survivor: a three-member group losing its second rendered "PASADENA
+	// REFINING FIRE and PASADENA REFINING SYSTEM, INC. share one EPA facility
+	// registry ID", where the second is the record that ID names rather than a
+	// record sharing it. A null here drops the clause, which is what deleting a
+	// record is supposed to do.
+	const [firstId, secondId] = members;
+	const first = firstId === undefined ? undefined : store.get(firstId);
+	const second = secondId === undefined ? undefined : store.get(secondId);
 	return {
 		scope: "group",
-		subject: lead.subject,
+		subject: first === undefined ? null : first.subject,
 		otherSubject: second === undefined ? null : second.subject,
 		groupedBy: isSourced(key) ? key : null,
-		distanceMeters: lead.distanceMeters,
+		distanceMeters: anyLive.distanceMeters,
 		members: reported(live.length, []),
 	};
 }
@@ -553,9 +621,15 @@ function renderSection(
 function renderSource(
 	source: SourceId,
 	outcome: SourceOutcome,
+	agency: string | null,
 	template: Template<"source">,
 ): Sentence | null {
-	return assemble(sourceSubject(source, outcome), template, { scope: "source", source, outcome });
+	return assemble(sourceSubject(source, outcome, agency), template, {
+		scope: "source",
+		source,
+		outcome,
+		agency,
+	});
 }
 
 function renderOrigin(match: GeocodeMatch, template: Template<"origin">): Sentence | null {
@@ -581,7 +655,7 @@ export function render(store: EvidenceStore, placement: Placement): Sentence | n
 		case "section":
 			return renderSection(store, placement.section, placement.template);
 		case "source":
-			return renderSource(placement.source, placement.outcome, placement.template);
+			return renderSource(placement.source, placement.outcome, placement.agency, placement.template);
 		case "origin":
 			return renderOrigin(placement.match, placement.template);
 		case "group":
@@ -718,14 +792,16 @@ export function trace(store: EvidenceStore, sentence: Sentence, spanIndex: numbe
 		}
 		case "source": {
 			const outcome = subject.outcome;
-			const bag: Bag = sourceSubject(subject.source, outcome);
+			const bag: Bag = sourceSubject(subject.source, outcome, subject.agency);
 			const clicked = slotAt(bag, field);
 			if (clicked === null) return null;
 			return {
 				scope: "source",
 				source: {
 					source: subject.source,
-					agency: AGENCY[subject.source],
+					// The trace carries the agency this outcome was attributed to and
+					// the raw cause enum, not the words the card printed.
+					agency: subject.agency ?? AGENCY[subject.source],
 					status: outcome.status,
 					retrievedAt: outcome.status === "unavailable" ? null : outcome.retrievedAt,
 					cause: outcome.status === "unavailable" ? outcome.cause : null,
@@ -802,7 +878,9 @@ function reRender(store: EvidenceStore, subject: SentenceSubject, template: Temp
 		case "section":
 			return isSectionTemplate(template) ? renderSection(store, subject.section, template) : null;
 		case "source":
-			return isSourceTemplate(template) ? renderSource(subject.source, subject.outcome, template) : null;
+			return isSourceTemplate(template)
+				? renderSource(subject.source, subject.outcome, subject.agency, template)
+				: null;
 		case "origin":
 			return isOriginTemplate(template) ? renderOrigin(subject.match, template) : null;
 		case "group":

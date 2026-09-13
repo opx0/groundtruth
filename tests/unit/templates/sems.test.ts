@@ -16,7 +16,16 @@
  * the fixture bytes, so the day a recorded record actually disagrees, this file
  * fails and the template comes back.
  *
- * Two other things moved since the last pass and are witnessed here.
+ * `sems-site/npl@1` is two clauses as of this pass, and the table below shows
+ * the seam: `… Currently on the Final NPL. 3.92 km from the mapped point.`
+ * where it used to be one comma. It had carried the NPL status and the distance
+ * in one clause, and a clause dies whole, so a final-NPL site whose FRS
+ * coordinate is null got no sentence while the final-NPL count on the same card
+ * still counted it — two counted, one printed. The last describe holds both
+ * halves of that now: the sentence survives the null coordinate, and both
+ * final-NPL sites still render with their coordinates taken away.
+ *
+ * Two other things moved in the pass before and are witnessed here.
  * `sems-site/npl@1` required only that SEMS returned some status, which thirteen
  * of fifteen non-final-NPL sites satisfied, so B7's final-NPL sentence rendered
  * over sites the matching count excludes; it now requires the string it prints.
@@ -196,107 +205,107 @@ const RECORDS: readonly { readonly name: string; readonly record: SemsRecord }[]
  */
 const EXPECTED: Readonly<Record<string, string | null>> = {
 	"sems-site/summary@1 | TXN000607443 (joined)":
-		"SUPPLY PRO FIRE, 6.74 km from the mapped point. NPL status: Not on the NPL." +
+		"SUPPLY PRO FIRE, EPA ID TXN000607443. 6.74 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2012-06-26.",
 	"sems-site/registry-only@1 | TXN000607443 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000607443 (joined)": null,
 	"sems-site/npl@1 | TXN000607443 (joined)": null,
 
 	"sems-site/summary@1 | TXN000607093 (joined)":
-		"US OIL RECOVERY, 3.92 km from the mapped point. NPL status: Currently on the Final NPL." +
+		"US OIL RECOVERY, EPA ID TXN000607093. 3.92 km from the mapped point. NPL status: Currently on the Final NPL." +
 		" Non-NPL status date: 2010-07-05.",
 	"sems-site/registry-only@1 | TXN000607093 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000607093 (joined)": null,
 	"sems-site/npl@1 | TXN000607093 (joined)":
-		"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL, 3.92 km from the mapped point.",
+		"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL. 3.92 km from the mapped point.",
 
 	"sems-site/summary@1 | TXN000622432 (joined)":
-		"KELLOGG TIRE FIRE, 2.37 km from the mapped point. NPL status: Not on the NPL." +
+		"KELLOGG TIRE FIRE, EPA ID TXN000622432. 2.37 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2026-06-22.",
 	"sems-site/registry-only@1 | TXN000622432 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000622432 (joined)": null,
 	"sems-site/npl@1 | TXN000622432 (joined)": null,
 
 	"sems-site/summary@1 | TXD981157522 (joined)":
-		"LYONDELLBASELL FIRE, 2.69 km from the mapped point. NPL status: Not on the NPL." +
+		"LYONDELLBASELL FIRE, EPA ID TXD981157522. 2.69 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2010-05-19.",
 	"sems-site/registry-only@1 | TXD981157522 (joined)": null,
 	"sems-site/status-unavailable@1 | TXD981157522 (joined)": null,
 	"sems-site/npl@1 | TXD981157522 (joined)": null,
 
 	"sems-site/summary@1 | TXN000607355 (joined)":
-		"PASADENA REFINING FIRE, 5.14 km from the mapped point. NPL status: Not on the NPL." +
+		"PASADENA REFINING FIRE, EPA ID TXN000607355. 5.14 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2012-01-30.",
 	"sems-site/registry-only@1 | TXN000607355 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000607355 (joined)": null,
 	"sems-site/npl@1 | TXN000607355 (joined)": null,
 
 	"sems-site/summary@1 | TXN000622182 (joined)":
-		"VALERO PLUME, 0.76 km from the mapped point. NPL status: Not on the NPL." +
+		"VALERO PLUME, EPA ID TXN000622182. 0.76 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2022-02-08.",
 	"sems-site/registry-only@1 | TXN000622182 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000622182 (joined)": null,
 	"sems-site/npl@1 | TXN000622182 (joined)": null,
 
 	"sems-site/summary@1 | TXN000606604 (joined)":
-		"SUPERIOR PACKAGING AND DISTRIBUTING, 7.91 km from the mapped point. NPL status: Not on the NPL." +
+		"SUPERIOR PACKAGING AND DISTRIBUTING, EPA ID TXN000606604. 7.91 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2005-04-17.",
 	"sems-site/registry-only@1 | TXN000606604 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000606604 (joined)": null,
 	"sems-site/npl@1 | TXN000606604 (joined)": null,
 
 	"sems-site/summary@1 | TXN000606785 (joined)":
-		"TYSON FOODS AMMONIA RELEASE, 7.22 km from the mapped point. NPL status: Not on the NPL." +
+		"TYSON FOODS AMMONIA RELEASE, EPA ID TXN000606785. 7.22 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2007-05-24.",
 	"sems-site/registry-only@1 | TXN000606785 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000606785 (joined)": null,
 	"sems-site/npl@1 | TXN000606785 (joined)": null,
 
 	"sems-site/summary@1 | TXN000607438 (joined)":
-		"RHODIA INC., ACID RELEASE, 0.71 km from the mapped point. NPL status: Not on the NPL." +
+		"RHODIA INC., ACID RELEASE, EPA ID TXN000607438. 0.71 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2012-06-12.",
 	"sems-site/registry-only@1 | TXN000607438 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000607438 (joined)": null,
 	"sems-site/npl@1 | TXN000607438 (joined)": null,
 
 	"sems-site/summary@1 | TXN000605303 (joined)":
-		"PRSI FIRE, 5.14 km from the mapped point. NPL status: Not on the NPL." +
+		"PRSI FIRE, EPA ID TXN000605303. 5.14 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: Date unavailable.",
 	"sems-site/registry-only@1 | TXN000605303 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000605303 (joined)": null,
 	"sems-site/npl@1 | TXN000605303 (joined)": null,
 
 	"sems-site/summary@1 | TXN000622257 (joined)":
-		"UPRR TRAIN DERAILMENT ZINDLER ST. HOUSTON, 7.16 km from the mapped point. NPL status: Not on the NPL." +
+		"UPRR TRAIN DERAILMENT ZINDLER ST. HOUSTON, EPA ID TXN000622257. 7.16 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2022-10-20.",
 	"sems-site/registry-only@1 | TXN000622257 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000622257 (joined)": null,
 	"sems-site/npl@1 | TXN000622257 (joined)": null,
 
 	"sems-site/summary@1 | TXN000606967 (joined)":
-		"SHARP PERFORMANCE CHEMICAL, 6.50 km from the mapped point. NPL status: Not on the NPL." +
+		"SHARP PERFORMANCE CHEMICAL, EPA ID TXN000606967. 6.50 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2009-02-03.",
 	"sems-site/registry-only@1 | TXN000606967 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000606967 (joined)": null,
 	"sems-site/npl@1 | TXN000606967 (joined)": null,
 
 	"sems-site/summary@1 | TXN000607377 (joined)":
-		"DELTA SPECIALITY FIRE, 6.61 km from the mapped point. NPL status: Not on the NPL." +
+		"DELTA SPECIALITY FIRE, EPA ID TXN000607377. 6.61 km from the mapped point. NPL status: Not on the NPL." +
 		" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2012-03-12.",
 	"sems-site/registry-only@1 | TXN000607377 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000607377 (joined)": null,
 	"sems-site/npl@1 | TXN000607377 (joined)": null,
 
 	"sems-site/summary@1 | TXD980748453 (joined)":
-		"GENEVA INDUSTRIES/FUHRMANN ENERGY, 6.84 km from the mapped point. NPL status: Currently on the Final NPL." +
+		"GENEVA INDUSTRIES/FUHRMANN ENERGY, EPA ID TXD980748453. 6.84 km from the mapped point. NPL status: Currently on the Final NPL." +
 		" Non-NPL status date: Date unavailable.",
 	"sems-site/registry-only@1 | TXD980748453 (joined)": null,
 	"sems-site/status-unavailable@1 | TXD980748453 (joined)": null,
 	"sems-site/npl@1 | TXD980748453 (joined)":
-		"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS as Currently on the Final NPL, 6.84 km from the mapped point.",
+		"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS as Currently on the Final NPL. 6.84 km from the mapped point.",
 
 	"sems-site/summary@1 | TXN000607155 (joined)":
-		"MCC RECYCLING, 5.50 km from the mapped point. NPL status: Site is Part of NPL Site." +
+		"MCC RECYCLING, EPA ID TXN000607155. 5.50 km from the mapped point. NPL status: Site is Part of NPL Site." +
 		" Non-NPL status date: 2017-05-11.",
 	"sems-site/registry-only@1 | TXN000607155 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000607155 (joined)": null,
@@ -455,7 +464,7 @@ describe("the final-NPL sentence names only the sites on the final NPL", () => {
 		expect(valero.semsNplStatus?.value).toBe("Not on the NPL");
 		expect(rendered(valero, semsSiteNpl)).toBeNull();
 		expect(rendered(valero, { ...semsSiteNpl, requires: [{ slot: "semsNplStatus", present: true }] })).toBe(
-			"VALERO PLUME is listed by SEMS as Not on the NPL, 0.76 km from the mapped point.",
+			"VALERO PLUME is listed by SEMS as Not on the NPL. 0.76 km from the mapped point.",
 		);
 	});
 
@@ -642,11 +651,16 @@ describe("what the requirements are holding back", () => {
 	});
 
 	/**
-	 * Forty-seven of the forty-nine null cells are a requirement refusing to
-	 * render. The two that were already silent are `npl@1`'s over the two records
-	 * with no inventory row: its one clause names the status, so it drops when
-	 * the status is missing. The thirteen joined records where `npl@1` is now
-	 * null are the finding — every one of them was a sentence before this pass.
+	 * All forty-nine null cells are now a requirement refusing to render, and
+	 * that is the shape of the split, not a detail of the table. Two of them used
+	 * to be clause deaths: `npl@1` was one clause naming the status, so over the
+	 * two records with no inventory row it went silent by itself. With the
+	 * distance split off, the same two records leave `npl@1`'s second clause
+	 * standing — a bare `5.50 km from the mapped point.` with no site and no
+	 * listing named — and only `equals` keeps it off the screen. That is the
+	 * requirement carrying weight the clause used to carry, which is where this
+	 * codebase wants it: a visible declaration rather than an accident of which
+	 * ref happened to be null.
 	 */
 	it("accounts for every null cell in the table", () => {
 		const stopped: string[] = [];
@@ -659,12 +673,15 @@ describe("what the requirements are holding back", () => {
 			}
 		}
 
-		expect(stopped).toHaveLength(47);
-		expect(stopped.filter((key) => key.startsWith("sems-site/npl@1"))).toHaveLength(13);
-		expect(alreadySilent).toEqual([
-			"sems-site/npl@1 | TXN000607155 (no-row)",
-			"sems-site/npl@1 | TXN000607155 (unavailable)",
-		]);
+		expect(stopped).toHaveLength(49);
+		expect(stopped.filter((key) => key.startsWith("sems-site/npl@1"))).toHaveLength(15);
+		expect(alreadySilent).toEqual([]);
+	});
+
+	/** The bare clause the requirement is now the only thing holding back, written out. */
+	it("would print a distance under no subject over a record with no inventory row", () => {
+		expect(rendered(rowlessRecord, unrequired(semsSiteNpl))).toBe("5.50 km from the mapped point.");
+		expect(rendered(rowlessRecord, semsSiteNpl)).toBeNull();
 	});
 });
 
@@ -739,7 +756,7 @@ describe("a null on a real row", () => {
 
 	it("keeps the date clause alive on its fallback, as its own sentence, when a date is null", () => {
 		expect(rendered(prsi, semsSiteSummary)).toBe(
-			"PRSI FIRE, 5.14 km from the mapped point. NPL status: Not on the NPL." +
+			"PRSI FIRE, EPA ID TXN000605303. 5.14 km from the mapped point. NPL status: Not on the NPL." +
 				" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: Date unavailable.",
 		);
 	});
@@ -752,7 +769,7 @@ describe("a null on a real row", () => {
 		});
 
 		expect(text(sentence)).toBe(
-			"US OIL RECOVERY, 3.92 km from the mapped point. NPL status: Currently on the Final NPL." +
+			"US OIL RECOVERY, EPA ID TXN000607093. 3.92 km from the mapped point. NPL status: Currently on the Final NPL." +
 				" Non-NPL status date: 2010-07-05.",
 		);
 		expect(sentence.spans.some((span) => span.slot?.field === "nonNplStatus")).toBe(false);
@@ -922,7 +939,8 @@ describe("a row the layer sent with no coordinate", () => {
 
 	it("renders the whole sentence the joined state is left with", () => {
 		expect(rendered(states[0]?.record ?? rowlessRecord, semsSiteSummary)).toBe(
-			"NPL status: Site is Part of NPL Site. Non-NPL status date: 2017-05-11.",
+			"MCC RECYCLING, EPA ID TXN000607155. NPL status: Site is Part of NPL Site." +
+				" Non-NPL status date: 2017-05-11.",
 		);
 	});
 
@@ -958,22 +976,72 @@ describe("a row the layer sent with no coordinate", () => {
 	});
 
 	/**
-	 * What `npl@1` does with the same null, which is the other half of the check
-	 * this pass was asked for. It is a single clause and it names its own
-	 * subject, so a null distance takes B7's whole sentence rather than its
-	 * antecedent: US OIL RECOVERY is on the final NPL and gets no NPL sentence at
-	 * all without a coordinate. A silence, not a false claim — and the summary
-	 * still prints the status, so the fact is not lost, only its own sentence.
-	 * Splitting the distance into a second clause would keep it; this pass was
-	 * not asked to, and this test is here so the next one decides it knowingly.
+	 * What `npl@1` does with the same null, and the reason the distance is a
+	 * clause of its own. While the status and the distance shared one clause, a
+	 * null coordinate took B7's whole sentence: US OIL RECOVERY is on the final
+	 * NPL, `section/npl-count@1` counted it, and the site got no sentence beside
+	 * that count. Two counted, one printed. The previous pass pinned that loss
+	 * here as deferred; this one splits the clause, and the assertion is the
+	 * opposite of what it was.
+	 *
+	 * The requirement is what makes the surviving clause safe. `equals` pins
+	 * `semsNplStatus`, `subject` is a coalesce that cannot be null, so the clause
+	 * that names the site and states the listing renders wherever this template
+	 * renders at all, and only the distance is at the mercy of the coordinate.
 	 */
-	it("costs the final-NPL sentence entirely, rather than its subject", () => {
+	it("keeps the final-NPL sentence, and loses only the distance, with no coordinate", () => {
 		const usOil = uncoordinated("TXN000607093", joinedAnswer("TXN000607093"));
 
+		expect(usOil.distanceMeters).toBeNull();
 		expect(usOil.semsNplStatus?.value).toBe(FINAL_NPL);
-		expect(rendered(usOil, semsSiteNpl)).toBeNull();
+		expect(rendered(usOil, semsSiteNpl)).toBe("US OIL RECOVERY is listed by SEMS as Currently on the Final NPL.");
 		expect(rendered(usOil, semsSiteSummary)).toBe(
-			"NPL status: Currently on the Final NPL. Non-NPL status date: 2010-07-05.",
+			"US OIL RECOVERY, EPA ID TXN000607093. NPL status: Currently on the Final NPL." +
+				" Non-NPL status date: 2010-07-05.",
 		);
+	});
+
+	/**
+	 * The count and the sentences on one card, which is the pair the split is
+	 * about. Two of the fifteen sites are on the final NPL; null one site's
+	 * coordinate and both still get B7's sentence, so the number and the list
+	 * describe the same set. Before the split the second call returned one.
+	 */
+	it("leaves the final-NPL sentence count equal to the final-NPL site count", () => {
+		const onFinalNpl = joinedRecords.filter((record) => record.semsNplStatus?.value === FINAL_NPL);
+		const uncoordinatedToo = onFinalNpl.map((record) =>
+			uncoordinated(record.id.sourceRecordId, joinedAnswer(record.id.sourceRecordId)),
+		);
+
+		expect(onFinalNpl).toHaveLength(2);
+		expect(uncoordinatedToo.filter((record) => rendered(record, semsSiteNpl) !== null)).toHaveLength(2);
+		expect(uncoordinatedToo.map((record) => rendered(record, semsSiteNpl))).toEqual([
+			"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL.",
+			"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS as Currently on the Final NPL.",
+		]);
+	});
+
+	/**
+	 * `summary@1` has the shape `npl@1` just lost, and this is what it costs.
+	 * Its lead clause carries `subject`, which cannot be null, beside
+	 * `distanceMeters`, which can, and its other three clauses name no site — so
+	 * a coordinate-less joined row states two statuses about nobody. No sentence
+	 * is false, which is why it is recorded rather than fixed here; the string is
+	 * written out so the pass that splits it has the before.
+	 */
+	it("names the site in summary@1 too, now that its naming clause carries the EPA ID", () => {
+		const summary = rendered(states[0]?.record ?? rowlessRecord, semsSiteSummary);
+
+		expect(summary).toBe(
+			"MCC RECYCLING, EPA ID TXN000607155. NPL status: Site is Part of NPL Site." +
+				" Non-NPL status date: 2017-05-11.",
+		);
+		expect(summary).toContain("MCC RECYCLING");
+
+		// The other two carry the same shape and pay less for it: the clause after
+		// the lead one names the facility, so only the distance is lost.
+		for (const { record, template } of states.slice(1)) {
+			expect(rendered(record, template)).toContain("MCC RECYCLING");
+		}
 	});
 });

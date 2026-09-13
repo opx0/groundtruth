@@ -26,9 +26,25 @@ export const groupSharedIdentifier = defineTemplate("group", "group/shared-ident
 	sentence`${field("subject")} and ${field("otherSubject")} share one EPA facility registry ID, ${field("groupedBy")}.`,
 ]);
 
-/** The size of a group, which is the number of members still in the store. */
-export const groupMemberCount = defineTemplate("group", "group/member-count@1", (field) => [
-	sentence`${field("members")} records grouped under ${field("groupedBy")}.`,
-]);
+/**
+ * The size of a group, which is the number of members still in the store.
+ *
+ * `members` is live, and the placement that produced this sentence was decided
+ * when the plan was built, so deleting members shrinks the number under a
+ * sentence that was placed for a larger group. At one member it read
+ * "1 records grouped under 110000462703." -- ungrammatical, and a group of one
+ * is not a group. The requirement is the fix: `members` is a `Reported` slot,
+ * so the template can declare the state it speaks about and the kernel refuses
+ * to render it below two. The label-then-value register is the same one
+ * `lib/templates/sections.ts` adopted, and for the same reason: a template
+ * cannot branch, so a sentence carrying a count has to read correctly at two
+ * and at thirty-eight.
+ */
+export const groupMemberCount = defineTemplate(
+	"group",
+	"group/member-count@1",
+	(field) => [sentence`Records grouped under ${field("groupedBy")}: ${field("members")}.`],
+	[{ slot: "members", atLeast: 2 }],
+);
 
 export const groupTemplates = [groupSharedIdentifier, groupMemberCount];

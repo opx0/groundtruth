@@ -3,6 +3,13 @@ import type { GeocodeMatchView, OriginSentence } from "@/app/lib/geocode-contrac
 type ConfirmScreenProps = {
 	readonly match: GeocodeMatchView;
 	readonly onStartOver: () => void;
+	/**
+	 * `docs/BRIEF.md` B9 step 4 and step 5: the report route is asked only
+	 * after the reader confirms this match, so the coordinate leaves the
+	 * browser on a click and not on a render. Optional, so a caller that only
+	 * wants to show the match -- a test, screen 2 on its own -- gets no button.
+	 */
+	readonly onSeeReport?: () => void;
 };
 
 /**
@@ -41,7 +48,7 @@ function RenderedSentence({ sentence, className }: { readonly sentence: OriginSe
  * The heading, the privacy note and the button are not claims about the
  * reader's address: they are this tool talking about itself.
  */
-export function ConfirmScreen({ match, onStartOver }: ConfirmScreenProps) {
+export function ConfirmScreen({ match, onStartOver, onSeeReport }: ConfirmScreenProps) {
 	return (
 		<div className="mx-auto max-w-xl px-4 py-12 sm:py-16">
 			<h1 className="text-2xl font-semibold">Match confirmed</h1>
@@ -60,13 +67,25 @@ export function ConfirmScreen({ match, onStartOver }: ConfirmScreenProps) {
 				From here on, this tool holds the point above and this match&apos;s details -- not the address you typed.
 			</p>
 
-			<button
-				type="button"
-				onClick={onStartOver}
-				className="mt-6 rounded-md border border-black/15 px-4 py-2 text-sm font-medium dark:border-white/20"
-			>
-				Search another address
-			</button>
+			<div className="mt-6 flex flex-wrap gap-3">
+				{onSeeReport === undefined ? null : (
+					<button
+						type="button"
+						onClick={onSeeReport}
+						className="rounded-md border border-black/15 bg-black/[0.04] px-4 py-2 text-sm font-medium dark:border-white/20 dark:bg-white/[0.06]"
+					>
+						See the report
+					</button>
+				)}
+
+				<button
+					type="button"
+					onClick={onStartOver}
+					className="rounded-md border border-black/15 px-4 py-2 text-sm font-medium dark:border-white/20"
+				>
+					Search another address
+				</button>
+			</div>
 		</div>
 	);
 }

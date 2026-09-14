@@ -1,7 +1,10 @@
 # Fixtures
 
-Unedited responses from live government endpoints. Nothing here is hand-written
-or trimmed. Production code cannot import this directory and a test proves it.
+Unedited responses from live government endpoints, **except the nine `derived-`
+files**, which were authored from published documentation rather than captured
+and each carry a sibling `.source.md` saying so — see "AQS and AirNow" at the
+end. Nothing else here is hand-written or trimmed. Production code cannot import
+this directory and a test proves it.
 
 Recorded 2026-09-16 unless a later note says otherwise.
 
@@ -131,6 +134,14 @@ www-authenticate: proprietary
 So its error envelope is `WebServiceError`, an array of `{Message}` — that much
 is now fact rather than assumption. Its success shape is still unverified, and
 `docs/BRIEF.md` B2 still says so.
+
+**B2's AirNow host is a redirect.** Re-checked from this machine on 2026-09-16,
+with no key: `https://airnowapi.org/aq/observation/latLong/current?...` answers
+`HTTP/2 301`, `server: awselb/2.0`, `location:
+https://www.airnowapi.org:443/aq/observation/latLong/current?...`, and
+`www.airnowapi.org` answers the 401 above — with and without a trailing slash on
+the path. `lib/adapters/airnow.ts` therefore cites `www.`, because the citable
+URL is printed on every AirNow record and it has to be one a reader can repeat.
 
 Neither of these is a recording of a working source, and no adapter may treat
 them as one. Any payload for the success path of either source is authored from

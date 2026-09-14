@@ -89,7 +89,14 @@ function ioOf(answerFor: (url: URL) => Answer): Requested {
 			if ("fail" in answer) throw answer.fail;
 			const bytes = "fixture" in answer ? bytesOf(answer.fixture) : Buffer.from(JSON.stringify(answer.body), "utf8");
 			const label = "fixture" in answer ? `fixture:${answer.fixture}` : answer.derived;
-			return { raw: schema.parse(JSON.parse(bytes.toString("utf8"))), payload: payloadOf(label, bytes) };
+			// A body the adapter's own schema refuses is `malformed`, which is the
+			// failure `lib/io/fetch-source-io.ts` throws for one. Letting the zod
+			// error out of here instead would reach the card classified `unknown`,
+			// and a stub that answered differently from the real io would pin a
+			// sentence no deployment can produce.
+			const parsed = schema.safeParse(JSON.parse(bytes.toString("utf8")));
+			if (!parsed.success) throw new SourceFailure("malformed", null);
+			return { raw: parsed.data, payload: payloadOf(label, bytes) };
 		},
 		query(parameter, value, adapterVersion, payload) {
 			return { kind: "query", parameter, value, adapterVersion, payload };
@@ -194,15 +201,18 @@ async function report(plan: Plan, timeouts: Record<string, { readonly timeoutMs:
 	return drive(io, timeouts);
 }
 
+function eventsOf(raw: string): readonly ReportEvent[] {
+	return raw
+		.split("\n")
+		.filter((line) => line.length > 0)
+		.map((line): ReportEvent => ReportEventSchema.parse(JSON.parse(line)));
+}
+
 async function drive(io: SourceIo, timeouts: Record<string, { readonly timeoutMs: number }> = {}): Promise<Run> {
 	const handler = createReportHandler(io, timeouts);
 	const response = await handler(postRequest(CONFIRMED_POINT));
 	const raw = await response.text();
-	const events = raw
-		.split("\n")
-		.filter((line) => line.length > 0)
-		.map((line): ReportEvent => ReportEventSchema.parse(JSON.parse(line)));
-	return { response, raw, events };
+	return { response, raw, events: eventsOf(raw) };
 }
 
 function cardFor(events: readonly ReportEvent[], source: string): CardView {
@@ -435,6 +445,39 @@ describe("one source that throws, one that times out and one that answers with n
 		expect(frs.state).toBe("not-asked");
 		expect(frs.status).toBeNull();
 		expect(frs.agency).toBe("EPA Facility Registry Service");
+	});
+});
+
+/* -------------------------------------------------------------------------- */
+/* 3b. A body the source's own reader cannot read                             */
+/* -------------------------------------------------------------------------- */
+
+describe("a source that answers with a body its own reader cannot read", () => {
+	/** ArcGIS's layer shape with `features` replaced by a string: JSON, and not a layer. */
+	const GARBLED: JsonValue = { features: "TXN000622182" };
+	const UNREADABLE: Plan = { ...DEMO, semsLayer: { derived: "derived:sems-unreadable", body: GARBLED } };
+
+	it("says the response could not be read, which is neither a refusal nor an empty answer", async () => {
+		const { events } = await report(UNREADABLE);
+		const sems = cardFor(events, "sems");
+		// `malformed` has a sentence of its own, and it is the one B10 gives a
+		// body we could not parse rather than a host we could not reach.
+		expect(textsOf(sems)).toEqual([
+			"EPA Superfund Enterprise Management System could not be reached: the response could not be read.",
+		]);
+		expect(sems.listings).toEqual([]);
+		// The bytes that could not be read are quoted back on no card.
+		expect(textsOf(sems).join(" ")).not.toContain("TXN000622182");
+	});
+
+	it("gives every other source its card and still ends complete", async () => {
+		const { events } = await report(UNREADABLE);
+		const shapes = events.map(shapeOf);
+		expect(shapes.filter((shape) => shape.startsWith("card:")).length).toBe(6);
+		// Nothing named a registry ID, so the registry was not asked.
+		expect(shapes).toContain("card:frs:not-asked");
+		expect(at(shapes, shapes.length - 1, "terminal event")).toBe("end:complete");
+		expect(logged).toEqual([]);
 	});
 });
 
@@ -705,6 +748,178 @@ describe("the trace that crosses the wire answers what is behind every span", ()
 			for (const sentence of sentencesOf(event.card)) {
 				expect(Object.keys(sentence).sort()).toEqual(["spans", "templateId", "trace"]);
 			}
+		}
+	});
+});
+
+/* -------------------------------------------------------------------------- */
+/* 9. A card that cannot be built costs that card and no other                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Is this the card event for one source? Read off the value the wire schema was
+ * handed, with no assertion: a card event is `{type, card: {source, ...}}`.
+ */
+function isCardFor(value: unknown, source: string): boolean {
+	if (typeof value !== "object" || value === null || !("type" in value) || !("card" in value)) return false;
+	if (value.type !== "card") return false;
+	const card = value.card;
+	return typeof card === "object" && card !== null && "source" in card && card.source === source;
+}
+
+/**
+ * A run in which one card's own pass through the wire schema throws.
+ *
+ * This is the one failure the source cannot be blamed for: it answered, the
+ * card was built out of the records it answered with, and putting that card on
+ * the wire is what failed. Nothing about any other source has gone wrong, and
+ * an unbuildable card is the only way to reach that state -- `runSource` never
+ * rejects.
+ *
+ * The response is parsed back in with the spy still installed, which is safe
+ * and deliberate: the broken card is the one line that was never written.
+ */
+async function brokenCard(source: string): Promise<Run> {
+	const { io } = planned(DEMO);
+	const handler = createReportHandler(io);
+	const parse = ReportEventSchema.parse.bind(ReportEventSchema);
+	const spy = vi.spyOn(ReportEventSchema, "parse").mockImplementation((value: unknown): ReportEvent => {
+		if (isCardFor(value, source)) throw new Error(`forced: the ${source} card cannot be parsed`);
+		return parse(value);
+	});
+	try {
+		const response = await handler(postRequest(CONFIRMED_POINT));
+		const raw = await response.text();
+		return { response, raw, events: eventsOf(raw) };
+	} finally {
+		spy.mockRestore();
+	}
+}
+
+describe("a card that cannot be built", () => {
+	it("still asks the registry, and still gives it a card, when the Superfund card is the one that fails", async () => {
+		const { events } = await brokenCard("sems");
+
+		// The registry card is emitted from inside the SEMS task, and FRS had
+		// nothing wrong with it: SEMS answered, named its registry IDs, and the
+		// lookups ran. A sibling losing its card may not cost FRS its own.
+		const frs = cardFor(events, "frs");
+		expect(frs.state).toBe("asked");
+		expect(textsOf(frs).some((text) => text.includes("110000460885"))).toBe(true);
+
+		expect(events.map(shapeOf)).toEqual([
+			"card:aqs:not-asked",
+			"card:airnow:not-asked",
+			"card:echo:asked",
+			"card:fema:asked",
+			"card:frs:asked",
+			"groups",
+			"end:failed",
+		]);
+		// The card that could not be built is the only one missing, and the
+		// stream is loud about it: a terminal `failed` and one fixed log line.
+		expect(() => cardFor(events, "sems")).toThrow("no card was emitted for sems");
+		expect(logged).toEqual([["report: a source card could not be built"]]);
+	});
+
+	it("keeps the rest of the report when the card that fails is a source nobody asked", async () => {
+		const { events } = await brokenCard("aqs");
+		expect(events.map(shapeOf)).toEqual([
+			"card:airnow:not-asked",
+			"card:echo:asked",
+			"card:fema:asked",
+			"card:sems:asked",
+			"card:frs:asked",
+			"groups",
+			"end:failed",
+		]);
+		expect(logged).toEqual([["report: a source card could not be built"]]);
+	});
+
+	it("speaks on no later event for a card the reader never got", async () => {
+		const { events } = await brokenCard("sems");
+		const groups = events.filter((event) => event.type === "groups");
+		const event = at(groups, 0, "groups event");
+		if (event.type !== "groups") throw new Error("expected the groups event");
+		expect(event.cards.map((card) => card.source)).not.toContain("sems");
+	});
+
+	it("writes one fixed line about the failure, with nothing of the request in it", async () => {
+		// The thrown error is the route's own, but the rule holds for any of
+		// them: a card that could not be built is reported by a fixed string,
+		// never the error, never its message, never a value from the request.
+		// (The body is not asserted on here: B8 puts the mapped point in every
+		// haversine provenance on purpose, and that round trip is not a leak.)
+		await brokenCard("sems");
+		expect(logged).toEqual([["report: a source card could not be built"]]);
+		expect(serialize(logged)).not.toContain(String(LATITUDE));
+		expect(serialize(logged)).not.toContain(String(LONGITUDE));
+	});
+});
+
+/* -------------------------------------------------------------------------- */
+/* 10. The client that goes away mid-stream                                   */
+/* -------------------------------------------------------------------------- */
+
+/** Waits for something the report does after the client has gone, or gives up. */
+async function until(done: () => boolean, what: string): Promise<void> {
+	for (let attempt = 0; attempt < 200; attempt += 1) {
+		if (done()) return;
+		await pause(5);
+	}
+	throw new Error(`the report never got as far as ${what}`);
+}
+
+describe("a client that disconnects mid-stream", () => {
+	/**
+	 * Every source answers late, so the report is genuinely mid-stream when the
+	 * reader is cancelled: the two not-asked cards are written before the first
+	 * await, and nothing else can have settled yet.
+	 */
+	const LATE: Plan = {
+		...DEMO,
+		echoSummary: { slow: 30, then: { fixture: ECHO_SUMMARY } },
+		semsLayer: { slow: 30, then: { fixture: SEMS_LAYER } },
+		nfhl: { slow: 30, then: { fail: NFHL_REFUSED } },
+		esri: { slow: 30, then: { fixture: "fema/esri-no-polygon-houston.json" } },
+	};
+
+	it("builds no further event, and lets the sources it already asked run to a stop", async () => {
+		const { urls, io } = planned(LATE);
+		const built: string[] = [];
+		const parse = ReportEventSchema.parse.bind(ReportEventSchema);
+		const spy = vi.spyOn(ReportEventSchema, "parse").mockImplementation((value: unknown): ReportEvent => {
+			const event = parse(value);
+			built.push(shapeOf(event));
+			return event;
+		});
+		try {
+			const response = await createReportHandler(io)(postRequest(CONFIRMED_POINT));
+			const body = response.body;
+			if (body === null) throw new Error("the report answered with no body");
+			const reader = body.getReader();
+			const first = await reader.read();
+			expect(first.done).toBe(false);
+			expect(new TextDecoder().decode(first.value)).toContain('"type":"card"');
+
+			await reader.cancel();
+			expect((await reader.read()).done).toBe(true);
+			const whenTheClientLeft = [...built];
+			expect(whenTheClientLeft).toEqual(["card:aqs:not-asked", "card:airnow:not-asked"]);
+
+			// The report does not drop the requests it has already made: FRS is
+			// the last thing it asks, and it is asked after the client has gone.
+			await until(() => urls.some((url) => url.includes("/FRS_INTERESTS/")), "the registry lookups");
+			await pause(20);
+
+			// Not one event built for a client that is not there. That check is
+			// first in `emit` because building an event costs a full schema parse
+			// of a payload that can run to hundreds of kilobytes -- so the groups
+			// event and the terminal event were never built at all.
+			expect(built).toEqual(whenTheClientLeft);
+			expect(logged).toEqual([]);
+		} finally {
+			spy.mockRestore();
 		}
 	});
 });

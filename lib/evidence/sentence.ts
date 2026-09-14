@@ -517,6 +517,7 @@ const CAUSE_WORDS: { readonly [C in FailureCause]: string } = {
 	"rate-limited": "the source rate-limited the request",
 	http: "the source answered with an error status",
 	malformed: "the response could not be read",
+	"not-configured": "this deployment holds no credential for it",
 	unknown: "the reason is not known",
 };
 

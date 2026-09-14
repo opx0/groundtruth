@@ -48,6 +48,24 @@
  * in `lib/adapters/airnow.ts`'s `caveats`, where it is a disclosure reachable
  * from the trace rather than a claim about a value.
  *
+ * ON THE THIRD CAVEAT, WHICH IS A CLAUSE FOR A DIFFERENT REASON.
+ * `.dev/briefs/U1.6-U1.7-air.md` rule 3 requires that the reader can see, *on
+ * the card*, that this row shape has never been checked against a real
+ * response. `caveats` does not do that: it is a field of `RecordTrace`, and a
+ * card is its sentences, so an audit rendered both templates and found nothing
+ * on either card saying so. `derivation` below is that sentence, and the
+ * objection above does not reach it. The hourly-update caveat is true of AirNow
+ * whether or not this record exists; this one is a statement about how this
+ * row's own values were read, and every value either template prints came
+ * through a field name nothing published — so whichever slot it hangs on, it
+ * qualifies that slot rather than borrowing it.
+ *
+ * It hangs on `pollutant` because that is the slot naming the row rather than
+ * one of its values, and the shape caveat is about the row. It also has to be a
+ * slot present wherever either template renders: `aqi` is pinned absent on one
+ * of them, `category` is null on every record this adapter can build, and
+ * neither could carry a sentence that must always print.
+ *
  * `lib/templates/fema.ts` splits the same pair the same way and keeps its point
  * caveat in both places; this file follows it, so the reporting-area
  * qualification is a clause here *and* a record caveat there, and a reader who
@@ -133,12 +151,23 @@ import { defineTemplate, sentence } from "@/lib/evidence/templates";
  * thing they do not disagree over, the way `lib/templates/fema.ts` shares its
  * column readouts.
  *
- * It is last because it qualifies what came before it, and it names the area
- * again rather than saying "it", so a dropped clause above never leaves it
- * dangling.
+ * It comes after the values it qualifies, and it names the area again rather
+ * than saying "it", so a dropped clause above never leaves it dangling. Only
+ * `derivation` follows it, because that one is about every clause above
+ * including this one.
  */
 function qualification(field: FieldRef<"airnow-observation">): Clause<"airnow-observation"> {
 	return sentence`AirNow's observations describe the ${field("reportingArea")} reporting area, not the mapped point.`;
+}
+
+/**
+ * The other shared clause: rule 3's disclosure, on the card rather than only in
+ * the trace. `pollutant` is present on every record of this kind, so this
+ * sentence prints wherever either template does — and drops with the record it
+ * is about, which a `caveats` entry could not do.
+ */
+function derivation(field: FieldRef<"airnow-observation">): Clause<"airnow-observation"> {
+	return sentence`No response from this service has been recorded, so this ${field("pollutant")} row is read through field names this report derived and is unverified against real bytes.`;
 }
 
 /** AirNow stated an index for this pollutant: the card prints it, attributed, with no word added to it. */
@@ -149,6 +178,7 @@ export const airnowObservationSummary = defineTemplate(
 		sentence`AirNow reports an air quality index of ${field("aqi")} for ${field("pollutant")} in the ${field("reportingArea")} reporting area, observed ${field("observedAt")}.`,
 		sentence`AirNow's category for that index is ${field("category")}.`,
 		qualification(field),
+		derivation(field),
 	],
 	[{ slot: "aqi", present: true }],
 );
@@ -169,6 +199,7 @@ export const airnowObservationNoIndex = defineTemplate(
 	(field) => [
 		sentence`AirNow's ${field("pollutant")} observation for the ${field("reportingArea")} reporting area, observed ${field("observedAt")}, carries no air quality index.`,
 		qualification(field),
+		derivation(field),
 	],
 	[{ slot: "aqi", present: false }],
 );

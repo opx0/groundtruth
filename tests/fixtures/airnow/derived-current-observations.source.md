@@ -37,6 +37,20 @@ public one-line description does support (`AQI`):
 | `DateObserved` | string | B4's `observedAt` is non-null, so the row must state a time. |
 | `AQI` | number or null | The public one-line description says this service returns "AQI values". |
 
+**The rule is applied asymmetrically here, and that is the honest way to say
+it.** Rule 2 is "where the documentation does not say, do not invent", and
+nothing published names *any* column of this service, so read strictly it empties
+the schema. The four keys above are not better documented than the three below:
+three of them are kept because `lib/evidence/records.ts` declares
+`reportingArea`, `pollutant` and `observedAt` non-null on this kind and no record
+exists without them, and `AQI` is kept because the public one-line description
+names it and the kind holds it. `Category` is named by that same line and is
+dropped anyway, because nothing requires it and nothing says whether it is a
+string or an object. So: the record kind's own requirements are what the four
+names were derived against, and rule 2 gets everything no requirement forces.
+Both `lib/adapters/airnow.ts`'s caveats and a clause on both cards in
+`lib/templates/airnow.ts` tell the reader all four are unverified.
+
 **Fields deliberately absent**, per rule 2 of the brief — where the
 documentation does not say, do not invent:
 
@@ -56,7 +70,30 @@ documentation does not say, do not invent:
 
 `lib/adapters/airnow.ts` sends `latitude`, `longitude`, `format`, and the key as
 `API_KEY`, to the path `docs/BRIEF.md` B2 gives. The path is B2's; the three
-parameter names are not backed by anything reachable. The response's
+parameter names are not backed by anything reachable.
+
+The **host** is B2's with `www.` in front, and that is checked rather than
+assumed. From this machine on 2026-09-16, with no key:
+
+```
+GET https://airnowapi.org/aq/observation/latLong/current?format=application/json&latitude=29.72&longitude=-95.26
+HTTP/2 301
+server: awselb/2.0
+location: https://www.airnowapi.org:443/aq/observation/latLong/current?format=application/json&latitude=29.72&longitude=-95.26
+
+GET https://www.airnowapi.org/aq/observation/latLong/current?...
+HTTP/2 401
+www-authenticate: proprietary
+content-type: application/json;charset=UTF-8
+
+{"WebServiceError":[{"Message":"Request not authenticated."}]}
+```
+
+— the same bytes `unauthenticated.json` holds. So B2's bare host is a redirect
+and `www.` is the host that serves this service; the adapter cites the one that
+answers, because the citable URL is printed on every AirNow record and a reader
+has to be able to repeat it. The trailing slash is the adapter's own and B2 does
+not carry it; both forms answered the same 401 in the same check. The response's
 `content-type` on the recorded 401 was `application/json;charset=UTF-8`, which
 is the only evidence here that JSON is what comes back.
 

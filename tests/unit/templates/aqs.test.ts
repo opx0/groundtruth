@@ -52,6 +52,15 @@ const YEAR = 2025;
 
 const locus = houstonLocus();
 
+/**
+ * The fourth clause, and `.dev/briefs/U1.6-U1.7-air.md` rule 3's whole point:
+ * the reader meets the unverified shape on the card, not only in the trace
+ * panel. It hangs on `statistic`, so it is the same tail on every record here.
+ */
+const DERIVATION =
+	" No response from this service has been recorded, so this annual arithmetic mean is read from column names this"
+	+ " report derived and is unverified against real bytes.";
+
 const bytes = readFileSync(`${fixturesDir}${FIXTURE}`);
 const payload: PayloadRef = {
 	url: `fixture:aqs/${FIXTURE}`,
@@ -130,7 +139,8 @@ describe("aqs-monitor-summary/summary@1", () => {
 		expect(textFor(store, pm25)).toBe(
 			"PM2.5 monitor 48-201-1039-88101 is 1.51 km from the mapped point, and measures its own location, not this"
 			+ " address. 2025 annual arithmetic mean: 9.8 Micrograms/cubic meter (LC). AQS data lags collection by six"
-			+ " months or more. Observations in the summary: 121.",
+			+ " months or more. Observations in the summary: 121."
+			+ DERIVATION,
 		);
 	});
 
@@ -138,7 +148,8 @@ describe("aqs-monitor-summary/summary@1", () => {
 		expect(textFor(store, ozone)).toBe(
 			"Ozone monitor 48-201-0024-44201 is 15.76 km from the mapped point, and measures its own location, not this"
 			+ " address. 2025 annual arithmetic mean: 0.0421 Parts per million. AQS data lags collection by six months"
-			+ " or more. Observations in the summary: 214.",
+			+ " or more. Observations in the summary: 214."
+			+ DERIVATION,
 		);
 	});
 
@@ -147,7 +158,8 @@ describe("aqs-monitor-summary/summary@1", () => {
 		expect(textFor(store, noCount)).toBe(
 			"PM2.5 monitor 48-201-0416-88101 is 20.88 km from the mapped point, and measures its own location, not this"
 			+ " address. 2025 annual arithmetic mean: 8.4 Micrograms/cubic meter (LC). AQS data lags collection by six"
-			+ " months or more.",
+			+ " months or more."
+			+ DERIVATION,
 		);
 	});
 
@@ -159,6 +171,19 @@ describe("aqs-monitor-summary/summary@1", () => {
 		// "Nearest" is A2's word and no field on this record supports it, so the
 		// sentence does not claim it. See the module comment.
 		expect(text).not.toContain("Nearest");
+	});
+
+	it("says on the card that the shape is unverified, in a clause that dies with the record", () => {
+		// `caveats` is a field of `RecordTrace`, so a record caveat alone reaches
+		// the trace panel and never the card. `.dev/briefs/U1.6-U1.7-air.md` rule 3
+		// wants it where the reader reads the value, and a clause is the only thing
+		// on the wire that cannot outlive the values it qualifies.
+		for (const record of [pm25, ozone, noCount]) {
+			expect(textFor(store, record)).toContain(
+				"is read from column names this report derived and is unverified against real bytes",
+			);
+			expect(textFor(store.without(record.id), record)).toBeNull();
+		}
 	});
 });
 
@@ -199,11 +224,15 @@ describe("the trace behind one span", () => {
 		expect(found.record.sourceUrl.normalized).toBe(
 			"https://aqs.epa.gov/aqsweb/airdata/annual_conc_by_monitor_2025.zip",
 		);
-		// The card carries A2's two caveats in its clauses; the trace carries all
-		// five, including the three that qualify the retrieval rather than a slot.
+		// The card carries A2's two caveats and the derived-shape one in its
+		// clauses; the trace carries all five, including the one that qualifies the
+		// retrieval rather than a slot.
+		// The caveat no longer borrows FEMA's "follows FEMA's published field
+		// names": EPA's worked row is a `sampleData` row and the page publishes no
+		// column list for `annualData` at all.
 		expect(found.record.caveats).toContain(
-			"No response from this service has been recorded yet. The parse follows EPA's published field names and is"
-			+ " unverified against real bytes.",
+			"No response from this service has been recorded yet. The parse follows field names EPA publishes for a"
+			+ " different service of the same API, and is unverified against real bytes.",
 		);
 		expect(found.record.caveats).toHaveLength(5);
 	});

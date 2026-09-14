@@ -32,16 +32,21 @@
  * returned are different for each query" and points at `metaData/fieldsByService`
  * for the per-service list — and that service needs a working key, which is the
  * thing this deployment does not have. So **no annualData column name is
- * published anywhere reachable from here**. The eleven keys in
- * `AnnualSummaryRow` that are published are published for `sampleData`, in the
- * page's one worked row; three more —`arithmetic_mean`, `observation_count`
- * and the singular spelling of `unit_of_measure` — are this repository's own
- * spelling of fields EPA names in prose and in its AirData annual-summary file
- * format, and no response has ever confirmed them.
- * `tests/fixtures/aqs/derived-annual-summary-houston.source.md` argues every
- * one of the fourteen, and every record built here carries a caveat saying the
- * shape has never been checked against a real response, in the register
- * `lib/adapters/fema.ts` uses for NFHL.
+ * published anywhere reachable from here**. Ten of the thirteen keys in
+ * `AnnualSummaryRow` are EPA's own spelling — published for `sampleData`, in
+ * the page's one worked row, and therefore published for a *different service*
+ * of this API rather than for this one. The other three —`arithmetic_mean`,
+ * `observation_count` and the singular spelling of `unit_of_measure` — are this
+ * repository's own spelling of fields EPA names in prose and in its AirData
+ * annual-summary file format, and no response has ever confirmed any of the
+ * thirteen. `tests/fixtures/aqs/derived-annual-summary-houston.source.md`
+ * argues every one of them, and every record built here carries a caveat saying
+ * the shape has never been checked against a real response — worded for what is
+ * actually true here, which is weaker than what `lib/adapters/fema.ts` can say
+ * for NFHL: FEMA publishes the field names of S_Fld_Haz_Ar, and EPA publishes
+ * no column list for `annualData` at all. `lib/templates/aqs.ts` carries the
+ * same disclosure as a clause, so the reader meets it on the card and not only
+ * in the trace.
  *
  * BEING WRONG IS LOUD. The schema is narrow on purpose: unknown columns are
  * stripped, but a declared column that is missing or differently typed fails
@@ -62,6 +67,23 @@
  * rebuilt from `fetched.payload.url`, because that is whatever `SourceIo` chose
  * to record and this file does not trust another module to have redacted for
  * it.
+ *
+ * AND EPA'S OWN WORDS CAN CARRY THEM BACK. Building the URL without the two is
+ * only half of it. `run` forwards the header's `error` array verbatim into
+ * `SourceFailure.rawCode`, and `lib/templates/sources.ts` renders that as "It
+ * answered {rawCode}." — on the card, not only in the trace. EPA's failed
+ * header echoes the request (`Header[0].url` carries the whole query string,
+ * credentials included, which is why that key is not in the schema), and a
+ * message naming what was wrong with `email` or `key` could quote the value.
+ * `app/lib/report-contract.ts`'s `withoutSecretValues` is a backstop at the
+ * wire, but this file is the only code holding the two while the response is in
+ * hand, so the scrub belongs here: `credentialsOrFail` returns them together
+ * with a `Scrub` built from both, and every string that came from EPA passes
+ * through it before it reaches a record, a provenance or a thrown error — the
+ * error array, and every string column of every row, because four of them are
+ * joined into `sourceRecordId`. A string carrying a credential is replaced
+ * whole rather than patched, so no fragment survives and no partial match can
+ * miss a percent-encoded copy.
  *
  * AN ABSENT CREDENTIAL IS NOT AN EMPTY ANSWER. Without them the source was
  * never asked, which must not read as "AQS holds no monitor near this address",
@@ -133,7 +155,6 @@ import type {
 	AdapterVersion,
 	Built,
 	Fetched,
-	JsonValue,
 	Locus,
 	PayloadRef,
 	QueryProvenance,
@@ -166,6 +187,27 @@ export const NO_KEY = "no-api-key";
 
 /** `docs/BRIEF.md` B2's boundary table: AQS is 50 km, whatever radius the locus carries. */
 export const AQS_RADIUS_METERS = 50_000;
+
+/**
+ * What a string from EPA is replaced by when it carries one of the two
+ * credentials. Our words, never the agency's, and they say which of the two
+ * happened: the source quoted a credential back, rather than this file printing
+ * one. Never a credential and never a fragment of one.
+ */
+export const REDACTED_ECHO = "[redacted: the source's answer carried this deployment's credential]";
+
+/** Replaces a string carrying either credential, whole. Applied to everything EPA sent. */
+type Scrub = (text: string) => string;
+
+/**
+ * Both forms each credential can arrive in: as sent, and percent-encoded the
+ * way a header that echoes the request URL back carries them — which is exactly
+ * what EPA's own `Header[0].url` does.
+ */
+function scrubbing(secrets: readonly string[]): Scrub {
+	const forms: readonly string[] = secrets.flatMap((secret) => [secret, encodeURIComponent(secret)]);
+	return (text) => (forms.some((form) => text.includes(form)) ? REDACTED_ECHO : text);
+}
 
 /**
  * Metres in one degree of latitude on the sphere `haversine` uses
@@ -207,9 +249,13 @@ export const STATISTIC = "annual arithmetic mean";
 export const ANNUAL_FILE_URL = "https://aqs.epa.gov/aqsweb/airdata/annual_conc_by_monitor_{id}.zip";
 
 const CAVEATS: readonly string[] = [
-	// The brief's rule 3, in the words lib/adapters/fema.ts uses for NFHL.
-	"No response from this service has been recorded yet. The parse follows EPA's published field names and is"
-		+ " unverified against real bytes.",
+	// The brief's rule 3, in the register lib/adapters/fema.ts uses for NFHL —
+	// but not in its words. NFHL's "follows FEMA's published field names" is
+	// true of FEMA; EPA's worked example is a `sampleData` row and the page
+	// publishes no column list for `annualData`, so the strongest honest claim
+	// is the one below. lib/templates/aqs.ts says it on the card as well.
+	"No response from this service has been recorded yet. The parse follows field names EPA publishes for a different"
+		+ " service of the same API, and is unverified against real bytes.",
 	// And the part fema.ts does not have to say: the field names are published
 	// for a different service of the same API.
 	"EPA publishes no column list for the annual summary service, so the mean, the observation count and the unit are"
@@ -234,10 +280,13 @@ const CAVEATS: readonly string[] = [
 /**
  * One annual summary row.
  *
- * Eleven of the fourteen keys are EPA's own, copied from the published row in
- * the "Output Format - JSON" section of `data_api.html` — which is a
- * `sampleData` row, so they are published for this API and not for this
- * service. Three are derived:
+ * Ten of the thirteen keys are EPA's own, copied from the published row in the
+ * "Output Format - JSON" section of `data_api.html` — which is a `sampleData`
+ * row, so they are published for this API and not for this service. Three are
+ * derived, and `unit_of_measure` is one of the three rather than one of the
+ * ten: the published row's spelling is singular and EPA's own annual-summary
+ * file format spells the same field plural, so choosing between them for this
+ * service is this repository's choice and not EPA's statement.
  *
  *   arithmetic_mean    the page names no mean column; the AirData annual
  *                      summary file calls the field "Arithmetic Mean".
@@ -306,8 +355,13 @@ export const AqsResponse = z.object({
 });
 export type AqsResponse = z.infer<typeof AqsResponse>;
 
-/** Whatever the header said went wrong, verbatim and never mapped into our vocabulary. Null when nothing did. */
-export function headerErrors(header: readonly AqsHeaderEntry[]): JsonValue | null {
+/**
+ * Whatever the header said went wrong, verbatim and never mapped into our
+ * vocabulary. Null when nothing did. Typed as the array of EPA's own strings it
+ * is rather than as `JsonValue`, so `run` can scrub each one before it becomes
+ * a `rawCode` the card prints.
+ */
+export function headerErrors(header: readonly AqsHeaderEntry[]): readonly string[] | null {
 	for (const entry of header) {
 		if ("error" in entry && entry.error.length > 0) return entry.error;
 	}
@@ -383,14 +437,19 @@ function keyedRequestUrl(citable: URL, email: string, key: string): URL {
 	return url;
 }
 
-/** Both credentials, or a failure that says the source was never asked. Reads `process.env` at the point of use. */
-function credentialsOrFail(): { readonly email: string; readonly key: string } {
+/**
+ * Both credentials and the scrub built from them, or a failure that says the
+ * source was never asked. Reads `process.env` at the point of use. The three
+ * come back together because this is the one place that holds the secrets, and
+ * everything EPA says back has to be checked against them.
+ */
+function credentialsOrFail(): { readonly email: string; readonly key: string; readonly scrub: Scrub } {
 	const email = process.env[EMAIL_ENV];
 	const key = process.env[KEY_ENV];
 	if (email === undefined || email === "" || key === undefined || key === "") {
-		throw new SourceFailure("unknown", NO_KEY);
+		throw new SourceFailure("not-configured", NO_KEY);
 	}
-	return { email, key };
+	return { email, key, scrub: scrubbing([email, key]) };
 }
 
 /**
@@ -421,6 +480,29 @@ export type AqsQuery = {
 	readonly period: QueryProvenance;
 	readonly year: number;
 };
+
+/**
+ * One row with every string column checked. Four of them — `state_code`,
+ * `county_code`, `site_number`, `parameter_code` — are joined into
+ * `sourceRecordId`, which is the record's identity and reaches the card, and
+ * `unit_of_measure` is printed beside the mean. A credential has no business in
+ * any of them — but "has no business" is not something this file gets to assume
+ * about bytes from a service it has never had a successful answer from, and the
+ * raw string reaches the trace as well as the value.
+ */
+function scrubbedRow(row: AnnualSummaryRow, scrub: Scrub): AnnualSummaryRow {
+	return {
+		...row,
+		state_code: scrub(row.state_code),
+		county_code: scrub(row.county_code),
+		site_number: scrub(row.site_number),
+		parameter_code: scrub(row.parameter_code),
+		datum: scrub(row.datum),
+		parameter_name: scrub(row.parameter_name),
+		unit_of_measure: scrub(row.unit_of_measure),
+		date_of_last_change: row.date_of_last_change === null ? null : scrub(row.date_of_last_change),
+	};
+}
 
 /**
  * AQS's own monitor id, minus the POC: state, county, site and parameter joined
@@ -529,7 +611,7 @@ export function aqsAdapter(summaryYear: number): AqsAdapter {
 		summaryYear,
 		noDataNote: noMonitorsNote(summaryYear),
 		async run(locus: Locus, io: SourceIo): Promise<readonly Built<"aqs-monitor-summary">[]> {
-			const { email, key } = credentialsOrFail();
+			const { email, key, scrub } = credentialsOrFail();
 			const citable = annualSummaryQueryUrl(locus, summaryYear);
 			const fetched = await io.get(keyedRequestUrl(citable, email, key), AqsResponse);
 			// Rebuilt from the credential-free URL, never from
@@ -541,7 +623,10 @@ export function aqsAdapter(summaryYear: number): AqsAdapter {
 				retrievedAt: fetched.payload.retrievedAt,
 			};
 			const errors = headerErrors(fetched.raw.Header);
-			if (errors !== null) throw new SourceFailure("http", errors);
+			// EPA's own words, never mapped into ours — but scrubbed, because
+			// `lib/templates/sources.ts` prints this on the card, and a header that
+			// echoes the request it rejected would print a credential with it.
+			if (errors !== null) throw new SourceFailure("http", errors.map(scrub));
 
 			const query: AqsQuery = {
 				service: io.query("service", ENDPOINT, AQS_VERSION, payload),
@@ -554,7 +639,8 @@ export function aqsAdapter(summaryYear: number): AqsAdapter {
 			}
 
 			const built: Built<"aqs-monitor-summary">[] = [];
-			for (const row of fetched.raw.Body) {
+			for (const sent of fetched.raw.Body) {
+				const row = scrubbedRow(sent, scrub);
 				const pollutant = AQS_PARAMETERS[row.parameter_code];
 				const selection = selections.get(row.parameter_code);
 				if (pollutant === undefined || selection === undefined) continue;

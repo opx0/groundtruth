@@ -11,7 +11,7 @@ Constructed 2026-09-16 by the U1.6 adapter agent.
 | Part | Source | Date read |
 |---|---|---|
 | The envelope (`Header` array, `Body` array, the header keys, the no-data and failed headers) | `https://aqs.epa.gov/aqsweb/documents/data_api.html`, sections "Output Format - JSON" and "Error Handling and Status Codes" | 2026-09-16 |
-| Eleven of the fourteen row keys | the same page's one published row, in "Output Format - JSON" | 2026-09-16 |
+| Ten of the thirteen row keys | the same page's one published row, in "Output Format - JSON" — which is a `sampleData` row, so they are published for this API and not for this service | 2026-09-16 |
 | `arithmetic_mean`, `observation_count`, and the singular `unit_of_measure` | derived; see below | 2026-09-16 |
 
 **The shape of a row has never been checked against a real response from this
@@ -42,16 +42,21 @@ worked examples. This repository follows the page, and
 `derived-annual-summary-data-envelope.json` pins what happens if the OpenAPI
 file turns out to be right: the parse fails and the source reports `malformed`.
 
-## The fourteen keys, one at a time
+## The thirteen keys, one at a time
 
-Eleven are EPA's own spelling, copied from the published row. That row is a
-`sampleData` row, so they are published for this API and not for this service:
+`AnnualSummaryRow` declares thirteen. Ten are EPA's own spelling, copied from
+the published row. That row is a `sampleData` row, so they are published for
+this API and not for this service:
 
 `state_code`, `county_code`, `site_number`, `parameter_code`, `poc`,
-`latitude`, `longitude`, `datum`, `parameter_name`, `unit_of_measure`,
-`date_of_last_change`.
+`latitude`, `longitude`, `datum`, `parameter_name`, `date_of_last_change`.
 
-Three are derived:
+Three are derived. `unit_of_measure` is one of the three and not one of the ten:
+its spelling is the published row's, but EPA spells the same field plural in its
+own annual-summary file format, so choosing between the two spellings *for this
+service* is this repository's choice rather than EPA's statement. Counting it on
+both sides, as an earlier version of this file did, made the ten look like
+eleven and the thirteen look like fourteen.
 
 | Key | Why this spelling | What it fills |
 |---|---|---|

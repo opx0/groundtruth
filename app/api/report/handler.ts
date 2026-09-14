@@ -53,6 +53,16 @@
  * status sentence. The stream ends only when every source has settled or the
  * client disconnects.
  *
+ * AND A CARD THAT CANNOT BE BUILT COSTS THAT CARD AND NO OTHER. A source
+ * failing is an answer; a card failing to build is a defect -- a render with no
+ * template for what it was given, a wire schema that refuses the event -- and
+ * the two are not the same failure. The defect stays loud: the stream ends
+ * `failed` and one fixed line is logged. What it may not do is take a sibling's
+ * card with it, and it could. The registry card is emitted from inside the SEMS
+ * task, so before `emitCard` confined it an unbuildable SEMS card rejected that
+ * task and FRS -- which had nothing wrong with it -- got no event at all,
+ * neither a card nor `not-asked`.
+ *
  * NO CONDITIONAL ABOUT WHICH TEMPLATE OR WHICH RECORD IS WRITTEN HERE.
  * `lib/report/selection.ts` decides what appears; this renders what it decided,
  * against a live store, and puts it on the wire through
@@ -98,18 +108,16 @@ import { semsAdapter } from "@/lib/adapters/sems";
 import { groupRecords } from "@/lib/report/grouping";
 import {
 	carriedCount,
+	groupsFor,
 	echoCard,
 	floodCard,
 	frsCard,
 	groupPlacements,
-	idKey,
 	NO_GROUPS,
 	semsCard,
 	SHOWN_RECORDS,
 	type AnyListing,
 	type Card,
-	type CardGroups,
-	type LeadGroup,
 	type ListingEntry,
 	type ReportSource,
 } from "@/lib/report/selection";
@@ -486,30 +494,6 @@ async function askFrs(locus: Locus, io: SourceIo, registryIds: readonly string[]
 /* The groups                                                                 */
 /* -------------------------------------------------------------------------- */
 
-/**
- * Everything the B6 groups put on one card, deduplicated by record identity: a
- * record may lead more than one group on one card, and a card must not state
- * one registry identity twice.
- *
- * This is `groupsFor` from `lib/report/selection.ts`, which is not exported.
- * The rule is the policy's and belongs there; see the report for the one-line
- * change this unit did not make.
- */
-function groupsFor(groups: readonly LeadGroup[], source: ReportSource): CardGroups {
-	const mine = groups.filter((group) => group.source === source);
-	const seen = new Set<string>();
-	const crossReferences: CardGroups["crossReferences"][number][] = [];
-	for (const group of mine) {
-		for (const one of group.crossReferences) {
-			const key = idKey(one.recordId);
-			if (seen.has(key)) continue;
-			seen.add(key);
-			crossReferences.push(one);
-		}
-	}
-	return { placements: mine.flatMap((group) => group.placements), crossReferences };
-}
-
 /* -------------------------------------------------------------------------- */
 /* The handler                                                                */
 /* -------------------------------------------------------------------------- */
@@ -574,9 +558,46 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 				};
 
 				const settled: CardBuild[] = [];
-				const emitCard = (build: CardBuild): void => {
+				/** The sources whose card reached the wire. No later event speaks for a card that did not. */
+				const shown = new Set<ReportSource>();
+				/** How many cards could not be built or sent: one report, one log line, however many were lost. */
+				let cardsLost = 0;
+
+				/**
+				 * One card, built and put on the wire, with a throw from either step
+				 * confined to this card.
+				 *
+				 * The build is handed back even when the event could not be sent, because
+				 * the FRS lookups read the SEMS build: a card the reader never saw is a
+				 * reason to report a failure, not a reason to leave a second source
+				 * unasked.
+				 */
+				const emitCard = (make: () => CardBuild): CardBuild | null => {
+					let build: CardBuild;
+					try {
+						build = make();
+					} catch {
+						cardsLost += 1;
+						return null;
+					}
 					settled.push(build);
-					emit({ type: "card", card: cardView(build.store, build.card) });
+					try {
+						emit({ type: "card", card: cardView(build.store, build.card) });
+						shown.add(build.card.source);
+					} catch {
+						cardsLost += 1;
+					}
+					return build;
+				};
+
+				/** The same confinement for a card there was nothing to ask: one event, no records, no build. */
+				const emitNotAsked = (source: ReportSource): void => {
+					try {
+						emit({ type: "card", card: notAskedView(source) });
+						shown.add(source);
+					} catch {
+						cardsLost += 1;
+					}
 				};
 
 				const run = async (): Promise<void> => {
@@ -587,7 +608,7 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 					// source that fails is a card.
 					const point = confirmedPoint(body, requestSha256, io);
 
-					for (const source of NOT_ASKED) emit({ type: "card", card: notAskedView(source) });
+					for (const source of NOT_ASKED) emitNotAsked(source);
 
 					const tasks: Promise<void>[] = LOCUS_SOURCES.map(async (registered) => {
 						const outcome = await runSource(
@@ -596,26 +617,27 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 							io,
 							policyFor(registered.source),
 						);
-						const build = buildCard(recordsOf(outcome), (store) => registered.card(store, outcome));
-						emitCard(build);
+						const build = emitCard(() => buildCard(recordsOf(outcome), (store) => registered.card(store, outcome)));
 						if (registered.source !== "sems") return;
 						// FRS cannot start until SEMS has settled: it takes a registry
 						// ID, and until now nothing had named one. With no registry ID
 						// to resolve there is nothing to ask, and a source nobody asked
-						// is not one that answered with nothing.
-						const ids = registryIdsShown(build);
+						// is not one that answered with nothing. A SEMS card that could not
+						// be built named no registry ID either, and FRS is then unasked for
+						// the same reason and says so on a card of its own.
+						const ids = build === null ? [] : registryIdsShown(build);
 						if (ids.length === 0) {
-							emit({ type: "card", card: notAskedView("frs") });
+							emitNotAsked("frs");
 							return;
 						}
 						const frs = await askFrs(locusFor(point, "frs"), io, ids);
-						emitCard(buildCard(recordsOf(frs), (store) => frsCard(store, frs, NO_GROUPS)));
+						emitCard(() => buildCard(recordsOf(frs), (store) => frsCard(store, frs, NO_GROUPS)));
 					});
 
 					tasks.push(
 						(async (): Promise<void> => {
 							const result = await floodZoneOutcome(locusFor(point, "fema"), io, policyFor("fema"));
-							emitCard(buildCard(recordsOf(result.outcome), (store) => floodCard(store, result)));
+							emitCard(() => buildCard(recordsOf(result.outcome), (store) => floodCard(store, result)));
 						})(),
 					);
 
@@ -627,22 +649,28 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 					// One entry per card that has something to say. A source with no
 					// group is simply absent: an empty entry would be six lines of
 					// nothing on every report, and the browser learns the same thing
-					// from not finding its source here.
+					// from not finding its source here. A card that could not be built is
+					// absent for a second reason: there is no card to put a group on. Its
+					// records stay in the record set behind the grouping, so a card that
+					// did reach the reader still states the identity it shares with them.
 					emit({
 						type: "groups",
-						cards: REPORT_SOURCES.map((source) => {
-							const groups = groupsFor(leads, source);
-							return {
-								source,
-								groups: messagesFor(store, groups.placements),
-								crossReferences: messagesFor(store, groups.crossReferences),
-							};
-						}).filter((card) => card.groups.length > 0 || card.crossReferences.length > 0),
+						cards: REPORT_SOURCES.filter((source) => shown.has(source))
+							.map((source) => {
+								const groups = groupsFor(leads, source);
+								return {
+									source,
+									groups: messagesFor(store, groups.placements),
+									crossReferences: messagesFor(store, groups.crossReferences),
+								};
+							})
+							.filter((card) => card.groups.length > 0 || card.crossReferences.length > 0),
 					});
 
-					if (outcomes.some((one) => one.status === "rejected")) {
+					if (cardsLost > 0 || outcomes.some((one) => one.status === "rejected")) {
 						// A fixed string: not the error, not its message, nothing
-						// derived from the request.
+						// derived from the request. One line per report, whether one card
+						// was lost or a whole task rejected around one.
 						console.error("report: a source card could not be built");
 						emit({ type: "end", status: "failed" });
 						return;

@@ -13,12 +13,21 @@
  * adapter reads that shape the way it says it does*. It proves nothing at all
  * about what AirNow sends, and none of the names below claims otherwise.
  *
- * The seven `docs/BRIEF.md` B12 cases appear in this order: success, no
- * records, missing optional fields, unknown status, malformed response, rate
- * limit, timeout. The rate limit and the timeout are raised by the io double
- * rather than by bytes — B2 says AirNow's rate limits are documented behind a
- * login and no 429 from it has been seen — so those two prove the adapter hands
- * the kernel's own failures through unchanged, and are named for that.
+ * The `docs/BRIEF.md` B12 cases appear in this order: success, no records,
+ * missing optional fields, unknown vocabulary, malformed response, rate limit,
+ * timeout. Two of them are not what B12 names, and each says so where it sits:
+ *
+ *   - B12's fourth case is an unknown *status*, and AirNow has no status field
+ *     to hold one. Its modelled success shape carries four keys and none of
+ *     them is a status, and the recorded 401 is a `WebServiceError` message
+ *     with none either — so the case is unreachable for this source rather
+ *     than untested. What is tested in its place is the unknown vocabulary
+ *     AirNow can actually send: a parameter outside the two, and an area name
+ *     and date format this file has never seen.
+ *   - The rate limit and the timeout are raised by the io double rather than by
+ *     bytes — B2 says AirNow's rate limits are documented behind a login and no
+ *     429 from it has been seen — so those two prove the adapter hands the
+ *     kernel's own failures through unchanged, and are named for that.
  */
 
 import { createHash } from "node:crypto";
@@ -30,12 +39,14 @@ import { complete, DEFAULT_POLICY, runSource, SourceFailure } from "@/lib/eviden
 import {
 	AIRNOW_PARAMETERS,
 	AIRNOW_VERSION,
+	AirNowObservation,
 	AirNowResponse,
 	AirNowWebServiceError,
 	airnowAdapter,
 	KEY_ENV,
 	NO_KEY,
 	observationQueryUrl,
+	REDACTED_ECHO,
 } from "@/lib/adapters/airnow";
 import { houstonLocus } from "../evidence/helpers/sems-fixtures";
 
@@ -46,6 +57,13 @@ const NOW = "2026-09-16T02:00:00Z";
 /** A value no real key looks like, so a leak is unmistakable wherever it surfaces. */
 const SENTINEL = "SENTINEL-AIRNOW-KEY-b3d1f0";
 
+/**
+ * The host the adapter cites. `docs/BRIEF.md` B2 names `airnowapi.org`, and
+ * checked from this machine on 2026-09-16 that host answers `HTTP/2 301`,
+ * `location: https://www.airnowapi.org:443/aq/observation/latLong/current?...`,
+ * while `www.` answers the recorded 401 with the bytes
+ * `unauthenticated.json` holds. The card cites what answers.
+ */
 const ENDPOINT = "https://www.airnowapi.org/aq/observation/latLong/current/";
 /** The citable query: everything the request carries except the key. */
 const QUERY_TAIL = "format=application%2Fjson&latitude=29.720658823001&longitude=-95.261995884462";
@@ -293,7 +311,17 @@ describe("B12 case 3, missing optional fields: a row with no index", () => {
 	});
 });
 
-describe("B12 case 4, unknown status: vocabulary this codebase has never seen", () => {
+describe("B12 case 4 has no status to be unknown: vocabulary this codebase has never seen instead", () => {
+	it("has no status field to carry an unknown status, on either shape this source can send", () => {
+		// The point of the rename. AirNow's success shape is four keys and the
+		// recorded error envelope is a message; neither holds a status, so B12's
+		// unknown-status case cannot be reached from this source at all.
+		expect(Object.keys(AirNowObservation.shape)).toEqual(["ReportingArea", "ParameterName", "DateObserved", "AQI"]);
+		expect(Object.keys(AirNowWebServiceError.shape)).toEqual(["WebServiceError"]);
+		const recorded: unknown = JSON.parse(readFileSync(`${fixturesDir}unauthenticated.json`).toString("utf8"));
+		expect(JSON.stringify(recorded)).not.toContain("tatus");
+	});
+
 	it("parses a parameter outside the two, keeps the row beside it, and never enumerates the agency", async () => {
 		const { io } = stubIo({ fixture: "derived-unmapped-parameter.json" });
 		const built = await airnowAdapter.run(locus(), io);
@@ -412,7 +440,7 @@ describe("an absent key is a source that could not be asked", () => {
 
 		// Nothing was fetched: the adapter fails before it reaches the network.
 		expect(urls).toEqual([]);
-		expect(unasked).toEqual({ status: "unavailable", cause: "unknown", rawCode: NO_KEY, retryAfter: null });
+		expect(unasked).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 
 		process.env[KEY_ENV] = SENTINEL;
 		const { io: emptyIo } = stubIo({ fixture: "derived-no-observations.json" });
@@ -431,7 +459,7 @@ describe("an absent key is a source that could not be asked", () => {
 		const { io, urls } = stubIo({ fixture: "derived-current-observations.json" });
 		const outcome = await runSource(locus(), airnowAdapter, io, DEFAULT_POLICY);
 		expect(urls).toEqual([]);
-		expect(outcome).toEqual({ status: "unavailable", cause: "unknown", rawCode: NO_KEY, retryAfter: null });
+		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 	});
 
 	it("names no key and no fragment of one in the marker it reports", () => {
@@ -483,5 +511,98 @@ describe("the key never leaves the one line that fetches with it", () => {
 		const found: string[] = [];
 		strings(outcome, found);
 		for (const s of found) expect(s).not.toContain(SENTINEL);
+	});
+});
+
+describe("a key the source itself hands back", () => {
+	/*
+	 * Every test above proves this adapter does not *construct* a leak. That is a
+	 * different claim from proving it *filters* one, and only the second is worth
+	 * anything against a host that quotes the request it rejected: the recorded
+	 * 401 is a message, `run` forwards it into `SourceFailure.rawCode`, and
+	 * `lib/templates/sources.ts` prints that on the card as
+	 * "It answered {rawCode}.". `app/lib/report-contract.ts`'s
+	 * `withoutSecretValues` is a backstop at the wire; this is the adapter doing
+	 * it while it still holds the key.
+	 *
+	 * Both bodies below are written inline. Neither is a claim about what AirNow
+	 * sends, and neither is filed as a fixture.
+	 */
+	it("keeps it out of the rawCode the card prints, in either of the forms it can arrive in", async () => {
+		const leaky = JSON.stringify({
+			WebServiceError: [{ Message: `Request not authenticated for ${CITABLE}&API_KEY=${SENTINEL}` }],
+		});
+		const outcome = await runSource(locus(), airnowAdapter, stubIo({ body: leaky }).io, DEFAULT_POLICY);
+		expect(outcome).toEqual({ status: "unavailable", cause: "http", rawCode: REDACTED_ECHO, retryAfter: null });
+
+		// The same key percent-encoded, which is how a host echoing a URL back
+		// inside a message carries one. This key has characters that encode, so
+		// the encoded form does not contain the raw one and only the second pass
+		// of the scrub can catch it.
+		const ENCODABLE = "SENTINEL AIRNOW+KEY/b3d1f0";
+		expect(encodeURIComponent(ENCODABLE)).not.toContain(ENCODABLE);
+		process.env[KEY_ENV] = ENCODABLE;
+		const encoded = JSON.stringify({
+			WebServiceError: [{ Message: `Bad key: ${CITABLE}&API_KEY=${encodeURIComponent(ENCODABLE)}` }],
+		});
+		const second = await runSource(locus(), airnowAdapter, stubIo({ body: encoded }).io, DEFAULT_POLICY);
+		expect(second).toEqual({ status: "unavailable", cause: "http", rawCode: REDACTED_ECHO, retryAfter: null });
+		expect(JSON.stringify(second)).not.toContain(encodeURIComponent(ENCODABLE));
+
+		for (const one of [outcome, second]) {
+			const found: string[] = [];
+			strings(one, found);
+			for (const text of found) expect(text).not.toContain(SENTINEL);
+		}
+	});
+
+	it("leaves AirNow's own words alone when they carry no key", async () => {
+		const { io } = stubIo({ fixture: "unauthenticated.json" });
+		const outcome = await runSource(locus(), airnowAdapter, io, DEFAULT_POLICY);
+		// The recorded message, byte for byte: the scrub redacts a credential, not
+		// a sentence.
+		expect(outcome).toEqual({
+			status: "unavailable",
+			cause: "http",
+			rawCode: "Request not authenticated.",
+			retryAfter: null,
+		});
+	});
+
+	it("keeps it out of the record when a data column carries it, including the id and the trace", async () => {
+		const leaky = JSON.stringify([
+			{
+				// The column `sourceRecordId` and `subject` are joined from.
+				ReportingArea: `Houston (key ${SENTINEL})`,
+				ParameterName: "PM2.5",
+				DateObserved: "2026-09-16",
+				AQI: 58,
+			},
+		]);
+		const { io } = stubIo({ body: leaky });
+		const [first] = await airnowAdapter.run(locus(), io);
+		if (first === undefined) throw new Error("expected a row");
+		const record = complete(locus(), first);
+
+		expect(record.sourceRecordId).toBe(`${REDACTED_ECHO}/PM2.5`);
+		expect(record.reportingArea.value).toBe(REDACTED_ECHO);
+		// The raw value reaches the trace panel too, so the scrub is upstream of
+		// the reader rather than in the template.
+		expect(record.reportingArea.provenance[0]).toMatchObject({
+			sourceField: "ReportingArea",
+			rawValue: REDACTED_ECHO,
+		});
+		// The columns that carried no key are untouched.
+		expect(record.aqi.value).toBe(58);
+		expect(record.observedAt.value).toBe("2026-09-16");
+
+		const found: string[] = [];
+		strings(record, found);
+		for (const text of found) expect(text).not.toContain(SENTINEL);
+	});
+
+	it("says what happened in words that are ours, and carries no fragment of the key", () => {
+		expect(REDACTED_ECHO).toBe("[redacted: the source's answer carried this deployment's key]");
+		expect(REDACTED_ECHO).not.toContain(SENTINEL);
 	});
 });

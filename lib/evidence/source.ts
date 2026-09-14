@@ -39,7 +39,25 @@ export type Locus = {
 	readonly radiusMeters: number;
 };
 
-export type FailureCause = "timeout" | "refused" | "rate-limited" | "http" | "malformed" | "unknown";
+/**
+ * Why a source could not be asked, or could not answer.
+ *
+ * `not-configured` is the one that is not about the network: this
+ * deployment holds no credential for a source that requires one, so no
+ * request was made. Three separate units reported the enum missing it and
+ * each settled for `unknown` with a `rawCode` -- which made a card say the
+ * reason was not known when it was the one thing that was. It is a failure
+ * rather than a fourth outcome because the reader's question is the same:
+ * this source is not on the report, and here is why.
+ */
+export type FailureCause =
+	| "timeout"
+	| "refused"
+	| "rate-limited"
+	| "http"
+	| "malformed"
+	| "not-configured"
+	| "unknown";
 
 /** Thrown by `SourceIo` and adapters. Carries no body and no coordinate. */
 export class SourceFailure extends Error {

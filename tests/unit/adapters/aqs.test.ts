@@ -17,6 +17,9 @@
  * The credentials are sentinels, and one of them is asserted to be in the URL
  * that was fetched. A privacy test that only looks at what came out cannot tell
  * a redaction from a request that never carried the secret in the first place.
+ * The last describe goes the other way and puts a sentinel in what EPA sends
+ * back — in an error string and in a data column — because that is the leak the
+ * adapter is the only code positioned to stop.
  */
 
 import { createHash } from "node:crypto";
@@ -27,6 +30,7 @@ import type { Built, Locus, PayloadRef, Sealed, SourceIo, SourceOutcome } from "
 import { complete, DEFAULT_POLICY, runSource, SourceFailure } from "@/lib/evidence";
 import type { RecordOf } from "@/lib/evidence";
 import {
+	AnnualSummaryRow,
 	AQS_PARAMETERS,
 	AQS_RADIUS_METERS,
 	AQS_VERSION,
@@ -39,6 +43,7 @@ import {
 	latestLikelySummaryYear,
 	NO_KEY,
 	noMonitorsNote,
+	REDACTED_ECHO,
 	STATISTIC,
 } from "@/lib/adapters/aqs";
 import { houstonLocus } from "../evidence/helpers/sems-fixtures";
@@ -70,8 +75,8 @@ const SHA = {
 };
 
 const CAVEATS: readonly string[] = [
-	"No response from this service has been recorded yet. The parse follows EPA's published field names and is"
-		+ " unverified against real bytes.",
+	"No response from this service has been recorded yet. The parse follows field names EPA publishes for a different"
+		+ " service of the same API, and is unverified against real bytes.",
 	"EPA publishes no column list for the annual summary service, so the mean, the observation count and the unit are"
 		+ " read from column names this report derived: arithmetic_mean, observation_count and unit_of_measure.",
 	"AQS data lags collection by six months or more.",
@@ -86,6 +91,8 @@ type Route =
 	| { readonly fixture: string }
 	| { readonly fixture: string; readonly status: number }
 	| { readonly fixture: string; readonly status: number; readonly retryAfter: string }
+	/** Bytes written inline by a test. Never a claim about what EPA sends, and never filed as a fixture. */
+	| { readonly body: string }
 	| { readonly hang: true };
 
 /** Mirrors `lib/io/fetch-source-io.ts`: hash the bytes, check the status, then `safeParse`. */
@@ -95,7 +102,7 @@ function stubIo(route: Route): { readonly io: SourceIo; readonly calls: string[]
 		async get(url, schema) {
 			calls.push(url.toString());
 			if ("hang" in route) return new Promise<never>(() => undefined);
-			const bytes = readFileSync(`${fixturesDir}${route.fixture}`);
+			const bytes = "body" in route ? Buffer.from(route.body, "utf8") : readFileSync(`${fixturesDir}${route.fixture}`);
 			const payload: PayloadRef = {
 				url: url.toString(),
 				sha256: createHash("sha256").update(bytes).digest("hex"),
@@ -185,6 +192,16 @@ describe("the request", () => {
 		expect(latestLikelySummaryYear(NOW)).toBe(2025);
 		expect(latestLikelySummaryYear("2026-01-02T00:00:00Z")).toBe(2025);
 		expect(adapter.summaryYear).toBe(YEAR);
+	});
+
+	it("declares thirteen columns: ten of EPA's own spelling and three this report derived", () => {
+		// The module comment and the fixture's `.source.md` both count these, and
+		// an earlier version of both counted `unit_of_measure` twice.
+		const keys = Object.keys(AnnualSummaryRow.shape);
+		expect(keys).toHaveLength(13);
+		const derived = ["arithmetic_mean", "observation_count", "unit_of_measure"];
+		for (const key of derived) expect(keys).toContain(key);
+		expect(keys.filter((key) => !derived.includes(key))).toHaveLength(10);
 	});
 
 	it("declares its kind, source, version and the no-data note that names the year it asked for", () => {
@@ -496,7 +513,7 @@ describe("credentials", () => {
 		delete process.env[KEY_ENV];
 		const { outcome, calls } = await outcomeFor({ fixture: "derived-annual-summary-houston.json" });
 
-		expect(outcome).toEqual({ status: "unavailable", cause: "unknown", rawCode: NO_KEY, retryAfter: null });
+		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 		expect(outcome.status).not.toBe("no-data");
 		// Nothing was asked. A rate limit that is already exhausted is not spent
 		// on a request that cannot be authenticated.
@@ -506,14 +523,14 @@ describe("credentials", () => {
 	it("an absent email is the same outcome: AQS authenticates with both", async () => {
 		delete process.env[EMAIL_ENV];
 		const { outcome, calls } = await outcomeFor({ fixture: "derived-annual-summary-houston.json" });
-		expect(outcome).toEqual({ status: "unavailable", cause: "unknown", rawCode: NO_KEY, retryAfter: null });
+		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 		expect(calls).toEqual([]);
 	});
 
 	it("an empty key is absent, not a credential", async () => {
 		process.env[KEY_ENV] = "";
 		const { outcome } = await outcomeFor({ fixture: "derived-annual-summary-houston.json" });
-		expect(outcome).toEqual({ status: "unavailable", cause: "unknown", rawCode: NO_KEY, retryAfter: null });
+		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 	});
 
 	it("a source that answered with no records stays a different outcome from one that could not be asked", async () => {
@@ -570,5 +587,96 @@ describe("neither credential reaches anything a reader can see", () => {
 		const record = complete(locus(), first);
 		expect(JSON.stringify(record)).not.toContain(KEY);
 		expect(record.payloads).toEqual([PAYLOAD]);
+	});
+});
+
+describe("a credential the source itself hands back", () => {
+	/*
+	 * The three tests above prove this file does not *construct* a leak. That is
+	 * a different claim from proving it *filters* one, and only the second is
+	 * worth anything against a host that echoes the request it rejected: EPA's
+	 * own failed header carries the whole query string in `url`, and
+	 * `lib/templates/sources.ts` prints a `rawCode` on the card as
+	 * "It answered {rawCode}.". `app/lib/report-contract.ts`'s
+	 * `withoutSecretValues` is a backstop at the wire; this is the adapter doing
+	 * it while it still holds the two values.
+	 *
+	 * Both bodies below are written inline. Neither is a claim about what EPA
+	 * sends, and neither is filed as a fixture.
+	 */
+	it("keeps it out of the rawCode the card prints, in either of the forms it can arrive in", async () => {
+		const body = JSON.stringify({
+			Header: [
+				{
+					status: "Failed",
+					error: [
+						`Invalid request: key=${KEY}`,
+						`Invalid request: https://aqs.epa.gov/data/api/annualData/byBox?email=${encodeURIComponent(EMAIL)}`,
+						"value is missing or the value is empty: param",
+					],
+				},
+			],
+			Body: [],
+		});
+		const { outcome } = await outcomeFor({ body });
+
+		// Each string is judged on its own: the two that quote a credential are
+		// replaced whole, and EPA's ordinary message survives byte for byte.
+		expect(outcome).toEqual({
+			status: "unavailable",
+			cause: "http",
+			rawCode: [REDACTED_ECHO, REDACTED_ECHO, "value is missing or the value is empty: param"],
+			retryAfter: null,
+		});
+		const serialized = JSON.stringify(outcome);
+		expect(serialized).not.toContain(KEY);
+		expect(serialized).not.toContain(EMAIL);
+		expect(serialized).not.toContain(encodeURIComponent(EMAIL));
+	});
+
+	it("keeps it out of the record when a data column carries it, including the id and the trace", async () => {
+		const body = JSON.stringify({
+			Header: [{ status: "success" }],
+			Body: [
+				{
+					state_code: "48",
+					county_code: "201",
+					// A column the monitor id is joined from, and one the card prints.
+					site_number: KEY,
+					parameter_code: "88101",
+					poc: 1,
+					latitude: 29.733726,
+					longitude: -95.257593,
+					datum: "WGS84",
+					parameter_name: "PM2.5 - Local Conditions",
+					unit_of_measure: `Micrograms/cubic meter (LC), reported to ${EMAIL}`,
+					date_of_last_change: "2026-04-22",
+					arithmetic_mean: 9.8,
+					observation_count: 121,
+				},
+			],
+		});
+		const [record] = recordsOf((await outcomeFor({ body })).outcome);
+		if (record === undefined) throw new Error("expected a record");
+
+		expect(record.sourceRecordId).toBe(`48-201-${REDACTED_ECHO}-88101`);
+		expect(record.unit.value).toBe(REDACTED_ECHO);
+		// The raw value goes into the trace panel too, so the scrub is upstream of
+		// the reader rather than in the template.
+		expect(record.unit.provenance[0]).toMatchObject({ sourceField: "unit_of_measure", rawValue: REDACTED_ECHO });
+		// The columns that carried no credential are untouched.
+		expect(record.value.value).toBe(9.8);
+		expect(record.observationCount.value).toBe(121);
+		expect(record.sourceUpdatedAt.value).toBe("2026-04-22");
+
+		const serialized = JSON.stringify(record);
+		expect(serialized).not.toContain(KEY);
+		expect(serialized).not.toContain(EMAIL);
+	});
+
+	it("says what happened in words that are ours, and carries no fragment of either credential", () => {
+		expect(REDACTED_ECHO).toBe("[redacted: the source's answer carried this deployment's credential]");
+		expect(REDACTED_ECHO).not.toContain(KEY);
+		expect(REDACTED_ECHO).not.toContain(EMAIL);
 	});
 });

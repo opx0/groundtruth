@@ -1,11 +1,13 @@
 "use client";
 
-import { useCallback, useReducer } from "react";
+import { useCallback, useReducer, useState } from "react";
 import { CURATED_EXAMPLES, GeocodeApiResponseSchema, type GeocodeMatchView } from "@/app/lib/geocode-contract";
 import { flowReducer, initialFlowState } from "@/app/lib/geocode-flow";
 import { CandidatesScreen } from "./candidates-screen";
 import { ConfirmScreen } from "./confirm-screen";
 import { NoMatchScreen } from "./no-match-screen";
+import { ReportScreen } from "./report-screen";
+import { renderTracePanel } from "./trace-panel";
 import { SearchScreen } from "./search-screen";
 
 /**
@@ -23,9 +25,24 @@ async function requestGeocode(address: string) {
 	return GeocodeApiResponseSchema.parse(body);
 }
 
-/** The whole search-to-confirmation flow. The only client component in this unit; every screen below it is a plain function of props. */
+/** The whole search-to-report flow. The screens below it are plain functions of props; `ReportScreen` owns the stream and its own state. */
 export function SearchFlow() {
 	const [state, dispatch] = useReducer(flowReducer, initialFlowState);
+	/**
+	 * Whether the reader has asked for the report on the match they are looking
+	 * at. Local to this component rather than a screen in `geocode-flow.ts`,
+	 * because that reducer's state shape is where the privacy rule lives: a
+	 * `confirm` state carries the match and no address, and the report is that
+	 * same state with the reader's confirmation on it, per docs/BRIEF.md B9
+	 * steps 4 and 5. It is reset by every action that changes which match is on
+	 * screen, so a new match is never already-confirmed.
+	 */
+	const [confirmed, setConfirmed] = useState(false);
+
+	const restart = useCallback((action: { readonly type: "start-over" } | { readonly type: "edit-no-match" }) => {
+		setConfirmed(false);
+		dispatch(action);
+	}, []);
 
 	const submit = useCallback((address: string) => {
 		dispatch({ type: "submit-start" });
@@ -36,11 +53,30 @@ export function SearchFlow() {
 	}, []);
 
 	const chooseCandidate = useCallback((match: GeocodeMatchView) => {
+		setConfirmed(false);
 		dispatch({ type: "choose-candidate", match });
 	}, []);
 
 	if (state.screen === "confirm") {
-		return <ConfirmScreen match={state.match} onStartOver={() => dispatch({ type: "start-over" })} />;
+		if (confirmed) {
+			// The panel is passed in rather than imported by the screen, so the
+			// screen has no opinion about what a trace looks like and its tests
+			// need no panel. This is the one place the two halves meet.
+			return (
+				<ReportScreen
+					match={state.match}
+					onStartOver={() => restart({ type: "start-over" })}
+					renderTrace={renderTracePanel}
+				/>
+			);
+		}
+		return (
+			<ConfirmScreen
+				match={state.match}
+				onSeeReport={() => setConfirmed(true)}
+				onStartOver={() => restart({ type: "start-over" })}
+			/>
+		);
 	}
 
 	if (state.screen === "candidates") {
@@ -48,13 +84,13 @@ export function SearchFlow() {
 			<CandidatesScreen
 				candidates={state.candidates}
 				onChoose={chooseCandidate}
-				onStartOver={() => dispatch({ type: "start-over" })}
+				onStartOver={() => restart({ type: "start-over" })}
 			/>
 		);
 	}
 
 	if (state.screen === "no-match") {
-		return <NoMatchScreen onEdit={() => dispatch({ type: "edit-no-match" })} />;
+		return <NoMatchScreen onEdit={() => restart({ type: "edit-no-match" })} />;
 	}
 
 	return (

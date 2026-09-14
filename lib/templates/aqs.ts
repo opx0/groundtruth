@@ -51,12 +51,31 @@
  * 2025 mean on a 2026 report looks like a stale number rather than the most
  * recent whole year the source can hold. It qualifies `period` and `value`, so
  * it sits in their clause, and both are non-null wherever this template renders
- * at all. What did *not* go in a clause is the rest of the record's `caveats` —
- * that the row shape has never been checked against a real response, that three
- * column names are this repository's spelling, that AQS returns several summary
- * rows per monitor and this is the first. None of those qualifies a slot; they
- * qualify the retrieval, and they stay true of a record whose every clause
- * dropped. A2's two sentences do qualify slots, so they are in clauses.
+ * at all.
+ *
+ * THE DERIVED SHAPE IS A CLAUSE TOO, BECAUSE RULE 3 PUTS IT ON THE CARD.
+ * `.dev/briefs/U1.6-U1.7-air.md` rule 3 requires that the reader can see, *on
+ * the card*, that this row shape has never been checked against a real
+ * response. A record caveat does not do that: `caveats` is a field of
+ * `RecordTrace`, and a card is its sentences, so an audit rendered this card
+ * and found no word of it there. So the fourth clause says it, and it hangs on
+ * `statistic`.
+ *
+ * `statistic` is the reference and not a convenient one. It is this file's own
+ * word for *which column of the service this record read*
+ * (`lib/adapters/aqs.ts` builds it with `fromQuery` over the service we
+ * called), and the column name is precisely the thing that is unverified — so
+ * the clause qualifies the slot it hangs on rather than borrowing it. It is a
+ * `fromQuery` value, present wherever this template renders at all, so the
+ * qualification cannot outlive the mean and the unit it is about, and a card
+ * that prints a number always prints what the number's column name rests on.
+ * It stays in `caveats` as well, for the reader who arrived through the trace.
+ *
+ * WHAT IS STILL ONLY A CAVEAT: that AQS returns several summary rows per
+ * monitor and this is the first. That one qualifies the retrieval rather than a
+ * slot — it is true of a record whose every clause dropped — and no field on
+ * this record states which row was kept, so a clause carrying it would hang on
+ * a reference chosen only to satisfy the rule that a clause needs one.
  *
  * THE ID PRINTS THE PARAMETER CODE AFTER THE POLLUTANT'S NAME. "PM2.5 monitor
  * 48-201-1039-88101" ends in `88101`, which is AQS's code for PM2.5, so the
@@ -91,14 +110,16 @@
 import { defineTemplate, km, sentence } from "@/lib/evidence/templates";
 
 /**
- * One monitor's annual summary. Three clauses, three independent facts: what
- * and where the monitor is, what it averaged over the year we asked for, and
- * how many observations that average rests on.
+ * One monitor's annual summary. Four clauses, four independent facts: what and
+ * where the monitor is, what it averaged over the year we asked for, how many
+ * observations that average rests on, and what the column names behind those
+ * numbers are worth.
  */
 export const aqsMonitorSummary = defineTemplate("aqs-monitor-summary", "aqs-monitor-summary/summary@1", (field) => [
 	sentence`${field("pollutant")} monitor ${field("monitorId")} is ${km(field("distanceMeters"))} from the mapped point, and measures its own location, not this address.`,
 	sentence`${field("period")} ${field("statistic")}: ${field("value")} ${field("unit")}. AQS data lags collection by six months or more.`,
 	sentence`Observations in the summary: ${field("observationCount")}.`,
+	sentence`No response from this service has been recorded, so this ${field("statistic")} is read from column names this report derived and is unverified against real bytes.`,
 ]);
 
 export const aqsTemplates = [aqsMonitorSummary];

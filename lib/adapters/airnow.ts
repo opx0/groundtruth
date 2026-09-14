@@ -32,14 +32,45 @@
  * out of the record. `tests/fixtures/airnow/derived-current-observations.source.md`
  * argues each of the four and each of the omissions.
  *
+ * AND THAT RULE IS APPLIED ASYMMETRICALLY HERE, WHICH IS WORTH SAYING OUT LOUD.
+ * `.dev/briefs/U1.6-U1.7-air.md` rule 2 says that where the documentation does
+ * not say, do not invent. Nothing published names *any* column of this service,
+ * so read strictly the rule empties the schema and this adapter cannot exist.
+ * The four keys that stay are not better documented than the three that go:
+ * `ReportingArea`, `ParameterName` and `DateObserved` are kept because
+ * `lib/evidence/records.ts` declares `reportingArea`, `pollutant` and
+ * `observedAt` non-null on this kind and a record cannot be built without them,
+ * and `AQI` is kept because it is the one field the public one-line description
+ * names that the kind also holds. `Category` is named by that same line and is
+ * still dropped, because nothing requires it and nothing says whether it is a
+ * string or an object — so a guess about it would be a guess this report did
+ * not have to make. That is the exception, stated: the kind's own requirements
+ * are what the four names are derived against, the three omissions are what
+ * rule 2 gets where nothing forces a name, and `CAVEATS` and the clause in
+ * `lib/templates/airnow.ts` tell the reader all four names are unverified.
+ *
  * BEING WRONG IS LOUD. A narrow schema is the point. If AirNow's keys differ
  * from these, `z.safeParse` in `lib/io/fetch-source-io.ts` fails and the source
  * reports `malformed` — the card says AirNow could not be read, and no record
  * exists carrying a value this file guessed at. The failure mode of a wide,
  * permissive schema is the opposite one, and it is the one that puts a wrong
  * number on screen. Every record built here also carries a caveat saying the
- * shape has never been checked against a real response, so a reader sees the
- * gap on the card rather than in this comment.
+ * shape has never been checked against a real response — and, since an audit
+ * found that `caveats` reaches the trace panel and never the card, both
+ * templates in `lib/templates/airnow.ts` now carry a clause saying it too. That
+ * is where a reader meets it, which is what the brief's rule 3 asks for.
+ *
+ * B12's UNKNOWN-STATUS CASE IS NOT REACHABLE FOR THIS SOURCE. `docs/BRIEF.md`
+ * B12 asks each adapter to cover a status it has never seen, which for ECHO is
+ * `Message` and for AQS is `Header[].status`. AirNow's modelled success shape
+ * has no status field at all — nothing public names one, so rule 2 keeps one
+ * out — and the recorded 401 has none either: its envelope is
+ * `WebServiceError`, a message and nothing more. What stands in its place is
+ * the other kind of vocabulary AirNow can send: a `ParameterName` outside
+ * `AIRNOW_PARAMETERS`, which drops its own row and costs the rows beside it
+ * nothing, and an area name or date format this file has never seen, which
+ * survive verbatim. `tests/unit/adapters/airnow.test.ts` names that case for
+ * what it is rather than for the case it stands in for.
  *
  * THE KEY. `AIRNOW_KEY` — the name `scripts/setup.sh` and `.env.example`
  * already use — is read from `process.env` inside `run` and nowhere else. It
@@ -53,6 +84,23 @@
  * Nothing is rebuilt from `fetched.payload.url` — that is whatever `SourceIo`
  * chose to record, and this file does not trust another module to have redacted
  * for it.
+ *
+ * AND THE SOURCE'S OWN WORDS CAN CARRY IT BACK. Keeping the key out of what
+ * this file constructs is only half of it. `run` forwards AirNow's `Message`
+ * verbatim into `SourceFailure.rawCode`, and `lib/templates/sources.ts` renders
+ * that as "It answered {rawCode}." — on the card, not only in the trace. A host
+ * that echoes the request it could not authenticate puts the key on screen, and
+ * a test proving this file does not *construct* a leak would read as proving it
+ * *filters* one. `app/lib/report-contract.ts`'s `withoutSecretValues` is a
+ * backstop at the wire, but the adapter is the only code holding the secret
+ * while the response is in hand, so the scrub belongs here. `keyOrFail` returns
+ * the key and a `Scrub` built from it, and every string that came from AirNow
+ * passes through that scrub before it reaches a record, a provenance or a
+ * thrown error: the agency's message, and every string column of every row,
+ * because `ReportingArea` and `ParameterName` are joined into `sourceRecordId`.
+ * A string carrying the key is replaced whole rather than patched, so no
+ * mangled remainder of a credential is left on screen and no partial match can
+ * miss a re-encoded copy of it.
  *
  * AN ABSENT KEY IS NOT AN EMPTY ANSWER. Without a key the source was never
  * asked, which must not read as "AirNow holds nothing for this address". So
@@ -110,7 +158,25 @@ export const AIRNOW_VERSION: AdapterVersion = "airnow@1";
 /** The `dataset` stamped on every field's provenance. Names the service, not the agency. */
 const DATASET = "airnow_current_observations";
 
-/** `docs/BRIEF.md` B2's path. The parameter names below are not B2's and are not verified. */
+/**
+ * `docs/BRIEF.md` B2's path, on the host B2's own host redirects to. This is
+ * the `sourceUrl` printed on every AirNow record, so it may not be a URL nobody
+ * has confirmed resolves; checked from this machine on 2026-09-16:
+ *
+ *   GET https://airnowapi.org/aq/observation/latLong/current?...
+ *     -> HTTP/2 301, server: awselb/2.0,
+ *        location: https://www.airnowapi.org:443/aq/observation/latLong/current?...
+ *   GET https://www.airnowapi.org/aq/observation/latLong/current?...
+ *     -> HTTP/2 401, www-authenticate: proprietary,
+ *        {"WebServiceError":[{"Message":"Request not authenticated."}]}
+ *
+ * — the same bytes `tests/fixtures/airnow/unauthenticated.json` holds. So B2's
+ * `airnowapi.org` is a redirect and `www.` is the host that answers; citing the
+ * redirect would cite a URL that does not serve this service, and following one
+ * silently would print a URL the reader cannot repeat. The trailing slash is
+ * this file's and B2 does not carry it; both forms answered the same 401.
+ * The parameter names below are not B2's and are not verified.
+ */
 const ENDPOINT = "https://www.airnowapi.org/aq/observation/latLong/current/";
 
 /** The query parameter the key travels in. Unverified, like the rest of the request. */
@@ -126,6 +192,25 @@ export const KEY_ENV = "AIRNOW_KEY";
  * one.
  */
 export const NO_KEY = "no-api-key";
+
+/**
+ * What a string from AirNow is replaced by when it carries this deployment's
+ * key. Our words, never the agency's, and they say which of the two happened:
+ * the source quoted the credential back, rather than this file printing one.
+ */
+export const REDACTED_ECHO = "[redacted: the source's answer carried this deployment's key]";
+
+/** Replaces a string carrying the credential, whole. Applied to everything AirNow sent. */
+type Scrub = (text: string) => string;
+
+/**
+ * Both forms the key can arrive in: as sent, and percent-encoded the way a host
+ * echoing the request URL back inside a message would carry it.
+ */
+function scrubbing(key: string): Scrub {
+	const forms: readonly string[] = [key, encodeURIComponent(key)];
+	return (text) => (forms.some((form) => text.includes(form)) ? REDACTED_ECHO : text);
+}
 
 export type Pollutant = "PM2.5" | "Ozone";
 
@@ -270,6 +355,23 @@ export function airnowObservationBuilt(
 	};
 }
 
+/**
+ * One row with every string column checked. All three reach a reader:
+ * `ReportingArea` and `ParameterName` are joined into `sourceRecordId` and into
+ * `subject`, and `DateObserved` is the record's `observedAt`. A credential has
+ * no business in any of them — but "has no business" is not something this file
+ * gets to assume about bytes from a service it has never had a successful
+ * answer from, and the raw string reaches the trace as well as the value.
+ */
+function scrubbedRow(row: AirNowObservation, scrub: Scrub): AirNowObservation {
+	return {
+		ReportingArea: scrub(row.ReportingArea),
+		ParameterName: scrub(row.ParameterName),
+		DateObserved: scrub(row.DateObserved),
+		AQI: row.AQI,
+	};
+}
+
 /** Every row whose parameter this report has a record field for, in the order AirNow sent them. */
 function selected(rows: readonly AirNowObservation[]): readonly { row: AirNowObservation; pollutant: Pollutant }[] {
 	const out: { row: AirNowObservation; pollutant: Pollutant }[] = [];
@@ -280,11 +382,16 @@ function selected(rows: readonly AirNowObservation[]): readonly { row: AirNowObs
 	return out;
 }
 
-/** The key, or a failure that says the source was never asked. Reads `process.env` at the point of use. */
-function keyOrFail(): string {
+/**
+ * The key and the scrub built from it, or a failure that says the source was
+ * never asked. Reads `process.env` at the point of use. The two come back
+ * together because this is the one place that holds the secret, and everything
+ * AirNow says back has to be checked against it.
+ */
+function keyOrFail(): { readonly key: string; readonly scrub: Scrub } {
 	const key = process.env[KEY_ENV];
-	if (key === undefined || key === "") throw new SourceFailure("unknown", NO_KEY);
-	return key;
+	if (key === undefined || key === "") throw new SourceFailure("not-configured", NO_KEY);
+	return { key, scrub: scrubbing(key) };
 }
 
 export const airnowAdapter: Adapter<"airnow-observation"> = {
@@ -292,7 +399,7 @@ export const airnowAdapter: Adapter<"airnow-observation"> = {
 	source: "airnow",
 	version: AIRNOW_VERSION,
 	async run(locus: Locus, io: SourceIo): Promise<readonly Built<"airnow-observation">[]> {
-		const key = keyOrFail();
+		const { key, scrub } = keyOrFail();
 		const citable = observationQueryUrl(locus);
 		const fetched = await io.get(keyedRequestUrl(locus, key), AirNowResponse);
 		// Rebuilt from the key-free URL, never from `fetched.payload.url`: that
@@ -302,13 +409,16 @@ export const airnowAdapter: Adapter<"airnow-observation"> = {
 		const body = fetched.raw;
 		if (!Array.isArray(body)) {
 			const [first] = body.WebServiceError;
-			// AirNow's own words, never mapped into ours. The recorded envelope
-			// arrives with 401, so `http` is the cause every case seen so far has.
-			const message: JsonValue = first === undefined ? null : first.Message;
+			// AirNow's own words, never mapped into ours — but scrubbed, because
+			// `lib/templates/sources.ts` prints this on the card, and a host that
+			// echoed back the request it rejected would print the key with it. The
+			// recorded envelope arrives with 401, so `http` is the cause every case
+			// seen so far has.
+			const message: JsonValue = first === undefined ? null : scrub(first.Message);
 			throw new SourceFailure("http", message);
 		}
 		const request = io.query("request", payload.url, AIRNOW_VERSION, payload);
-		return selected(body).map(({ row, pollutant }) =>
+		return selected(body.map((row) => scrubbedRow(row, scrub))).map(({ row, pollutant }) =>
 			airnowObservationBuilt(
 				{ raw: row, payload },
 				pollutant,

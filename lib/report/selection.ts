@@ -1206,7 +1206,7 @@ export function groupPlacements(result: GroupingResult): readonly LeadGroup[] {
  * are deduplicated by identity — `idKey` is what makes an id comparable — and a
  * card never states one registry identity twice.
  */
-function groupsFor(groups: readonly LeadGroup[], source: ReportSource): CardGroups {
+export function groupsFor(groups: readonly LeadGroup[], source: ReportSource): CardGroups {
 	const mine = groups.filter((group) => group.source === source);
 	const seen = new Set<string>();
 	const crossReferences: RecordPlacementOf<"frs-facility">[] = [];

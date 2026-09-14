@@ -85,8 +85,21 @@ const ozone = recordOf(derivedRow("derived-current-observations.json", 0), "Ozon
 const pm25 = recordOf(derivedRow("derived-current-observations.json", 1), "PM2.5");
 const noIndex = recordOf(derivedRow("derived-null-aqi.json", 0), "PM2.5");
 
-/** The one clause both templates end on. It names the area again rather than saying "it". */
+/** The first clause both templates end on. It names the area again rather than saying "it". */
 const QUALIFICATION = " AirNow's observations describe the Houston reporting area, not the mapped point.";
+
+/**
+ * The second, and `.dev/briefs/U1.6-U1.7-air.md` rule 3's whole point: the
+ * reader meets the unverified shape on the card, not only in the trace panel.
+ * It names the pollutant, so it is a function of the row rather than a
+ * constant.
+ */
+function derivation(pollutant: Pollutant): string {
+	return (
+		` No response from this service has been recorded, so this ${pollutant} row is read through field names this` +
+		" report derived and is unverified against real bytes."
+	);
+}
 
 function textOf(spans: readonly { readonly text: string }[]): string {
 	return spans.map((s) => s.text).join("");
@@ -125,13 +138,15 @@ const cases: readonly Case[] = [
 	caseOf("an ozone index", ozone, {
 		summary:
 			"AirNow reports an air quality index of 41 for Ozone in the Houston reporting area, observed 2026-09-16." +
-			QUALIFICATION,
+			QUALIFICATION +
+			derivation("Ozone"),
 		noIndex: null,
 	}),
 	caseOf("a PM2.5 index", pm25, {
 		summary:
 			"AirNow reports an air quality index of 58 for PM2.5 in the Houston reporting area, observed 2026-09-16." +
-			QUALIFICATION,
+			QUALIFICATION +
+			derivation("PM2.5"),
 		noIndex: null,
 	}),
 	caseOf("a row carrying no index", noIndex, {
@@ -139,7 +154,8 @@ const cases: readonly Case[] = [
 		noIndex:
 			"AirNow's PM2.5 observation for the Houston reporting area, observed 2026-09-16," +
 			" carries no air quality index." +
-			QUALIFICATION,
+			QUALIFICATION +
+			derivation("PM2.5"),
 	}),
 ];
 
@@ -199,8 +215,27 @@ describe("every template against every record", () => {
 				expect(rendered, one.what).not.toMatch(/\b(safe|unsafe|risk|healthy|unhealthy|polluter)\b/i);
 				// A5 on the card, qualifying the value rather than sitting in a footer.
 				expect(rendered, one.what).toContain("not the mapped point");
+				// Rule 3 on the card, for the same reason and by the same mechanism.
+				expect(rendered, one.what).toContain("unverified against real bytes");
 				expect(verify(one.store, sentence, airnowTemplates)).toBe(true);
 			}
+		}
+	});
+
+	it("says the shape is unverified on the card, in a clause that dies with the record", () => {
+		// `caveats` is a field of `RecordTrace`, so a record caveat alone reaches
+		// the trace panel and never the card. `.dev/briefs/U1.6-U1.7-air.md` rule 3
+		// wants it where the reader reads the value, and a clause is the only
+		// thing on the wire that cannot outlive the values it qualifies.
+		for (const one of cases) {
+			const template = one.summary === null ? airnowObservationNoIndex : airnowObservationSummary;
+			const placement: Placement = { scope: "record", recordId: one.record.id, template };
+			expect(textOf(mustRender(one.store, placement).spans), one.what).toContain(
+				"is read through field names this report derived and is unverified against real bytes",
+			);
+			// And it goes when the record goes, which is the whole reason it is a
+			// clause hung on `pollutant` rather than a sentence of its own.
+			expect(render(one.store.without(one.record.id), placement), one.what).toBeNull();
 		}
 	});
 
@@ -212,8 +247,10 @@ describe("every template against every record", () => {
 					+ " AirNow's own per-service documentation is behind a login, so its field names are not backed by a"
 					+ " published field list either.",
 			);
-			// None of the three is in the sentence, because none of them has a
-			// field behind it. They are disclosures the trace panel carries.
+			// No caveat is in the sentence *verbatim*. The derived-shape caveat is
+			// said on the card, but as a clause hung on `pollutant` and in that
+			// clause's own words; the other two have no field behind them and stay
+			// disclosures the trace panel carries.
 			for (const caveat of record.caveats) {
 				const summary = render(storeOf([record]), {
 					scope: "record",
@@ -241,6 +278,7 @@ describe("a null optional field drops its own clause and nothing else", () => {
 			"reportingArea",
 			"observedAt",
 			"reportingArea",
+			"pollutant",
 		]);
 		expect(textOf(spans)).not.toContain("category");
 		expect(textOf(spans)).toContain("air quality index of 41 for Ozone");
@@ -270,7 +308,8 @@ describe("a null optional field drops its own clause and nothing else", () => {
 		expect(textOf(spans)).toBe(
 			"AirNow reports an air quality index of 58 for PM2.5 in the Houston reporting area, observed 2026-09-16." +
 				" AirNow's category for that index is Moderate." +
-				QUALIFICATION,
+				QUALIFICATION +
+				derivation("PM2.5"),
 		);
 	});
 });

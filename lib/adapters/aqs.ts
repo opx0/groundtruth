@@ -91,15 +91,22 @@
  * different screen state from `no-data` by construction, and one that costs no
  * request against a rate limit that is already exhausted.
  *
- * The cause is the honest problem. `FailureCause` in `lib/evidence/source.ts`
- * is a closed enum of six and none of them is "this deployment has no
- * credential for this source". `refused` would assert a host refused a
- * connection nobody opened and `http` would assert AQS answered; both are false
- * claims about EPA. `unknown` asserts nothing about AQS at all, so `unknown` it
- * is, with `NO_KEY` as the `rawCode` so the outcome stays machine-distinguishable
- * and the trace carries the real reason. `lib/adapters/airnow.ts` reached the
- * same conclusion independently for the same enum; the enum wants a seventh
- * member and adding one is not this unit's to do.
+ * AND THE CAUSE IS NO LONGER THE HONEST PROBLEM. It was, and this comment
+ * argued the wrong way out of it until 2026-09-16, so the argument is left here
+ * rather than deleted: `FailureCause` in `lib/evidence/source.ts` was a closed
+ * enum of six, `refused` would have asserted a host refused a connection nobody
+ * opened and `http` would have asserted AQS answered — both false claims about
+ * EPA — so this file settled for `unknown`, which asserts nothing about AQS at
+ * all, and said the enum wanted a seventh member that was not this unit's to
+ * add. `lib/adapters/airnow.ts` reached that same conclusion independently.
+ *
+ * The seventh member was added in `295e639` precisely because three units had
+ * reached it. `run` throws `not-configured` and `lib/evidence/sentence.ts`
+ * words it as "this deployment holds no credential for it", where `unknown`
+ * had the card saying the reason was not known when it was the one thing that
+ * was. Reading the paragraph above as a live argument would undo that commit.
+ * `NO_KEY` stays the `rawCode`, now for the trace alone: the cause is what makes
+ * the outcome machine-distinguishable.
  *
  * `pollutant` IS OUR WORD, NOT EPA'S. The kind types it
  * `Sourced<"PM2.5" | "Ozone">`, no field reader produces a literal union, and
@@ -180,8 +187,10 @@ export const KEY_ENV = "AQS_KEY";
 
 /**
  * The `rawCode` of the outcome an unconfigured deployment produces. A marker of
- * ours, not something EPA said, and the only thing separating this outcome from
- * any other `unknown` failure. Never a credential and never a fragment of one.
+ * ours, not something EPA said. It was the only thing separating this outcome
+ * from any other `unknown` failure until `not-configured` existed; now the
+ * cause carries that and this is what the trace shows beside it. Never a
+ * credential and never a fragment of one.
  */
 export const NO_KEY = "no-api-key";
 
@@ -227,11 +236,33 @@ export type Pollutant = "PM2.5" | "Ozone";
  * row whose `parameter_code` is absent from this table is dropped, not
  * rejected, so an unfamiliar parameter never costs the report the rows beside
  * it.
+ *
+ * Read it through `pollutantOf` and never by indexing it. See there for why.
  */
 export const AQS_PARAMETERS: Readonly<Record<string, Pollutant>> = {
 	"88101": "PM2.5",
 	"44201": "Ozone",
 };
+
+/**
+ * The pollutant this report covers a row's `parameter_code` as, or null for
+ * every other code EPA can send.
+ *
+ * `Object.hasOwn` and not `!== undefined`, because the table above is an object
+ * literal and an index into one reaches `Object.prototype`:
+ * `AQS_PARAMETERS["constructor"]` is a function and `["__proto__"]` is an
+ * object. Until 2026-09-16 the guard here was the index alone, and such a row
+ * was dropped only because `run` asks the `selections` map for the same code on
+ * the next line and a `Map` has no prototype keys — a guard by coincidence
+ * rather than by intent. `lib/adapters/airnow.ts` had the identical index with
+ * nothing beside it, and there a `ParameterName` of `"constructor"` built a
+ * record with a function in `pollutant.value` and cost the reader the whole
+ * AirNow card. The comment on `pollutantOf` in that file has the trace.
+ */
+export function pollutantOf(parameterCode: string): Pollutant | null {
+	if (!Object.hasOwn(AQS_PARAMETERS, parameterCode)) return null;
+	return AQS_PARAMETERS[parameterCode] ?? null;
+}
 
 /** The order they are requested in, and the `param` value: "88101,44201". The page allows up to five. */
 export const AQS_PARAM_CODES: readonly string[] = ["88101", "44201"];
@@ -641,9 +672,9 @@ export function aqsAdapter(summaryYear: number): AqsAdapter {
 			const built: Built<"aqs-monitor-summary">[] = [];
 			for (const sent of fetched.raw.Body) {
 				const row = scrubbedRow(sent, scrub);
-				const pollutant = AQS_PARAMETERS[row.parameter_code];
+				const pollutant = pollutantOf(row.parameter_code);
 				const selection = selections.get(row.parameter_code);
-				if (pollutant === undefined || selection === undefined) continue;
+				if (pollutant === null || selection === undefined) continue;
 				built.push(annualSummaryBuilt({ raw: row, payload }, pollutant, selection, query));
 			}
 			return firstPerMonitor(built.filter((record) => withinBoundary(locus, record)));

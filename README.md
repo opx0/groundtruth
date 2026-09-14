@@ -51,9 +51,15 @@ pnpm install
 pnpm dev
 ```
 
-AQS and AirNow need free keys. Copy `.env.example` to `.env.local` and fill
-them in. Every other source is open. Keys stay server-side and never reach
-browser code, which `pnpm test` enforces.
+AQS and AirNow need free keys. `scripts/setup.sh` is a wizard that opens the
+right pages, says what to click, writes `.env.local` and checks what landed;
+copying `.env.example` by hand works too. Every other source is open.
+
+Without those keys the report still runs: both air cards say the source could
+not be reached because this deployment holds no credential for it, which is a
+fact about us rather than about the address, and the other five cards are
+unaffected. Keys stay server-side and never reach browser code — `pnpm test`
+builds the app and scans the client bundle to prove it.
 
 ```bash
 pnpm verify   # typecheck, unit tests, lint
@@ -65,12 +71,23 @@ pnpm e2e      # Playwright, the full address to trace path
 - `lib/` holds the evidence kernel, the source adapters, the selection policy,
   and the renderer. No React.
 - `app/` holds the routes and the interface.
-- `tests/fixtures/` holds unedited government API responses. Production code
-  cannot import them and a test proves it.
+- `tests/fixtures/` holds unedited government API responses, except the nine
+  files named `derived-`, which were authored from published documentation
+  because those two sources have never answered successfully from here; each
+  carries a sibling `.source.md` saying so, and every record built from one
+  says on the card that its shape is unverified. Production code cannot import
+  any of it: a lint rule forbids the import and a test reads the built bundle.
 - `docs/BRIEF.md` is the source of truth for scope, wording, and verification.
 - `.dev/` holds the build's decision trail and unit clock.
 
 ## Status
 
-Under construction. `.dev/PLAN.md` tracks which units are done and what each
-one proved.
+`pnpm verify` and `pnpm e2e` both pass: 723 unit tests and the eight paths of
+`docs/BRIEF.md` B12, driven in a browser against a production build.
+`.dev/PLAN.md` tracks what each unit proved and what is still open.
+
+Two things are blocked on whoever runs this, not on the code. FEMA's
+authoritative flood layer refuses connections from outside the US, so the
+report answers from Esri's reduced-set copy and says on the card which layer
+answered and what the copy cannot distinguish. The two air sources need the
+free keys above.

@@ -25,6 +25,12 @@ Ground Truth asks all six about one address and returns one report. Every senten
 **Screen 2, confirm.** The matched address, the mapped point, and how precise it is.
 
 > Matched: **9311 E AVE P, HOUSTON, TX, 77012.** The point sits on the 9301 to 9399 block, left side of the street segment, interpolated by the Census Geocoder. It marks the block, not the parcel.
+>
+> *Corrected 2026-09-16.* This is the sketch, and `origin/match@1` was written away from it on two counts. It renders:
+>
+> Matched: 9311 E AVE P, HOUSTON, TX, 77012. The point sits on the 9301 to 9399 block, street side L, interpolated by the Census Geocoder along TIGER line 96085986. It marks the block, not the parcel.
+>
+> The side prints as `L`, because that is what Census sends and expanding it to "left side of the street segment" would be this codebase inventing a vocabulary the source does not use — the same rule as B2's closing line. And the TIGER line is named, because it is the identifier a reader can take back to Census; the copy above drops it. `lib/templates/origin.ts` holds both arguments.
 
 **Screen 3, report.** One card per source. Each card resolves on its own and shows its search boundary, its retrieval time, and its status. The cleanup card for that address, rendered by code from typed source fields:
 
@@ -37,12 +43,24 @@ Ground Truth asks all six about one address and returns one report. Every senten
 > **KELLOGG TIRE FIRE**, 2.37 km. Not on the National Priorities List. Status: Removal Only Site (No Site Assessment Work Needed), as of 2026-06-22.
 >
 > Two sites on the final National Priorities List within 5 miles: **U.S. OIL RECOVERY**, 3.92 km, and **GENEVA INDUSTRIES/FUHRMANN ENERGY**, 6.84 km.
+>
+> *Corrected 2026-09-16.* The three record sentences are the copy `sems-site/summary@1` was deliberately written away from; this block is the shape, not the output. What it renders, from the committed bytes:
+>
+> RHODIA INC., ACID RELEASE, EPA ID TXN000607438. 0.71 km from the mapped point. NPL status: Not on the NPL. Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2012-06-12.
+>
+> Four differences, each argued in `lib/templates/sems.ts`. The EPA ID is on the card, in a slot of its own, because the name is not an identifier a reader can take to EPA. The distance says what it is measured from, because `0.71 km` alone names no origin. Both statuses carry their own column's name, because `Status:` was a third name for `non_npl_status_name` sitting under an unlabelled `npl_status_name`, so the labelled one read as the site's status and the NPL one read as a remark. And the date is its own clause rather than an `as of` tail, because B10's "Date unavailable." is a standalone sentence and inlining it produced `as of Date unavailable.`
+>
+> One of the four is not a style difference. `Not on the National Priorities List` above is an expansion of what EPA sent, which is `Not on the NPL` — the string in `npl_status_name`, in `tests/fixtures/sems/envirofacts-TXN000622182.json`, and in the A3 trace panel's own row for it. B2's closing line forbids exactly that, and `tests/fixtures/README.md` says the same in its own words: status text is passed through verbatim and never mapped. The renderer prints `Not on the NPL`. The copy in this brief was the only place the expansion survived.
+>
+> The count sentence above these three and the final-NPL sentence below them are section templates rather than record ones, and this note is not about them.
 
 The flood card for the Pasadena example address:
 
 > The mapped point is in **zone AE**, inside the Special Flood Hazard Area. FEMA's FIRM study identifier for this area is 48201C. Read from Esri's reduced-set copy of FEMA's National Flood Hazard Layer, dated 2026-03-11.
 >
 > *Corrected 2026-09-16.* The earlier wording called `DFIRM_ID` a flood map panel. It is not: FEMA's own column description, carried in the recorded fixture, defines it as the study identifier for a FIRM database, identical for every polygon in the county. Panels live in `S_FIRM_Pan.FIRM_PAN` and look like `48201C0810L`. The block-not-parcel notice moved to the origin sentence, which carries the address range, street side and TIGER line that establish the interpolation; a FEMA template asserting it had no field behind it.
+>
+> *Corrected again, same day.* The `DFIRM_ID` half above still holds. The last sentence does not, and the move it records was reversed. Both FEMA templates now lead with the notice, and the card renders `The mapped point, a street-segment interpolation rather than a parcel boundary, is in zone AE, inside the Special Flood Hazard Area.` `lib/templates/fema.ts` argues the reversal under "On the parcel caveat": the zone clause is the only sentence in the product that asserts a hazard designation at a point, A5 requires a card to carry its limits on the card, and C2 forbids "Parcel-level flood risk", so the qualification belongs in the clause making the assertion rather than two screens earlier. The objection that a FEMA template asserting it had no field behind it was answered by the clause growing one: it carries the SFHA phrase as well as the zone letter, and the qualification is about that phrase at that point. Nothing was taken away to do it — the origin sentence still carries "It marks the block, not the parcel", and the adapter still carries the same caveat on the record, so a reader who arrives through a value rather than through the sentence gets it too.
 
 The air card, shown as its template because values come from the monitor:
 
@@ -153,10 +171,13 @@ Reachability from the dev machine on 2026-09-15 (India egress):
 
 | Host | Result |
 |---|---|
-| `echodata.epa.gov`, `enviro.epa.gov`, `hazards.fema.gov`, `msc.fema.gov` | Refused |
+| `enviro.epa.gov`, `hazards.fema.gov`, `msc.fema.gov` | Refused |
+| `echodata.epa.gov` | Recorded as Refused on 2026-09-15. **Corrected 2026-09-16: reachable.** It resets the stream on the first attempts and answers once the request carries retries and a longer timeout. The seven payloads in `tests/fixtures/echo/` were recorded from this machine. See B1 and the two ECHO rows in B14. |
 | `geocoding.geo.census.gov`, `data.epa.gov`, `frs-public.epa.gov`, `aqs.epa.gov`, `airnowapi.org`, `services.arcgis.com`, `cumulis.epa.gov`, `echo.epa.gov` (site only) | OK |
 
-Local development therefore runs Census, SEMS, FRS, AQS, AirNow, and the Esri flood layer live, and runs ECHO and NFHL from recorded fixtures with the replay label from B11.
+Local development therefore runs Census, SEMS, FRS, ECHO and the Esri flood layer live; runs AQS and AirNow live the moment the operator's key exists, and answers `not-configured` until then; and has no source at all for FEMA's authoritative NFHL layer, so the Esri copy answers in its place and every record says so in its own sentence.
+
+*Corrected 2026-09-16.* This paragraph read: "Local development therefore runs Census, SEMS, FRS, AQS, AirNow, and the Esri flood layer live, and runs ECHO and NFHL from recorded fixtures with the replay label from B11." Both halves of the second clause are wrong. ECHO is reachable, per the table above. And there is no replay path to run anything from: `Recorded demonstration` and `replay` match nothing under `lib/`, `app/`, `scripts/` or `tests/`, and `app/api/report/route.ts` wires the handler to `createFetchSourceIo()` behind the B9 cache and to nothing else, so every source on the report path is a live fetch. The recorded fixtures are read by the test suite only, and a test proves production code cannot import them. A sentence saying the running application serves a source from fixtures is the one claim this project's whole premise cannot afford to get wrong, and it stood here for a day.
 
 Search boundaries are display boundaries, not health thresholds:
 
@@ -447,6 +468,8 @@ Recorded fixtures live only under the test directory. Production code cannot imp
 
 A demo-replay build may use recorded responses only when the card displays "Recorded demonstration," the recording date, and the source. The live application never replaces a failed source with a fixture.
 
+*Noted 2026-09-16.* No such build exists and nothing implements this. `Recorded demonstration` and `replay` match nothing under `lib/`, `app/`, `scripts/` or `tests/`, and there is no fixture-backed io on the report path. This is a rule kept for a build nobody has made, not a description of one — read it that way, and do not take a reference to "the replay label from B11" elsewhere in this document as evidence the path is there.
+
 ### B12. Tests
 
 Adapter tests, per source, from recorded fixtures: success; no records; missing optional fields; unknown status; malformed response; rate limit; timeout. Assertions are literal normalized records, including units, timestamps, IDs, and provenance.
@@ -489,7 +512,7 @@ No new source until the current one passes its adapter, rendering, failure, and 
 | FEMA NFHL host, every route tried | TLS handshake reset, with and without retries. Genuinely unreachable from here. |
 | Envirofacts join rate, all 15 Houston layer sites | 15 of 15 have a status row. A missing row is rare, not common. |
 | FRS, registry 110000460885 | 38 programme-interest rows across 15 programmes, 14 distinct update dates, one facility. |
-| Esri flood layer, three points | New Orleans CBD: X, 0.2% annual chance. Meyerland: AE, SFHA. Houston Ship Channel: no polygon. |
+| Esri flood layer, three points | New Orleans CBD: X, 0.2% annual chance. Meyerland: AE, SFHA. Houston Ship Channel: no polygon. **The New Orleans subtype is wrong. Corrected 2026-09-16.** The committed response for that point, `tests/fixtures/fema/esri-zone-x-levee-neworleans.json`, carries `FLD_ZONE: "X"`, `SFHA_TF: "F"` and `ZONE_SUBTY: "Area With Reduced Flood Risk Due To Levee"` — a levee subtype, not a 0.2% annual chance one. A6 row 3 states the levee subtype for the same address and the bytes agree with A6, so this row is the one that drifted. The zone letter and the outside-the-SFHA answer here are right; only the subtype was misrecorded, and it is the one verbatim agency string the demonstration puts on screen for that address. |
 | Esri flood layer, distinct classes | A, A99, AE, AH, AO, D, V, VE, X (shaded only). |
 | FRS REST, 2-mile radius at the Houston test point | 467 facilities. Farthest 3.219 km, so the unit is miles. |
 | FRS ArcGIS layer, 5-mile radius | 6,915 interest rows. |

@@ -14,10 +14,19 @@ type ConfirmScreenProps = {
 
 /**
  * One sentence the server rendered, span by span. A span that carries a slot
- * is the rendered form of one field, and names it in `data-field` so the
- * trace panel (`docs/BRIEF.md` A3 screen 4, a later unit) has something to
- * hang a click on; a span with no slot is the template's own connective text
- * and gets no hook, because there is nothing behind it to show.
+ * is the rendered form of one field, and names it in `data-field`; a span with
+ * no slot is the template's own connective text and gets no hook, because there
+ * is nothing behind it to show.
+ *
+ * The trace panel of `docs/BRIEF.md` A3 screen 4 exists -- `app/components/`
+ * has it, and the report screen opens it on a click. *These* spans still do not
+ * open it, and the reason is not that the panel is missing: a panel needs the
+ * provenance behind the field, and the geocode wire carries the origin
+ * sentences as rendered spans only. `app/lib/report-contract.ts` has no origin
+ * arm, so there is nothing on this screen for a click to show.
+ * `app/components/report-screen.tsx` says the same of the origin sentences it
+ * carries over, for the same reason. `data-field` is what a later origin arm
+ * would hang that click on, and is already what the screen tests select by.
  */
 function RenderedSentence({ sentence, className }: { readonly sentence: OriginSentence; readonly className: string }) {
 	return (

@@ -290,7 +290,10 @@ describe("clicking a record sentence opens the agency, the record, the raw field
 		// under the boundary and the panel does not invent one.
 		expect(countHtml).not.toContain('data-provenance="query"');
 
-		const failed = sentenceSaying(sentences, "could not be reached");
+		// Named, not taken first: three sources on this report could not be
+		// reached, and the other two -- the air sources this deployment holds no
+		// credential for -- fail with a different cause.
+		const failed = sentenceSaying(sentences, "FEMA's National Flood Hazard Layer could not be reached");
 		const failedHtml = panelHtml(failed, firstOpenable(failed));
 		expect(failedHtml).toContain('data-scope="source"');
 		expect(failedHtml).toContain("unavailable");
@@ -324,9 +327,19 @@ describe("every slotted span of every card opens a panel that names what is behi
 	it("names the agency or the members, an identifier, the field and the value, span by span", async () => {
 		const sentences = everySentence(await houstonEvents());
 		let opened = 0;
+		// Counted apart: the two air sources this deployment holds no credential
+		// for carry one `source/unavailable@1` sentence each, three slotted spans
+		// apiece, and they are the whole of the difference between the 172 the
+		// brief's audit took -- when those two were `not-asked` and carried no
+		// sentence at all -- and the 173 below, which is five short of 178: the
+		// registry card's boundary and retrieval time, over a lookup by registry
+		// ID that searched no area, and the three spans of a group sentence
+		// naming the registry's own record of an identifier as a sharer of it.
+		let onNotConfigured = 0;
 		for (const sentence of sentences) {
 			const trace = sentence.trace;
 			if (trace === null) throw new Error(`no trace on ${textOf(sentence)}`);
+			const notConfigured = trace.scope === "source" && trace.source.cause === "not-configured";
 			for (const index of openableSpans(sentence)) {
 				const span = sentence.spans[index];
 				const field = span?.slot?.field;
@@ -334,6 +347,7 @@ describe("every slotted span of every card opens a panel that names what is behi
 				const html = unescaped(panelHtml(sentence, index));
 				const where = `${textOf(sentence)} @${index}`;
 				opened += 1;
+				if (notConfigured) onNotConfigured += 1;
 
 				// The agency, where the scope carries one. `group` carries none, and
 				// names its member records instead.
@@ -369,7 +383,8 @@ describe("every slotted span of every card opens a panel that names what is behi
 				}
 			}
 		}
-		expect(opened).toBe(172);
+		expect(onNotConfigured).toBe(6);
+		expect(opened).toBe(173);
 	});
 });
 
@@ -384,10 +399,15 @@ describe("no rendered string outside a span was written by a component", () => {
 		const unexpectedWire = new Set<string>();
 		let checked = 0;
 
+		// The same split as above: 172 spans, plus the three each on the two
+		// cards this deployment holds no credential for.
+		let onNotConfigured = 0;
 		for (const sentence of sentences) {
 			const wire = wireStrings(sentence);
+			const notConfigured = sentence.trace?.scope === "source" && sentence.trace.source.cause === "not-configured";
 			for (const index of openableSpans(sentence)) {
 				checked += 1;
+				if (notConfigured) onNotConfigured += 1;
 				for (const node of textNodes(panelHtml(sentence, index))) {
 					if (node.chrome) {
 						if (!CHROME_STRINGS.has(node.text)) unexpectedChrome.add(node.text);
@@ -398,7 +418,8 @@ describe("no rendered string outside a span was written by a component", () => {
 			}
 		}
 
-		expect(checked).toBe(172);
+		expect(onNotConfigured).toBe(6);
+		expect(checked).toBe(173);
 		expect([...unexpectedChrome]).toEqual([]);
 		expect([...unexpectedWire]).toEqual([]);
 	});

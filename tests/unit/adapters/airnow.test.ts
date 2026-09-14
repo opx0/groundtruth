@@ -46,6 +46,7 @@ import {
 	KEY_ENV,
 	NO_KEY,
 	observationQueryUrl,
+	pollutantOf,
 	REDACTED_ECHO,
 } from "@/lib/adapters/airnow";
 import { houstonLocus } from "../evidence/helpers/sems-fixtures";
@@ -334,6 +335,57 @@ describe("B12 case 4 has no status to be unknown: vocabulary this codebase has n
 		const record = complete(locus(), kept);
 		expect(record.pollutant.value).toBe("PM2.5");
 		expect(record.payloads).toEqual([payloadOf(SHA.unmapped)]);
+	});
+
+	/*
+	 * And the two strings in that vocabulary that were not dropped until
+	 * 2026-09-16. The table is an object literal, so an index into it reaches
+	 * `Object.prototype`, and the guard beside it was `!== undefined`:
+	 *
+	 *   AIRNOW_PARAMETERS["NO2"]         -> undefined         (dropped)
+	 *   AIRNOW_PARAMETERS["constructor"] -> [Function Object]  (kept)
+	 *   AIRNOW_PARAMETERS["__proto__"]   -> {}                 (kept)
+	 *
+	 * A kept row built a record with a function or an object in `pollutant.value`,
+	 * which the kind types as one of two words; `app/lib/report-contract.ts`
+	 * then refused the record at the wire and the whole AirNow card was lost —
+	 * no `card:airnow` event at all, "Sources settled: 5 of 6" and a Retry, with
+	 * nothing on screen naming the missing source. One string in one row.
+	 */
+	it("drops a parameter named for a key of Object.prototype, which an index alone does not", async () => {
+		// The hole itself, shown rather than described. Both stay true after the
+		// fix: the table is still an object literal and it is the read that changed.
+		expect(AIRNOW_PARAMETERS["NO2"]).toBeUndefined();
+		expect(AIRNOW_PARAMETERS["constructor"]).toBeDefined();
+		expect(AIRNOW_PARAMETERS["__proto__"]).toBeDefined();
+
+		// Inline, not a fixture: nothing here is a claim about what AirNow sends.
+		const body = JSON.stringify([
+			{ ReportingArea: "Houston", ParameterName: "NO2", DateObserved: "2026-09-16", AQI: 12 },
+			{ ReportingArea: "Houston", ParameterName: "constructor", DateObserved: "2026-09-16", AQI: 13 },
+			{ ReportingArea: "Houston", ParameterName: "__proto__", DateObserved: "2026-09-16", AQI: 14 },
+			{ ReportingArea: "Houston", ParameterName: "PM2.5", DateObserved: "2026-09-16", AQI: 58 },
+		]);
+		const { io } = stubIo({ body });
+		const built = await airnowAdapter.run(locus(), io);
+
+		// Three rows this report has no field for, and the one beside them that
+		// survives all three.
+		expect(built.map((b) => b.sourceRecordId)).toEqual(["Houston/PM2.5"]);
+		for (const record of built) expect(["PM2.5", "Ozone"]).toContain(record.pollutant.value);
+
+		// And the card is a card: the kernel reports it ok rather than losing it.
+		const outcome = await runSource(locus(), airnowAdapter, stubIo({ body }).io, DEFAULT_POLICY);
+		expect(outcome.status).toBe("ok");
+
+		// The read that decides all of the above, on its own. `pollutantOf` is
+		// the only way this table is consulted; `lib/adapters/aqs.ts` exports the
+		// same function over its own table for the same reason.
+		expect(pollutantOf("NO2")).toBeNull();
+		expect(pollutantOf("constructor")).toBeNull();
+		expect(pollutantOf("__proto__")).toBeNull();
+		expect(pollutantOf("PM2.5")).toBe("PM2.5");
+		expect(pollutantOf("O3")).toBe("Ozone");
 	});
 
 	it("passes an area name and a date shape it has never seen through verbatim", async () => {

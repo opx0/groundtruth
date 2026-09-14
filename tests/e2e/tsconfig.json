@@ -1,0 +1,27 @@
+{
+	// The tsconfig `playwright.config.ts` points the runner at, for every file
+	// the test process loads -- the specs, and the app and lib modules they
+	// import. Two mappings, and nothing else:
+	//
+	// - `@/*`, the repository's own alias, because these tests import the real
+	//   route handlers and the committed fixture helpers by it.
+	// - `next/server`, because `next` publishes no `exports` map and Node's ESM
+	//   resolver will not take an extensionless subpath without one. Next's own
+	//   build resolves it; the Playwright process needs to be told. The path is
+	//   extensionless so that `tsc` reads `server.d.ts` and the runner resolves
+	//   `server.js`.
+	//
+	// The root config excludes `tests/e2e`, so `exclude` is cleared here: these
+	// files are type-checked by `tsc -p tests/e2e/tsconfig.json`, not by
+	// `pnpm typecheck`.
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["../../*"],
+			"next/server": ["../../node_modules/next/server"]
+		}
+	},
+	"include": ["**/*.ts"],
+	"exclude": []
+}

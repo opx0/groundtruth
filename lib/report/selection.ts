@@ -120,18 +120,25 @@
  * never from a bare `SectionSpec`, so it cannot exist except beside the list it
  * is about.
  *
- * WHAT THE FINAL-NPL FILTER CANNOT SEE. The final-NPL section filters on
- * `semsNplStatus`, the Superfund inventory's own `npl_status_name`, and not on
- * the registry's `frsActiveStatus`. Both agree on all fifteen recorded Houston
- * sites, and the Superfund inventory is the system whose answer that sentence
- * is about. The consequence, stated here because a reader deserves to have it
- * stated: a site whose Envirofacts status request failed has a null Superfund
- * status, is therefore not counted as final-NPL and gets no final-NPL sentence,
- * even though `frsActiveStatus` may have survived that failure carrying
- * `CURRENTLY ON THE FINAL NPL`. That is the honest outcome — the inventory did
- * not tell us, so it is not known to be on the list — and the section trace
- * lists the ids counted, so the count and the list can be reconciled by a
- * reader rather than by a claim.
+ * WHAT THE FINAL-NPL FILTER CANNOT SEE, AND WHAT THAT COSTS THE COUNT. The
+ * final-NPL section filters on `semsNplStatus`, the Superfund inventory's own
+ * `npl_status_name`, and not on the registry's `frsActiveStatus`. Both agree on
+ * all fifteen recorded Houston sites, and the Superfund inventory is the system
+ * whose answer that sentence is about, so the filter stays where it is. A site
+ * whose Envirofacts status request failed carries no Superfund status, is
+ * therefore not selected, and gets no final-NPL sentence even where
+ * `frsActiveStatus` survived that failure carrying `CURRENTLY ON THE FINAL
+ * NPL`. For the *list* that is the honest outcome — the inventory did not tell
+ * us, so the site is not known to be on it.
+ *
+ * This comment used to stop there, and the count beside the list is where the
+ * argument breaks. A list that leaves a site out says nothing about that site;
+ * a count that leaves it out says there are none. "Sites on the final National
+ * Priorities List within 5 miles of the mapped point: 0", above two sentences
+ * naming sites the registry records as `CURRENTLY ON THE FINAL NPL`, is not the
+ * inventory declining to answer — it is this report answering for it.
+ * `nplCountHeadline` is where that is refused, and what it would take to state
+ * the number honestly instead is written out there.
  *
  * WHERE THE NUMBERS BEHIND THE RULES COME FROM. `FINAL_NPL_STATUS` and
  * `NONCOMPLIANCE_QUARTERS` are read off the templates' own `requires`, not
@@ -312,18 +319,36 @@ export type ReportPlan = {
 };
 
 /**
- * The AQS and AirNow templates. Neither exists yet: both adapters are briefed
- * in `.dev/briefs/U1.6-U1.7-air.md` and blocked on a key the operator has to
- * register. The card functions below are written against their record kinds
- * anyway, so wiring an adapter later is a registration and not a redesign, and
- * `null` is how the report says the templates are not there — the air cards are
- * then status-only, which is exactly what B7 requires of a source with nothing
- * to list. No air record can be in the store while this is null, because no
- * adapter exists to put one there.
+ * The templates the two air cards speak with, supplied by the caller.
+ *
+ * `null` is how a deployment says it registered none: the air cards are then
+ * status-only, which is what B7 asks of a source with nothing to list, and
+ * `refuseUndescribed` is what stops that being a silent drop of records the
+ * report is holding. It is no longer the live case — both adapters exist and
+ * `app/api/report/handler.ts` passes the real templates — but it is still the
+ * honest shape: this tier decides which template a record gets, and it cannot
+ * decide that for a kind whose templates it has not been given.
+ *
+ * ONE TEMPLATE PER KIND WAS THE WRONG SHAPE, AND THE TWO KINDS DIFFER.
+ * `lib/templates/airnow.ts` is two templates split on `aqi`, `summary@1`
+ * requiring it present and `no-index@1` requiring it absent, so a slot that
+ * held one of them left every record in the other state with no sentence at
+ * all — a record the report holds and cannot describe, which is the defect
+ * this module exists to refuse. So the AirNow slot holds every template of its
+ * kind and `airnowTemplateFor` chooses per record, the way `semsPrimary` and
+ * `echoTemplatesFor` already do for theirs.
+ *
+ * The AQS slot stays one template because that kind has one:
+ * `lib/templates/aqs.ts` declares no requirement, which is that template
+ * saying it speaks for every record of its kind. The asymmetry is the fact,
+ * not an oversight — and the day AQS splits, both halves will declare what
+ * they differ over and this slot widens the same way the AirNow one did.
  */
 export type AirTemplates = {
+	/** One template, requiring nothing, so it speaks for every `aqs-monitor-summary` in the store. */
 	readonly aqs: Template<"aqs-monitor-summary">;
-	readonly airnow: Template<"airnow-observation">;
+	/** Every `airnow-observation` template. Which one a record gets is read off their own requirements. */
+	readonly airnow: readonly Template<"airnow-observation">[];
 };
 
 /** Every source outcome except FEMA's, which is a `FloodZoneResult` and not a slot of a shared fan-out. */
@@ -424,6 +449,25 @@ function requiredAtLeast(template: Declaring, slot: string): number {
 }
 
 /**
+ * Whether this template speaks about a slot being filled, being empty, or says
+ * nothing about it at all.
+ *
+ * The same read as the two above, for the one requirement a pair of templates
+ * uses to divide a kind between them. It is how the policy can pick between two
+ * templates without knowing which is which: the templates already wrote down
+ * what they differ over, and a rule read off the template can never name a
+ * different slot or a different state from the template it selects for. Null is
+ * a template that asserts nothing here, which is a template that speaks for
+ * every record of its kind.
+ */
+function requiredPresence(template: Declaring, slot: string): boolean | null {
+	for (const requirement of template.requires) {
+		if ("slot" in requirement && requirement.slot === slot && "present" in requirement) return requirement.present;
+	}
+	return null;
+}
+
+/**
  * The one `npl_status_name` B7's own sentence is about. Read off
  * `sems-site/npl@1`'s requirement, so the final-NPL count and the final-NPL
  * sentence select on the same string by construction. `Site is Part of NPL
@@ -447,10 +491,24 @@ export const NONCOMPLIANCE_QUARTERS: number = requiredAtLeast(echoFacilityNoncom
 /**
  * docs/BRIEF.md B2's display boundaries, as they read on screen. A search
  * boundary is a display boundary and never a health threshold.
+ *
+ * AND IT HAS TO DESCRIBE THE REQUEST THAT WAS MADE. B2's table gives FRS five
+ * miles and no FRS request has ever carried a radius: `lookupFrsFacility` asks
+ * `where=REGISTRY_ID='...'`, one request per identifier, for at most the five
+ * identifiers another card named (`app/api/report/handler.ts`, `FRS_LOOKUPS`).
+ * Under "5 miles" the registry card read "Searched within 5 miles of the mapped
+ * point" above "No matching records within the stated boundary" — an absence
+ * asserted over an area nothing queried, and docs/BRIEF.md B14 records 6,915
+ * FRS interest rows within five miles of this exact point. The successful path
+ * claimed the same search more quietly. Five miles is the locus the report
+ * centres that lookup on, which is what `BOUNDARY_METERS` in the handler holds
+ * and what a record's distance is measured from; what reaches a sentence and a
+ * trace from here is what was asked for, and for the registry that is a list of
+ * identifiers rather than an area.
  */
 export const BOUNDARY: { readonly [S in ReportSource]: string } = {
 	echo: "5 miles",
-	frs: "5 miles",
+	frs: "the registry IDs this report looked up",
 	sems: "5 miles",
 	aqs: "50 km",
 	airnow: "the reporting area AirNow names",
@@ -460,11 +518,24 @@ export const BOUNDARY: { readonly [S in ReportSource]: string } = {
 /**
  * The sources whose boundary is a radius from the mapped point, and so the ones
  * `section/retrieved-at@1` reads correctly for: it renders "Searched within
- * {boundary} of the mapped point". FEMA's boundary is the point itself and
- * AirNow's is an area the source defines, so neither can fill that slot without
- * the sentence saying something false.
+ * {boundary} of the mapped point". FEMA's boundary is the point itself,
+ * AirNow's is an area the source defines, and FRS's is a list of identifiers,
+ * so none of the three can fill that slot without the sentence saying something
+ * false. AQS is in: its request is a bounding box around the mapped point and
+ * `lib/adapters/aqs.ts` cuts the circle out of it with the kernel's own
+ * haversine, so fifty kilometres of the mapped point is what was searched.
+ *
+ * The registry card is then left with no section sentence carrying the
+ * retrieval time, and loses nothing by it: `source/retrieved@1` states the same
+ * instant one line above, and the boundary reaches the reader through the
+ * section trace. A sentence for the request the registry does make would read
+ *
+ *     Looked up {boundary}, retrieved {retrievedAt}.
+ *
+ * and `lib/templates/sections.ts` — which this unit does not own — is where it
+ * would go.
  */
-const RADIUS_BOUNDARY: ReadonlySet<ReportSource> = new Set(["echo", "frs", "sems", "aqs"]);
+const RADIUS_BOUNDARY: ReadonlySet<ReportSource> = new Set(["echo", "sems", "aqs"]);
 
 /* -------------------------------------------------------------------------- */
 /* Outcomes                                                                   */
@@ -521,6 +592,21 @@ function noteOf(outcome: SourceOutcome): string {
 function pollutantNote(pollutant: Pollutant): string {
 	return `EPA's Air Quality System listed no ${pollutant} monitor within ${BOUNDARY.aqs} of the mapped point.`;
 }
+
+/**
+ * What an empty registry answer is, which is not `NO_DATA_NOTE`'s "No matching
+ * records within the stated boundary".
+ *
+ * The registry was not searched within a boundary. It was asked for named
+ * registry IDs, one request each, and an empty answer is those identifiers
+ * carrying no programme-interest row — never an area holding no facility, which
+ * is the one claim docs/BRIEF.md B14's 6,915 rows within five miles of this
+ * point make false. `askFrs` has no wording of its own for that and gives the
+ * outcome `NO_DATA_NOTE`, so the section says it instead: the same technique
+ * `pollutantNote` uses for a fact no section template can carry.
+ */
+const FRS_NO_ROWS_NOTE =
+	"EPA's facility registry holds no programme-interest row for the registry IDs this report looked up.";
 
 /* -------------------------------------------------------------------------- */
 /* Ordering                                                                   */
@@ -804,12 +890,13 @@ function pollutantHeadline(
  * A record the report holds and cannot describe is the one thing this tier
  * refuses to do quietly, and every status-only return below was doing it: the
  * card carries no listing, so a record of that kind in the store reaches no
- * placement at all and simply is not on the page. `air === null` is the live
- * case — `AirTemplates` says no air record can be in the store because no
- * adapter exists to put one there, which is a statement about the caller and
- * not a check. This is the check, for that case and for the four unavailable
- * ones beside it, and it fires the day an adapter lands before its template
- * does or a card is built against a store from another answer.
+ * placement at all and simply is not on the page. `air === null` is one such
+ * return — a deployment that registered no air templates over a store that
+ * holds air records — and both air adapters exist now, so that pairing is
+ * reachable rather than hypothetical. This is the check, for that case and for
+ * the four unavailable ones beside it, and it fires the day an adapter lands
+ * before its template does or a card is built against a store from another
+ * answer.
  */
 function refuseUndescribed(store: EvidenceStore, kind: Kind): void {
 	const held = store.ofKind(kind).length;
@@ -838,6 +925,64 @@ function refuseAnsweredWithNone(store: EvidenceStore, outcome: SourceOutcome, ki
 
 function countHeadline(section: SectionSpec, template: Template<"section">): SectionPlacement {
 	return { scope: "section", section, template };
+}
+
+/**
+ * B7's final-NPL count, placed only when the system it is a count of answered
+ * about every site it counts from.
+ *
+ * `section/sems-npl-count@1` reads "Sites on the final National Priorities List
+ * within 5 miles of the mapped point", which is a claim about the world, and
+ * the section behind it filters on `semsNplStatus` — Envirofacts'
+ * `npl_status_name`, asked for once per site, fifteen times at the demo point
+ * against a second host. A site whose status request failed carries no
+ * Superfund status at all, so the filter cannot see it and the count falls by
+ * one with nothing on the card saying it did. Fail it for exactly the two
+ * final-NPL sites of the demo address and the card read
+ *
+ *     Sites on the final National Priorities List within 5 miles of the mapped point: 0.
+ *     ...
+ *     U.S. OIL RECOVERY, 3.92 km from the mapped point. EPA's facility registry
+ *     records the SUPERFUND NPL interest at U.S. OIL RECOVERY as CURRENTLY ON
+ *     THE FINAL NPL. The Superfund inventory's status for TXN000607093 could
+ *     not be retrieved.
+ *
+ * — docs/BRIEF.md A6 row 1's headline number silently zero, with the registry's
+ * contradicting answer printed twice below it and the status line still reading
+ * "answered with records".
+ *
+ * A count over a field a partial outage nulls is a count of the sites the
+ * inventory answered for, and no sentence this tier can place says that. So the
+ * count is placed when the two sets are the same and withheld when they are
+ * not: a card that says nothing about the final list is one the per-site
+ * sentences can still be read as written, which is where `status-unavailable@1`
+ * already names each site the inventory did not answer for.
+ *
+ * `no-row` is not withheld on. That is the inventory answering — it holds no
+ * row for that site — and B10's whole spine is that an answer and a failed
+ * request are different facts; `registry-only@1` says it per site.
+ *
+ * WHAT WOULD PUT THE NUMBER BACK. Two sentences `lib/templates/sections.ts` —
+ * which this unit does not own — does not have. Narrow the count to what the
+ * inventory reported, which is true whatever failed:
+ *
+ *     Sites EPA's Superfund inventory reports on the final National Priorities List within {boundary} of the mapped point: {count}.
+ *
+ * and give the card the gap beside it, counted the same live way:
+ *
+ *     Sites within {boundary} of the mapped point EPA's Superfund inventory returned no National Priorities List status for: {count}.
+ *
+ * The second needs a section behind it, and `SectionFilter` cannot express one
+ * today: `semsNplStatus` is `Sourced<string> | null`, the slot itself absent
+ * when no row joined, and `matchesFilter` answers false for an absent slot
+ * whatever the filter asks — so `{ field: "semsNplStatus", equals: null }`
+ * selects nothing. A `{ field, present: false }` arm, or an absent slot reading
+ * as null, is the kernel half of it. With both in place this guard comes out
+ * and the count is placed unconditionally.
+ */
+function nplCountHeadline(store: EvidenceStore, section: SectionSpec<"sems-site">): readonly SectionPlacement[] {
+	const unanswered = store.ofKind("sems-site").some((record) => record.statusRow.status === "unavailable");
+	return unanswered ? [] : [countHeadline(section, semsNplSectionCount)];
 }
 
 /**
@@ -914,6 +1059,38 @@ function echoTemplatesFor(
  */
 function floodTemplateFor(record: Sealed<RecordOf<"fema-flood-zone">>): Template<"fema-flood-zone"> {
 	return record.sfhaLabel.value === null ? floodZoneUnmappedFlag : floodZoneSummary;
+}
+
+/**
+ * The AirNow template that speaks about the state this row is in: `aqi` filled
+ * or `aqi` empty.
+ *
+ * The same decision the flood card makes, with one difference. The flood pair
+ * is imported here and can be named; the air templates are handed in, so naming
+ * one of them "the summary" would be this file asserting which of two injected
+ * templates denies what the other states. It does not have to: each declares
+ * that for itself, and `requiredPresence` reads it. The record's own slot is
+ * matched against those declarations, so the template that is placed is a
+ * template whose requirement this record already satisfies -- which is what
+ * makes "every placement this policy produces renders" true here by
+ * construction rather than by care.
+ *
+ * Nothing speaking for a state is a throw and not a silent drop. It is the
+ * `refuseUndescribed` case one level down: the card would carry the record,
+ * count it, and render no sentence for it.
+ */
+function airnowTemplateFor(
+	record: Sealed<RecordOf<"airnow-observation">>,
+	templates: readonly Template<"airnow-observation">[],
+): Template<"airnow-observation"> {
+	const stated = record.aqi.value !== null;
+	const chosen = templates.find((template) => requiredPresence(template, "aqi") === stated);
+	if (chosen === undefined) {
+		throw new Error(
+			`no airnow-observation template speaks for a row whose air quality index is ${stated ? "present" : "absent"}`,
+		);
+	}
+	return chosen;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1012,7 +1189,10 @@ function frsSection(outcome: SourceOutcome, bounds: Bounds): SectionSpec<"frs-fa
 		query: null,
 		retrievedAt: retrievedAtOf(outcome),
 		filter: null,
-		note: noteOf(outcome),
+		// The registry's own wording, not the fan-out's: `noteOf` would print
+		// "No matching records within the stated boundary" over a lookup that
+		// stated no boundary. See `FRS_NO_ROWS_NOTE`.
+		note: FRS_NO_ROWS_NOTE,
 		carried: carriedBound(bounds),
 	});
 }
@@ -1137,8 +1317,15 @@ function groupedBySlot(member: AnyRecord, matchedId: string): string | null {
  */
 export type LeadGroup = {
 	readonly source: ReportSource;
-	/** `group/shared-identifier@1`, and `group/member-count@1` above two members. */
-	readonly placements: readonly [GroupPlacement, ...GroupPlacement[]];
+	/**
+	 * `group/shared-identifier@1`, and `group/member-count@1` above two members
+	 * or in place of a shared-identifier sentence that cannot name its pair.
+	 *
+	 * Empty is a group with nothing to say beyond the identity its
+	 * cross-reference already states — a record and the registry's own record of
+	 * the identifier it carries, which is one site under two names.
+	 */
+	readonly placements: readonly GroupPlacement[];
 	readonly crossReferences: readonly RecordPlacementOf<"frs-facility">[];
 };
 
@@ -1168,26 +1355,92 @@ function registryIdentities(members: readonly AnyRecord[]): readonly RecordPlace
  *
  * `group/member-count@1` goes on only above two members, where the shared
  * identifier sentence names two of more than two and the reader would otherwise
- * not learn the group is larger.
+ * not learn the group is larger — or in place of that sentence, below.
+ *
+ * WHO SHARES THE IDENTIFIER, AND WHO IS THE RECORD IT NAMES. "X and Y share one
+ * EPA facility registry ID, 110000460885" is a statement about two records that
+ * both carry a third thing's identifier. The registry's own record of
+ * 110000460885 is not one of them: it is what that identifier names. Printed as
+ * a sharer it read
+ *
+ *     VALERO PLUME and HOUSTON REFINERY share one EPA facility registry ID, 110000460885.
+ *     EPA's facility registry carries the name HOUSTON REFINERY for registry ID 110000460885.
+ *
+ * on one card, where docs/BRIEF.md A3 and B6 establish those two as one site
+ * under two names and the second sentence is the correct statement of it —
+ * which is why `registryIdentities` puts it there. So the registry's record of
+ * the matched ID is not among the records the sentence names, and a group left
+ * with fewer than two sharers gets no sentence at all: its cross-reference
+ * already says the whole of it. `lib/evidence/sentence.ts` names the same
+ * distinction from the other end, where deleting a member re-seated the
+ * sentence on "the record that ID names rather than a record sharing it".
+ *
+ * It stays in `members`, behind the sharers, because `group/member-count@1`
+ * counts the records the grouping grouped and the sentence names `members[0]`
+ * and `members[1]`.
+ *
+ * AND A PAIR THAT CANNOT BE TOLD APART IS NOT A PAIR. A SEMS record's `subject`
+ * coalesces the Superfund name over the registry's, so two sites under one
+ * registry ID whose Envirofacts rows are both missing fall back to one
+ * `PRIMARY_NAME` and the sentence renders "PASADENA REFINING SYSTEM, INC. and
+ * PASADENA REFINING SYSTEM, INC. share one EPA facility registry ID,
+ * 110000462703" — from committed bytes, and a reader cannot tell a real pair
+ * from a bug. The group is genuine and the count states it without naming
+ * anyone, so `group/member-count@1` goes on alone. The template keeps the case
+ * it was written for, where the two names differ: "PASADENA REFINING FIRE and
+ * PRSI FIRE share one EPA facility registry ID, 110000462703."
  */
 function leadGroupOf(group: FacilityGroup): LeadGroup | null {
 	if (group.confidence !== "confirmed") return null;
-	const lead = group.members.find((member) => groupedBySlot(member, group.matchedId) !== null);
+	const sharing = group.members.filter((member) => !isRegistryRecordOf(member, group.matchedId));
+	const registryRecords = group.members.filter((member) => isRegistryRecordOf(member, group.matchedId));
+	const lead = sharing.find((member) => groupedBySlot(member, group.matchedId) !== null);
 	if (lead === undefined) return null;
 	const slot = groupedBySlot(lead, group.matchedId);
 	if (slot === null) return null;
-	const others = group.members.filter((member) => member !== lead);
+	const others = sharing.filter((member) => member !== lead);
 	const shared: GroupPlacement = {
 		scope: "group",
-		members: [lead.id, ...others.map((member) => member.id)],
+		members: [lead.id, ...others.map((member) => member.id), ...registryRecords.map((member) => member.id)],
 		groupedBy: slot,
 		template: groupSharedIdentifier,
 	};
+	const count: GroupPlacement = { ...shared, template: groupMemberCount };
+	// The lead is never the registry's own record of the matched ID —
+	// `groupedBySlot` answers a slot for an `frs-facility` only when its
+	// `registryId` is that ID, and `sharing` is exactly the members for which it
+	// is not — so no group is led by the registry card any more, and the branch
+	// that used to keep the cross-reference off it is gone with it.
 	return {
 		source: lead.source,
-		placements: group.members.length > 2 ? [shared, { ...shared, template: groupMemberCount }] : [shared],
-		crossReferences: lead.source === "frs" ? [] : registryIdentities(group.members),
+		placements: sharedIdentifierPlacements(shared, count, [lead, ...others], group.members.length),
+		crossReferences: registryIdentities(group.members),
 	};
+}
+
+/** The registry's own record of the identifier a group was confirmed on: what that identifier names, not a record sharing it. */
+function isRegistryRecordOf(member: AnyRecord, matchedId: string): boolean {
+	return member.kind === "frs-facility" && member.registryId.value === matchedId;
+}
+
+/**
+ * Which of the two group sentences a group can support — see `leadGroupOf` for
+ * what each one may claim.
+ *
+ * `sharing` is the records that carry the identifier, in the order the sentence
+ * would name them, and `members` is the whole group, which is what the count is
+ * of.
+ */
+function sharedIdentifierPlacements(
+	shared: GroupPlacement,
+	count: GroupPlacement,
+	sharing: readonly AnyRecord[],
+	members: number,
+): readonly GroupPlacement[] {
+	const [first, second] = sharing;
+	if (first === undefined || second === undefined) return [];
+	if (first.subject.value === second.subject.value) return [count];
+	return members > 2 ? [shared, count] : [shared];
 }
 
 export function groupPlacements(result: GroupingResult): readonly LeadGroup[] {
@@ -1275,7 +1528,7 @@ export function semsCard(
 		...base,
 		headlines: [
 			countHeadline(section, semsSectionCount),
-			countHeadline(npl, semsNplSectionCount),
+			...nplCountHeadline(store, npl),
 			...listings.flatMap((listing) => notShownHeadline(store, listing)),
 			...noRecordsHeadline(store, outcome, section),
 		],
@@ -1390,9 +1643,9 @@ export function floodCard(store: EvidenceStore, result: FloodZoneResult, bounds:
 
 /**
  * B7: the nearest qualified AQS monitor per pollutant. One listing each, one
- * record shown, the rest carried. No `aqs-monitor-summary` template exists yet,
- * so the caller passes one in; with none the card is status-only and no AQS
- * record can exist to be undescribed.
+ * record shown, the rest carried, and every record of the kind described by the
+ * one template `lib/templates/aqs.ts` declares for it. With no templates handed
+ * in the card is status-only, and `refuseUndescribed` is what makes that safe.
  */
 export function aqsCard(
 	store: EvidenceStore,
@@ -1444,7 +1697,11 @@ export function airnowCard(
 	}
 	refuseAnsweredWithNone(store, outcome, "airnow-observation");
 	const section = airnowSection(outcome, bounds);
-	const listing = listingOf(section, "distance", bounds, (record) => entryOf(record.id, [air.airnow]));
+	// Per record, not per card: this kind has two templates and each declares
+	// the AQI state it speaks about, so the row decides which one it gets.
+	const listing = listingOf(section, "distance", bounds, (record) =>
+		entryOf(record.id, [airnowTemplateFor(record, air.airnow)]),
+	);
 	return {
 		...base,
 		headlines: [...notShownHeadline(store, listing), ...noRecordsHeadline(store, outcome, section)],

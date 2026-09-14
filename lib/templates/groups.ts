@@ -1,10 +1,12 @@
 /**
  * Group templates: several records the B6 grouping rules tied together.
  *
- * Which records form a group is `lib/report/grouping.ts`'s decision and is
- * wired in a later unit. This file only proves the scope renders: a group
- * placement names its members and the slot they were grouped on, and rendering
- * reads each member from the live store. A deleted member leaves the group
+ * Which records form a group is `lib/report/grouping.ts`'s decision, wired into
+ * the report by `app/api/report/handler.ts` through `groupPlacements` and
+ * `groupsFor` in `lib/report/selection.ts`; nothing here decides it. This file
+ * only proves the scope renders: a group placement names its members and the
+ * slot they were grouped on, and rendering reads each member from the live
+ * store. A deleted member leaves the group
  * smaller rather than leaving stale text behind, and a group whose last member
  * is gone renders nothing at all.
  *

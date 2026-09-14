@@ -11,10 +11,11 @@
  * because the screen tests need the `Response` itself -- a streaming body read
  * chunk by chunk -- and not only its text.
  *
- * Two answers are derived rather than recorded, each labelled `derived:` in its
- * payload URL: an ECHO summary whose `QueryRows` is zero, which is ECHO's own
- * no-records answer, and an empty FRS registry layer. Nothing reaches the
- * network.
+ * One answer is derived rather than recorded, labelled `derived:` in its
+ * payload URL: an empty FRS registry layer, for a registry ID no recorded
+ * bytes cover. Every other answer is committed bytes, and the two air sources
+ * are never asked for bytes at all -- their adapters fail before the network
+ * because this deployment holds no key. Nothing reaches the network.
  */
 
 import { createHash } from "node:crypto";
@@ -49,11 +50,6 @@ export type Answer =
 
 function bytesOf(relative: string): Buffer {
 	return readFileSync(`${fixturesDir}${relative}`);
-}
-
-function parseJson(relative: string): JsonValue {
-	const value: JsonValue = JSON.parse(bytesOf(relative).toString("utf8"));
-	return value;
 }
 
 function pause(ms: number): Promise<void> {
@@ -94,6 +90,8 @@ function ioOf(answerFor: (url: URL) => Answer): SourceIo {
 const ECHO_SUMMARY = "echo/facilities-quarter-mi.json";
 const ECHO_PAGE = "echo/facilities-page-quarter-mi.json";
 const SEMS_LAYER = "sems/arcgis-5mi-houston.json";
+/** The recorded Superfund layer answer with no rows in it, from a Nevada query. */
+const SEMS_NO_RECORDS = "sems/arcgis-no-records-nevada.json";
 
 const FRS_FIXTURES: ReadonlyMap<string, string> = new Map([
 	["110000460885", "frs/arcgis-registry-110000460885.json"],
@@ -137,31 +135,30 @@ export const DEMO: Plan = {
 	esri: { fixture: "fema/esri-no-polygon-houston.json" },
 };
 
-function isJsonArray(value: JsonValue): value is readonly JsonValue[] {
-	return Array.isArray(value);
-}
-
-function objectAt(value: JsonValue | undefined, what: string): { readonly [key: string]: JsonValue } {
-	if (value === null || value === undefined || typeof value !== "object" || isJsonArray(value)) {
-		throw new Error(`${what} is not an object`);
-	}
-	return value;
-}
-
-/** The recorded ECHO summary with its row count set to zero, which is ECHO's own no-records answer. */
-function echoNoRows(): JsonValue {
-	const results = objectAt(objectAt(parseJson(ECHO_SUMMARY), ECHO_SUMMARY)["Results"], "Results");
-	return { Results: { ...results, QueryRows: "0" } };
-}
-
 /**
- * One stream carrying all four card states: SEMS and FRS answer with records,
- * ECHO answers with nothing, both flood layers refuse, and the two air sources
- * were never asked because no adapter is registered for them.
+ * One stream carrying all four card states:
+ *
+ * - **records** -- ECHO, over its recorded Houston bytes: seven facilities.
+ * - **no-records** -- SEMS, over the recorded layer answer that has no rows in
+ *   it.
+ * - **unavailable** -- the flood card, with both layers refusing. The two air
+ *   sources are unavailable too, for a cause of their own: this deployment
+ *   holds no credential for either, which is docs/BRIEF.md A6 beat 6 and the
+ *   state the demo shows until an operator registers a key.
+ * - **not-asked** -- the registry. FRS takes a registry ID rather than a locus,
+ *   and a Superfund layer with no rows in it names none, so nothing was asked
+ *   of FRS at all. It is the one card that still reaches this state: every
+ *   source in docs/BRIEF.md B2 now has an adapter, so a source with no key
+ *   configured is one that was asked and could not be reached, not one nobody
+ *   asked.
+ *
+ * `DEMO` is the other way round on the first two -- SEMS answers with fifteen
+ * sites there and ECHO's card is built over the same bytes -- because a stream
+ * cannot have SEMS both answering with records and naming no registry ID.
  */
 export const FOUR_STATES: Plan = {
 	...DEMO,
-	echoSummary: { derived: "derived:echo-zero-rows", body: echoNoRows() },
+	semsLayer: { fixture: SEMS_NO_RECORDS },
 	nfhl: { fail: NFHL_REFUSED },
 	esri: { fail: new SourceFailure("refused") },
 };

@@ -64,7 +64,10 @@ function registryIdOf(url: URL): string {
  * NFHL's host refuses connections from outside the US and no response from it
  * has ever been recorded (docs/BRIEF.md B14), so it is refused here and Esri's
  * recorded copy answers. That is what leaves a `source`-scoped prior attempt on
- * the flood card, which is the only unavailable trace in the demo report.
+ * the flood card. It is one of three unavailable traces in the demo report: the
+ * two air sources are asked and fail before the network, because this
+ * deployment holds no credential for either, so no URL of theirs is routed
+ * above and none is ever requested.
  */
 function answerFor(url: URL, echoCall: number): Answer {
 	if (url.host === "echodata.epa.gov") {
@@ -404,19 +407,48 @@ describe("a status sentence opens on our own request", () => {
 		expect(view.absentRows).toEqual(["record-ids", "original-record", "record-date", "source-updated", "caveats"]);
 	});
 
-	it("gives the failure cause for the flood card's prior attempt, which is the only unavailable trace here", async () => {
+	it("gives the failure cause for each of the three unavailable traces here, and they are not one cause", async () => {
 		const sentences = everySentence(await houstonEvents());
-		const view = firstView(sentenceSaying(sentences, "could not be reached"));
-		expect(rowNamed(view, pick.outcome, "outcome")).toEqual({
+		// Three of them, and no more: the flood card's prior attempt, and the two
+		// air sources this deployment holds no credential for.
+		// Sorted, because the settle order is the arrival order and nothing here
+		// pins which source lost the race.
+		const unreachable = sentences.filter((sentence) => textOf(sentence).includes("could not be reached"));
+		expect(unreachable.map(textOf).sort()).toEqual([
+			"EPA Air Quality System could not be reached: this deployment holds no credential for it. It answered no-api-key.",
+			"EPA AirNow could not be reached: this deployment holds no credential for it. It answered no-api-key.",
+			"FEMA's National Flood Hazard Layer could not be reached: the host refused the connection.",
+		]);
+
+		// A host that refused a connection. No raw code: nothing answered.
+		const flood = firstView(sentenceSaying(sentences, "FEMA's National Flood Hazard Layer could not be reached"));
+		expect(rowNamed(flood, pick.outcome, "outcome")).toEqual({
 			row: "outcome",
 			status: "unavailable",
 			cause: "refused",
 			rawCode: null,
 			retryAfter: null,
 		});
+
+		// A request that failed before the network, for a reason an operator can
+		// act on -- docs/BRIEF.md A6 beat 6, the state the demo shows until a key
+		// is registered. Same status, a different cause, and a raw code under it.
+		for (const sentence of [sentenceSaying(sentences, "EPA Air Quality System"), sentenceSaying(sentences, "EPA AirNow")]) {
+			expect(rowNamed(firstView(sentence), pick.outcome, "outcome")).toEqual({
+				row: "outcome",
+				status: "unavailable",
+				cause: "not-configured",
+				rawCode: "no-api-key",
+				retryAfter: null,
+			});
+		}
+
 		// An unavailable source has no retrieval time, so the row is absent
-		// rather than filled with a time nothing was retrieved at.
-		expect(view.rows.some((row) => row.row === "retrieved")).toBe(false);
+		// rather than filled with a time nothing was retrieved at. True of all
+		// three, whichever way the request failed.
+		for (const sentence of unreachable) {
+			expect(firstView(sentence).rows.some((row) => row.row === "retrieved"), textOf(sentence)).toBe(false);
+		}
 	});
 });
 
@@ -474,22 +506,37 @@ describe("every slotted span of the demo report opens something", () => {
 			}
 		}
 		// docs/BRIEF.md A2 screen 3 over the Houston demo point: 48 sentences,
-		// 172 of whose spans carry a slot. Pinned, so a template that loses a
+		// 173 of whose spans carry a slot. Pinned, so a template that loses a
 		// slot is a failure here.
+		//
+		// The audit counted 48 and 172, when AQS and AirNow arrived as
+		// `not-asked` and carried no sentence at all. What they carry now is one
+		// `source/unavailable@1` sentence each, three slotted spans apiece --
+		// agency, cause, rawCode. Two sentences and five spans went the other
+		// way: the registry card's "Searched within 5 miles of the mapped
+		// point", over a lookup by registry ID that searched no area, and the
+		// group sentence naming the registry's own record of an identifier as a
+		// record sharing it.
+		const air = sentences.filter((sentence) => textOf(sentence).includes("holds no credential for it"));
+		expect(air.length).toBe(2);
+		expect(air.flatMap((sentence) => [...openableSpans(sentence)]).length).toBe(6);
 		expect(sentences.length).toBe(48);
-		expect(opened).toBe(172);
+		expect(opened).toBe(173);
 	});
 
-	it("leaves 27 spans whose value has no provenance of its own, and gives every one of them a header", async () => {
+	it("leaves 31 spans whose value has no provenance of its own, and gives every one of them a header", async () => {
 		const sentences = everySentence(await houstonEvents());
 		let empty = 0;
+		let onAir = 0;
 		for (const sentence of sentences) {
+			const air = textOf(sentence).includes("holds no credential for it");
 			for (const index of openableSpans(sentence)) {
 				const view = traceView(sentence, index);
 				if (view === null) continue;
 				const value = clickedValues(view)[0];
 				if (value === undefined || value.provenance.length > 0) continue;
 				empty += 1;
+				if (air) onAir += 1;
 				// Every one of them is a count or a status, and every one still
 				// opens on a header: the agency, and either the counted records or
 				// the outcome of our own request.
@@ -499,7 +546,12 @@ describe("every slotted span of the demo report opens something", () => {
 				expect(grounding, `${textOf(sentence)} @${index}`).toBe(true);
 			}
 		}
-		expect(empty).toBe(27);
+		// The 27 the audit counted, plus every span of the two air cards -- an
+		// agency, a cause and a raw code are facts about our own request, and no
+		// agency's record stands behind any of them -- less the boundary and the
+		// retrieval time of a registry card that stopped claiming a search.
+		expect(onAir).toBe(6);
+		expect(empty).toBe(31);
 	});
 
 	it("opens nothing for connective text or for an index off the end", async () => {

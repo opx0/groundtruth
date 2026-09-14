@@ -17,8 +17,12 @@
  *
  * A section template is not bound to a record kind, so the same
  * `Template<"section">` renders for SEMS, ECHO or any other source. What
- * differs between sections is the `SectionSpec` behind them: the kind, the
- * boundary, the query, and the filter that selects the ordering.
+ * differs between sections is the `SectionSpec` behind them: the kind and the
+ * source it comes from, the boundary, the query, the filter that selects the
+ * ordering, and the three fields the last three templates in this file exist
+ * to print -- `retrievedAt` for `retrieved-at@1`, `note` for `no-records@1`,
+ * and `carried`, which `sectionSubject` subtracts from the ordering's length
+ * to get the `notShown` that `not-shown@1` reads.
  *
  * docs/BRIEF.md A2 screen 3 and B7.
  */

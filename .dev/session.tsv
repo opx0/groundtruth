@@ -16,3 +16,5 @@ ts	event	unit	detail	elapsed_s
 2026-09-16T11:14:07Z	start	U2.1	selection and ordering policy	
 2026-09-16T11:53:21Z	end	U2.1	selection policy, three verify rounds, 430 tests	2354
 2026-09-16T12:28:09Z	end	U3.1	report route, origin sentences, air adapters, screen and trace panel	0
+2026-09-16T13:37:24Z	start	U5	cache, privacy tests, fixture matrix, playwright	
+2026-09-16T13:37:24Z	end	U5	exit predicate passes: verify 723, e2e 8	0

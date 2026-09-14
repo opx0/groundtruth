@@ -31,13 +31,11 @@ import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 import {
 	complete,
-	defineTemplate,
 	NO_DATA_NOTE,
 	recordId,
 	render,
 	runSource,
 	sectionOrdering,
-	sentence,
 	SourceFailure,
 	storeOf,
 	trace,
@@ -62,6 +60,8 @@ import {
 	type SubjectKey,
 	type Template,
 } from "@/lib/evidence";
+import { airnowAdapter } from "@/lib/adapters/airnow";
+import { aqsAdapter, latestLikelySummaryYear } from "@/lib/adapters/aqs";
 import { geocode } from "@/lib/adapters/census";
 import { createEchoAdapter } from "@/lib/adapters/echo";
 import { FEMA_DATASETS, floodZoneOutcome, type FloodZoneResult } from "@/lib/adapters/fema";
@@ -69,7 +69,9 @@ import { lookupFrsFacility } from "@/lib/adapters/frs";
 import { semsAdapter } from "@/lib/adapters/sems";
 import { groupRecords, type GroupingResult } from "@/lib/report/grouping";
 import {
+	airnowCard,
 	aqsCard,
+	BOUNDARY,
 	byDistance,
 	cardPlacements,
 	carriedCount,
@@ -95,6 +97,8 @@ import {
 	type ReportPlan,
 	type ReportSource,
 } from "@/lib/report/selection";
+import { airnowObservationNoIndex, airnowObservationSummary, airnowTemplates } from "@/lib/templates/airnow";
+import { aqsMonitorSummary, aqsTemplates } from "@/lib/templates/aqs";
 import { echoTemplates } from "@/lib/templates/echo";
 import { femaTemplates } from "@/lib/templates/fema";
 import { frsTemplates } from "@/lib/templates/frs";
@@ -115,6 +119,8 @@ const locus: Locus = houstonLocus();
 const ALL_TEMPLATES: readonly Template<SubjectKey>[] = [
 	...semsTemplates,
 	...echoTemplates,
+	...aqsTemplates,
+	...airnowTemplates,
 	...femaTemplates,
 	...frsTemplates,
 	...sectionTemplates,
@@ -228,6 +234,9 @@ const PART_OF_NPL = "TXN000607155";
 /** The two sites docs/BRIEF.md A2 names as being on the final National Priorities List, nearest first. */
 const FINAL_NPL_SITES: readonly string[] = ["TXN000607093", "TXD980748453"];
 
+/** docs/BRIEF.md B6's verified pair: two Superfund EPA IDs under registry 110000462703, each with its own Envirofacts name. */
+const PASADENA_PAIR: readonly string[] = ["TXN000607355", "TXN000605303"];
+
 /**
  * Served the recorded empty Envirofacts answer, so its record reaches the
  * `no-row` state. All fifteen recorded sites do have a status row — that was
@@ -252,17 +261,40 @@ function semsLayerBody(overrides: Readonly<Record<string, JsonObject>>): JsonVal
 	return { ...layer, features };
 }
 
-function semsIo(layer: Answer = { fixture: LAYER_5MI }): SourceIo {
+/**
+ * The recorded answers, with the Envirofacts status request rejected for the
+ * sites `failing` names.
+ *
+ * Which sites those are is the whole of docs/BRIEF.md A1: Envirofacts is a
+ * second host, asked once per site, fifteen times at `STATUS_CONCURRENCY = 4`,
+ * and the sites whose request fails are the sites the final-NPL filter cannot
+ * see. One unrelated site failing is the default here; the two final-NPL sites
+ * failing is the case that printed a zero.
+ */
+function semsIo(
+	layer: Answer = { fixture: LAYER_5MI },
+	failing: readonly string[] = [FAILED_SITE],
+	rowless: readonly string[] = [ROWLESS_SITE],
+): SourceIo {
 	return ioOf((url) => {
 		const epaId = epaIdOf(url);
 		if (epaId === null) return layer;
-		if (epaId === FAILED_SITE) return { fail: new SourceFailure("rate-limited", "429", "60") };
-		if (epaId === ROWLESS_SITE) return { fixture: "sems/envirofacts-no-row.json" };
+		if (failing.includes(epaId)) return { fail: new SourceFailure("rate-limited", "429", "60") };
+		if (rowless.includes(epaId)) return { fixture: "sems/envirofacts-no-row.json" };
 		return { fixture: `sems/envirofacts-${epaId}.json` };
 	});
 }
 
 const sems = await runSource(locus, semsAdapter, semsIo(), POLICY);
+
+/**
+ * The same fifteen sites with every status request answered, which is what the
+ * recorded demo does: all fifteen have an Envirofacts row and every one of them
+ * came back (`tests/fixtures/README.md`). The Superfund inventory has then
+ * answered about every site the final-NPL count counts from, which is the state
+ * that count may be stated in.
+ */
+const semsAnswered = await runSource(locus, semsAdapter, semsIo({ fixture: LAYER_5MI }, []), POLICY);
 
 function recordsOf(outcome: SourceOutcome): readonly Sealed<EvidenceRecord>[] {
 	return outcome.status === "ok" ? outcome.records : [];
@@ -357,7 +389,7 @@ const fema = await flood({ fixture: "fema/esri-zone-ae-pasadena.json" });
  * AQS's shared test account is exhausted and AirNow refuses without a key, so
  * both recorded fixtures are error bodies. These outcomes carry the recorded
  * body as the raw code, through the kernel's own classification, which is what
- * an adapter would do with the same response the day one exists.
+ * each adapter does with the same response today.
  */
 function unavailableFrom(fixture: string, reason: "rate-limited" | "http", retryAfter: string | null): SourceOutcome {
 	return unavailableOf(new SourceFailure(reason, parseJson(fixture), retryAfter));
@@ -366,15 +398,77 @@ function unavailableFrom(fixture: string, reason: "rate-limited" | "http", retry
 const aqs = unavailableFrom("aqs/rate-limited.json", "rate-limited", "86400");
 const airnow = unavailableFrom("airnow/unauthenticated.json", "http", null);
 
-/** Stand-ins for the two air templates that do not exist yet, so the air cards' wiring can be exercised. */
-const AIR: AirTemplates = {
-	aqs: defineTemplate("aqs-monitor-summary", "test/aqs-monitor@1", (field) => [
-		sentence`${field("monitorId")} measured ${field("value")} ${field("unit")}.`,
-	]),
-	airnow: defineTemplate("airnow-observation", "test/airnow-observation@1", (field) => [
-		sentence`${field("reportingArea")} reported ${field("pollutant")}.`,
-	]),
-};
+/**
+ * The real templates, which exist now. They were stand-ins here while the two
+ * adapters were briefed and unwritten, and a stand-in cannot exercise the one
+ * thing this file has to check: `lib/templates/airnow.ts` is two templates
+ * split on `aqi`, each declaring the state it speaks about, so the policy
+ * chooses per record and a card built from one of them alone leaves every row
+ * in the other state with no sentence at all.
+ */
+const AIR: AirTemplates = { aqs: aqsMonitorSummary, airnow: airnowTemplates };
+
+/**
+ * The year the report asks AQS about, read off the same clock every payload's
+ * `retrievedAt` comes from -- which is what `app/api/report/handler.ts` does
+ * with `io.now()`, and is why neither it nor this file reads a wall clock.
+ */
+const SUMMARY_YEAR = latestLikelySummaryYear(RETRIEVED_AT);
+
+/**
+ * Both air sources answering, through their own adapters, over committed bytes.
+ *
+ * Neither key is in this process and neither adapter will fetch without one, so
+ * the two are set for the length of the call and restored after it. That is the
+ * request an operator's deployment makes; the unavailable outcomes above are
+ * the one this deployment makes, and the report has to be right about both.
+ */
+async function withAirKeys<T>(run: () => Promise<T>): Promise<T> {
+	const names: readonly string[] = ["AQS_EMAIL", "AQS_KEY", "AIRNOW_KEY"];
+	const before = names.map((name) => ({ name, value: process.env[name] }));
+	process.env["AQS_EMAIL"] = "selection-test@example.test";
+	process.env["AQS_KEY"] = "selection-test-aqs-key";
+	process.env["AIRNOW_KEY"] = "selection-test-airnow-key";
+	try {
+		return await run();
+	} finally {
+		for (const { name, value } of before) {
+			if (value === undefined) delete process.env[name];
+			else process.env[name] = value;
+		}
+	}
+}
+
+/**
+ * One AirNow answer carrying both states: the recorded ozone row, which has an
+ * index, and the recorded PM2.5 row, which has none. Two committed rows
+ * recombined into one body and labelled `derived:`, because no single fixture
+ * holds both and a card that shows one row per state is what the per-record
+ * choice has to be asserted against.
+ */
+function airnowBothStates(): JsonValue {
+	const indexed = arrayAt(parseJson("airnow/derived-current-observations.json"), "the observations");
+	const none = arrayAt(parseJson("airnow/derived-null-aqi.json"), "the null-index observations");
+	return [objectAt(indexed[0], "the ozone row"), objectAt(none[0], "the row with no index")];
+}
+
+const aqsAnswered = await withAirKeys(() =>
+	runSource(
+		locus,
+		aqsAdapter(SUMMARY_YEAR),
+		ioOf(() => ({ fixture: "aqs/derived-annual-summary-houston.json" })),
+		POLICY,
+	),
+);
+
+const airnowAnswered = await withAirKeys(() =>
+	runSource(
+		locus,
+		airnowAdapter,
+		ioOf(() => ({ derived: "airnow-one-index-one-not", body: airnowBothStates() })),
+		POLICY,
+	),
+);
 
 const NO_RECORDS: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT };
 
@@ -422,6 +516,29 @@ function planOf(parts: PlanFor, bounds?: Bounds): Built {
 const HOUSTON: PlanFor = { sems, echo, frs, aqs, airnow, flood: fema, air: null };
 
 const houston = planOf(HOUSTON);
+
+/**
+ * The same report over the fifteen sites the inventory answered about in full.
+ *
+ * `HOUSTON` rejects one site's status request, because three status-row states
+ * over one plan is what the Superfund templates have to be asserted against —
+ * and a card holding a site the inventory did not answer for states no
+ * final-NPL count at all. So every assertion about that count is made here,
+ * where the count is a count of the sites the count is about, and the withheld
+ * case has tests of its own.
+ */
+const ANSWERED: PlanFor = { ...HOUSTON, sems: semsAnswered };
+
+const answered = planOf(ANSWERED);
+
+/**
+ * The same report with both air sources answering and the real templates
+ * registered: five monitors' worth of AQS body reduced to the three within
+ * 50 km, and two AirNow rows, one carrying an index and one not.
+ */
+const WITH_AIR: PlanFor = { ...HOUSTON, aqs: aqsAnswered, airnow: airnowAnswered, air: AIR };
+
+const withAir = planOf(WITH_AIR);
 
 /* -------------------------------------------------------------------------- */
 /* Helpers over a plan                                                        */
@@ -566,8 +683,12 @@ describe("every placement the policy produces renders", () => {
 		]);
 		// 57 before the ECHO card stopped placing `industry-codes@1` for the six
 		// facilities that have a code column, and before the registry
-		// cross-reference moved beside the group it is about.
-		expect(placements).toHaveLength(52);
+		// cross-reference moved beside the group it is about. 52 before the two
+		// this plan no longer holds: the registry's "Searched within 5 miles",
+		// over a lookup by registry ID that stated no boundary, and the
+		// final-NPL count, over a store holding a site the inventory did not
+		// answer for.
+		expect(placements).toHaveLength(50);
 		for (const placement of placements) {
 			const one = render(houston.store, placement);
 
@@ -811,10 +932,12 @@ describe("the final-NPL section counts the final list and nothing else", () => {
 	const npl = listingOf(houston.plan, "sems", 1);
 
 	it("counts exactly the two sites docs/BRIEF.md A2 names", () => {
-		const counted = sectionOrdering(houston.store, npl.section).map((record) => record.sourceRecordId);
+		const counted = sectionOrdering(answered.store, listingOf(answered.plan, "sems", 1).section).map(
+			(record) => record.sourceRecordId,
+		);
 
 		expect([...counted].sort()).toEqual([...FINAL_NPL_SITES].sort());
-		expect(mustRender(houston.store, headline(houston.plan, "sems", 1))).toBe(
+		expect(mustRender(answered.store, headline(answered.plan, "sems", 1))).toBe(
 			"Sites on the final National Priorities List within 5 miles of the mapped point: 2.",
 		);
 	});
@@ -837,6 +960,71 @@ describe("the final-NPL section counts the final list and nothing else", () => {
 		expect(failed?.semsNplStatus).toBeNull();
 		expect(npl.section.filter).toEqual({ field: "semsNplStatus", equals: FINAL_NPL_STATUS });
 		expect(idsOf(houston.store, npl)).not.toContain(FAILED_SITE);
+	});
+
+	/**
+	 * A list that leaves a site out says nothing about that site. A count that
+	 * leaves it out says there are none — so the count is stated only over a
+	 * store the inventory answered about in full, and the two plans differ by
+	 * one rejected status request and nothing else.
+	 */
+	it("states no count of the final list when a status request failed, and states it when none did", () => {
+		const withheld = cardPlacements(houston.store, cardOf(houston.plan, "sems")).map((one) => one.template.id);
+		const stated = cardPlacements(answered.store, cardOf(answered.plan, "sems")).map((one) => one.template.id);
+
+		expect(houston.store.ofKind("sems-site").filter((one) => one.statusRow.status === "unavailable")).toHaveLength(1);
+		expect(answered.store.ofKind("sems-site").filter((one) => one.statusRow.status === "unavailable")).toHaveLength(0);
+		expect(withheld).not.toContain("section/sems-npl-count@1");
+		expect(stated).toContain("section/sems-npl-count@1");
+		// The site count beside it is not filtered on a field the failure nulls,
+		// so it is a count of the world on both plans and stays on both cards.
+		expect(withheld).toContain("section/sems-count@1");
+		expect(stated).toContain("section/sems-count@1");
+		// Nothing else moved: the listings speak for all fifteen sites either way.
+		expect(idsOf(houston.store, listingOf(houston.plan, "sems"))).toHaveLength(15);
+		expect(idsOf(answered.store, listingOf(answered.plan, "sems"))).toHaveLength(15);
+	});
+
+	/**
+	 * docs/BRIEF.md A1, which is docs/BRIEF.md A6 row 1's headline number: fail
+	 * the status request for exactly the two final-NPL sites of the demo address
+	 * and the filter sees neither, so the count read 0 — above two sentences, on
+	 * the same card, naming those two sites and the registry's answer for them.
+	 */
+	it("prints no zero over the two sites the registry names, when their status requests are the ones that failed", async () => {
+		const outage = await runSource(locus, semsAdapter, semsIo({ fixture: LAYER_5MI }, FINAL_NPL_SITES), POLICY);
+		const partial = planOf({ ...HOUSTON, sems: outage });
+		const card = cardOf(partial.plan, "sems");
+		const npl = listingOf(partial.plan, "sems", 1);
+		const main = listingOf(partial.plan, "sems");
+
+		// The zero is real: the section that count reads is empty, because the
+		// only two sites that would fill it are the two the inventory did not
+		// answer for.
+		expect(sectionOrdering(partial.store, npl.section)).toHaveLength(0);
+		for (const id of FINAL_NPL_SITES) {
+			expect(partial.store.get(recordId("sems-site", id))?.semsNplStatus).toBeNull();
+			expect(partial.store.get(recordId("sems-site", id))?.frsActiveStatus.value).toBe("CURRENTLY ON THE FINAL NPL");
+		}
+		// So no sentence on the card states that count.
+		expect(planPlacements(partial.store, partial.plan).map((one) => one.template.id)).not.toContain(
+			"section/sems-npl-count@1",
+		);
+		// The status line still says the source answered with records, which is
+		// true, and the two sites still reach the reader — each naming what the
+		// registry holds and what the inventory did not answer.
+		expect(mustRender(partial.store, card.status)).toBe(
+			`EPA Superfund Enterprise Management System answered with records, retrieved ${RETRIEVED_AT}.`,
+		);
+		expect(templateIdsFor(partial.store, main, "TXN000607093")).toEqual(["sems-site/status-unavailable@1"]);
+		expect(mustRender(partial.store, firstPlacementFor(partial.store, main, "TXN000607093"))).toBe(
+			"U.S. OIL RECOVERY, 3.92 km from the mapped point." +
+				" EPA's facility registry records the SUPERFUND NPL interest at U.S. OIL RECOVERY as CURRENTLY ON THE FINAL NPL." +
+				" The Superfund inventory's status for TXN000607093 could not be retrieved.",
+		);
+		expect(mustRender(partial.store, firstPlacementFor(partial.store, main, "TXD980748453"))).toContain(
+			"as CURRENTLY ON THE FINAL NPL.",
+		);
 	});
 });
 
@@ -1175,7 +1363,10 @@ describe("the deletion guarantee, through a placement the policy produced", () =
 		const tight = planOf(HOUSTON, bounds);
 		const listing = listingOf(tight.plan, "sems");
 		const count = headline(tight.plan, "sems", 0);
-		const notShown = headline(tight.plan, "sems", 2);
+		// The card states no final-NPL count over this plan, which holds a site
+		// the inventory did not answer for, so the gap sits directly beside the
+		// site count. `nplCountHeadline` is where that is decided.
+		const notShown = headline(tight.plan, "sems", 1);
 		const inside: RecordId = recordId("sems-site", at(idsOf(tight.store, listing), 0, "first entry"));
 		const past: RecordId = recordId("sems-site", at(idsOf(houston.store, listingOf(houston.plan, "sems")), 14, "last of the ordering"));
 
@@ -1294,8 +1485,11 @@ describe("B7's list, item by item", () => {
 		// version of this test never called: it asserted that two arrays were
 		// non-empty and that every headline had the scope its type already fixes.
 		const counted: readonly ReportSource[] = ["sems", "echo"];
+		// Over the plan the inventory answered about in full, so the SEMS card
+		// states both of its counts; `nplCountHeadline` is what withholds the
+		// second one, and the tests for that are with the final-NPL section.
 		for (const source of counted) {
-			const placements = cardPlacements(houston.store, cardOf(houston.plan, source));
+			const placements = cardPlacements(answered.store, cardOf(answered.plan, source));
 			const scopes = placements.map((one) => one.scope);
 			const lastCount = scopes.lastIndexOf("section");
 			const firstRecord = scopes.indexOf("record");
@@ -1317,13 +1511,50 @@ describe("B7's list, item by item", () => {
 		expect(restOf(houston.store, listingOf(houston.plan, "sems"))).toHaveLength(10);
 	});
 
-	it("carries the registry's boundary and retrieval time, since FRS has no count sentence", () => {
+	/**
+	 * docs/BRIEF.md A2. `lookupFrsFacility` asks `where=REGISTRY_ID='...'` for
+	 * registry IDs another card named; there is no radius in the request, and
+	 * docs/BRIEF.md B14 records 6,915 FRS interest rows within five miles of
+	 * this exact point. "Searched within 5 miles of the mapped point" claimed
+	 * that search on the answering path and, with `no-records` beside it,
+	 * asserted an absence over it.
+	 */
+	it("claims no search of an area the registry lookup never queried", () => {
 		const card = cardOf(houston.plan, "frs");
+		const section = listingOf(houston.plan, "frs").section;
 
-		expect(card.headlines.map((one) => one.template.id)).toEqual(["section/retrieved-at@1"]);
-		expect(mustRender(houston.store, headline(houston.plan, "frs", 0))).toBe(
-			`Searched within 5 miles of the mapped point, retrieved ${RETRIEVED_AT}.`,
+		expect(card.headlines).toEqual([]);
+		expect(planPlacements(houston.store, houston.plan).map((one) => one.template.id)).not.toContain(
+			"section/retrieved-at@1",
 		);
+		// The boundary is still on the card, in the section behind the listing and
+		// in every trace opened from it, and it describes the request that was
+		// made. The distance a record is measured at still comes from the
+		// five-mile locus the handler centres the lookup on.
+		expect(section.boundary).toBe("the registry IDs this report looked up");
+		expect(BOUNDARY.frs).toBe("the registry IDs this report looked up");
+		// The retrieval time reaches the reader from the status sentence, which is
+		// the one sentence on this card that was never about an area.
+		expect(mustRender(houston.store, card.status)).toBe(
+			`EPA Facility Registry Service answered with records, retrieved ${RETRIEVED_AT}.`,
+		);
+	});
+
+	/**
+	 * The other half of A2: an empty answer from a lookup by identifier is those
+	 * identifiers carrying no row, and `NO_DATA_NOTE`'s "within the stated
+	 * boundary" states a boundary the request did not have.
+	 */
+	it("says what an empty registry answer is, in place of the fan-out's boundary wording", () => {
+		const empty: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT };
+		const none = planOf({ ...HOUSTON, frs: empty });
+		const card = cardOf(none.plan, "frs");
+
+		expect(card.headlines.map((one) => one.template.id)).toEqual(["section/no-records@1"]);
+		expect(card.headlines.map((one) => mustRender(none.store, one))).toEqual([
+			"EPA's facility registry holds no programme-interest row for the registry IDs this report looked up.",
+		]);
+		expect(card.headlines.map((one) => mustRender(none.store, one))).not.toContain(NO_DATA_NOTE);
 	});
 });
 
@@ -1457,12 +1688,19 @@ describe("the groups the B6 rules produced", () => {
 		]);
 		expect(registry.crossReferences).toHaveLength(0);
 		// It sits after the two group sentences and before any record of this
-		// card's own, which is where a reader meets the bare identifier.
-		expect(cardPlacements(houston.store, sems).map((one) => one.template.id).slice(3, 6)).toEqual([
+		// card's own, which is where a reader meets the bare identifier. Found
+		// rather than counted from the top: how many headlines precede the groups
+		// is the business of the tests above, and one of them is withheld here.
+		const ids = cardPlacements(houston.store, sems).map((one) => one.template.id);
+		const first = ids.indexOf("group/shared-identifier@1");
+
+		expect(first).toBeGreaterThan(-1);
+		expect(ids.slice(first, first + 3)).toEqual([
 			"group/shared-identifier@1",
 			"group/member-count@1",
 			"frs-facility/cross-reference@1",
 		]);
+		expect(ids.indexOf("sems-site/summary@1")).toBeGreaterThan(first + 2);
 		expect(mustRender(houston.store, at(sems.crossReferences, 0, "cross-reference"))).toBe(
 			`EPA's facility registry carries the name PASADENA REFINING SYSTEM, INC. for registry ID ${TWO_IDS_REGISTRY}.`,
 		);
@@ -1512,14 +1750,90 @@ describe("the groups the B6 rules produced", () => {
 				" The latest update date on any of its programme-interest rows is 2024-03-14.",
 		);
 	});
+
+	/**
+	 * docs/BRIEF.md A3. Registry 110000460885 is VALERO PLUME in Envirofacts and
+	 * HOUSTON REFINERY in the registry, and A3 and B6 establish those as one site
+	 * under two names. "VALERO PLUME and HOUSTON REFINERY share one EPA facility
+	 * registry ID, 110000460885" made them two records sharing a third thing's
+	 * identifier; the cross-reference below it, which the card already carried,
+	 * is the correct statement of it.
+	 */
+	it("does not name the registry's own record of an identifier as a record sharing it", async () => {
+		const registry = await frsOutcome("frs/arcgis-registry-110000460885.json", "110000460885");
+		const pair = planOf({ ...HOUSTON, frs: registry });
+		const card = cardOf(pair.plan, "sems");
+		const grouped = groupingFrom(pair.store).groups.find(
+			(group) => group.confidence === "confirmed" && group.matchedId === "110000460885",
+		);
+
+		// The grouping still ties them together, and both records are untouched.
+		expect(grouped?.members.map((member) => member.id.sourceRecordId)).toEqual(["TXN000622182", "110000460885"]);
+		// No placement speaks for that group at all: the Superfund pair under
+		// 110000462703, which is two records sharing one identifier, is the only
+		// group sentence on this plan.
+		const sentences = pair.plan.cards.flatMap((one) => one.groups).map((one) => mustRender(pair.store, one));
+
+		expect(sentences).toEqual([
+			`PASADENA REFINING FIRE and PRSI FIRE share one EPA facility registry ID, ${TWO_IDS_REGISTRY}.`,
+		]);
+		for (const text of sentences) {
+			expect(text).not.toContain("110000460885");
+			expect(text).not.toContain("HOUSTON REFINERY");
+		}
+		// What the card says instead is what the registry holds, beside the record
+		// it resolves, and the registry's own card still states its identity.
+		expect(card.crossReferences.map((one) => one.recordId.sourceRecordId)).toEqual(["110000460885"]);
+		expect(mustRender(pair.store, at(card.crossReferences, 0, "cross-reference"))).toBe(
+			"EPA's facility registry carries the name HOUSTON REFINERY for registry ID 110000460885.",
+		);
+		expect(mustRender(pair.store, firstPlacementFor(pair.store, listingOf(pair.plan, "frs"), "110000460885"))).toBe(
+			"EPA's facility registry lists HOUSTON REFINERY under registry ID 110000460885." +
+				" The latest update date on any of its programme-interest rows is 2024-03-14.",
+		);
+	});
+
+	/**
+	 * The other half of A3, from committed bytes: a SEMS record's `subject`
+	 * coalesces the Superfund name over the registry's, so two sites under one
+	 * registry ID whose Envirofacts rows are both missing carry one name between
+	 * them and the sentence read "PASADENA REFINING SYSTEM, INC. and PASADENA
+	 * REFINING SYSTEM, INC. share one EPA facility registry ID, 110000462703."
+	 * The group is real; the pair is unnameable, so the count states it alone.
+	 */
+	it("counts a group whose two members cannot be told apart, rather than naming them twice", async () => {
+		const unnamed = await runSource(
+			locus,
+			semsAdapter,
+			semsIo({ fixture: LAYER_5MI }, [], [ROWLESS_SITE, ...PASADENA_PAIR]),
+			POLICY,
+		);
+		const same = planOf({ ...HOUSTON, sems: unnamed });
+		const card = cardOf(same.plan, "sems");
+		const subjects = PASADENA_PAIR.map((id) => same.store.get(recordId("sems-site", id))?.subject.value);
+
+		expect(subjects).toEqual(["PASADENA REFINING SYSTEM, INC.", "PASADENA REFINING SYSTEM, INC."]);
+		expect(card.groups.map((one) => one.template.id)).toEqual(["group/member-count@1"]);
+		expect(mustRender(same.store, at(card.groups, 0, "group"))).toBe(
+			`Records grouped under ${TWO_IDS_REGISTRY}: 3.`,
+		);
+		for (const text of listingText(same.store, listingOf(same.plan, "sems"))) {
+			expect(text).not.toContain("PASADENA REFINING SYSTEM, INC. and PASADENA REFINING SYSTEM, INC.");
+		}
+		// The template keeps the case it was written for: the same group, with the
+		// two Superfund names the inventory does hold for it.
+		expect(mustRender(houston.store, at(cardOf(houston.plan, "sems").groups, 0, "group"))).toBe(
+			`PASADENA REFINING FIRE and PRSI FIRE share one EPA facility registry ID, ${TWO_IDS_REGISTRY}.`,
+		);
+	});
 });
 
 /* -------------------------------------------------------------------------- */
-/* The air cards, which have no adapter yet                                   */
+/* The air cards                                                              */
 /* -------------------------------------------------------------------------- */
 
 describe("the air cards, built against their record kinds", () => {
-	it("are status-only while no template exists, so no air record can go undescribed", () => {
+	it("are status-only with no templates registered, so no air record can go undescribed", () => {
 		const air: readonly ReportSource[] = ["aqs", "airnow"];
 		for (const source of air) {
 			const card = cardOf(houston.plan, source);
@@ -1534,11 +1848,10 @@ describe("the air cards, built against their record kinds", () => {
 	});
 
 	/**
-	 * "No air record can be in the store while `air` is null" is a statement
-	 * about the caller, and a status-only card drops every record of its kind in
-	 * silence. No adapter or fixture can produce an air record, so the check is
-	 * exercised on the kinds that do have records: it is the same check, on the
-	 * same status-only path.
+	 * A status-only card drops every record of its kind in silence, so it may
+	 * only be built over a store holding none of them. The check is the same on
+	 * every kind, and the air kinds can reach it now that both adapters exist:
+	 * a deployment holding the records and registering no templates.
 	 */
 	it("refuses to build a status-only card over records it would drop", () => {
 		const refused = unavailableOf(new SourceFailure("refused"));
@@ -1547,6 +1860,9 @@ describe("the air cards, built against their record kinds", () => {
 		expect(() => echoCard(houston.store, refused, NO_GROUPS)).toThrow(/7 echo-facility records/);
 		expect(() => aqsCard(houston.store, NO_RECORDS, null)).not.toThrow();
 		expect(() => aqsCard(houston.store, aqs, AIR)).not.toThrow();
+		// And on the air kinds themselves, which is no longer hypothetical.
+		expect(() => aqsCard(withAir.store, refused, AIR)).toThrow(/3 aqs-monitor-summary records/);
+		expect(() => airnowCard(withAir.store, NO_RECORDS, null)).toThrow(/2 airnow-observation records/);
 	});
 
 	it("wire the nearest-monitor-per-pollutant sections the moment a template is registered", () => {
@@ -1598,6 +1914,153 @@ describe("the air cards, built against their record kinds", () => {
 			"EPA's Air Quality System listed no PM2.5 monitor within 50 km of the mapped point.",
 			"EPA's Air Quality System listed no Ozone monitor within 50 km of the mapped point.",
 		]);
+	});
+});
+
+/* -------------------------------------------------------------------------- */
+/* The air cards with both sources answering                                  */
+/* -------------------------------------------------------------------------- */
+
+/** The clause both AirNow templates end on, which names the area again rather than saying "it". */
+const AIRNOW_QUALIFICATION = " AirNow's observations describe the Houston reporting area, not the mapped point.";
+
+/** `.dev/briefs/U1.6-U1.7-air.md` rule 3 on the card: the row shape is derived, and the reader is told so. */
+function airnowDerivation(pollutant: string): string {
+	return (
+		` No response from this service has been recorded, so this ${pollutant} row is read through field names this` +
+		" report derived and is unverified against real bytes."
+	);
+}
+
+const AQS_DERIVATION =
+	" No response from this service has been recorded, so this annual arithmetic mean is read from column names this" +
+	" report derived and is unverified against real bytes.";
+
+describe("the air cards over air records", () => {
+	/**
+	 * The shape `AirTemplates` was widened for. `lib/templates/airnow.ts` is two
+	 * templates disjoint and exhaustive on `aqi`, so a slot holding one of them
+	 * left every row in the other state with no sentence at all -- the card
+	 * counting a record it could not describe, which is what
+	 * `refuseUndescribed` refuses one level up. The choice is per record and it
+	 * is read off each template's own requirement, so the policy and the
+	 * templates cannot disagree about which speaks for which state.
+	 */
+	it("gives each AirNow row the template that declares the index state that row is in", () => {
+		const listing = listingOf(withAir.plan, "airnow");
+
+		expect(idsOf(withAir.store, listing)).toEqual(["Houston/O3", "Houston/PM2.5"]);
+		expect(templateIdsFor(withAir.store, listing, "Houston/O3")).toEqual(["airnow-observation/summary@1"]);
+		expect(templateIdsFor(withAir.store, listing, "Houston/PM2.5")).toEqual(["airnow-observation/no-index@1"]);
+		expect(airnowObservationSummary.requires).toEqual([{ slot: "aqi", present: true }]);
+		expect(airnowObservationNoIndex.requires).toEqual([{ slot: "aqi", present: false }]);
+	});
+
+	it("renders a sentence for every row of both states, each one AirNow's own answer", () => {
+		expect(listingText(withAir.store, listingOf(withAir.plan, "airnow"))).toEqual([
+			"AirNow reports an air quality index of 41 for Ozone in the Houston reporting area, observed 2026-09-16." +
+				AIRNOW_QUALIFICATION +
+				airnowDerivation("Ozone"),
+			"AirNow's PM2.5 observation for the Houston reporting area, observed 2026-09-16, carries no air quality" +
+				" index." +
+				AIRNOW_QUALIFICATION +
+				airnowDerivation("PM2.5"),
+		]);
+	});
+
+	/**
+	 * The failure the old shape produced quietly. A template list that speaks
+	 * for one state only is a card that holds a record it cannot describe, and
+	 * this tier says so rather than dropping the row: silence here is a reader
+	 * seeing a count of two above one sentence.
+	 */
+	it("refuses the card rather than dropping a row no template speaks for", () => {
+		const half: AirTemplates = { aqs: aqsMonitorSummary, airnow: [airnowObservationSummary] };
+
+		expect(() => cardPlacements(withAir.store, airnowCard(withAir.store, airnowAnswered, half))).toThrow(
+			"no airnow-observation template speaks for a row whose air quality index is absent",
+		);
+		// And the other half of the pair alone fails on the row that has one.
+		expect(() =>
+			cardPlacements(withAir.store, airnowCard(withAir.store, airnowAnswered, { aqs: aqsMonitorSummary, airnow: [airnowObservationNoIndex] })),
+		).toThrow("no airnow-observation template speaks for a row whose air quality index is present");
+	});
+
+	/**
+	 * B2's nearest qualified monitor per pollutant, on the card: one listing per
+	 * pollutant showing one record, the rest carried behind it. The derived
+	 * Houston body holds three monitors within 50 km -- two PM2.5 and one ozone
+	 * -- so the PM2.5 listing is the one that has something to carry.
+	 */
+	it("shows the nearest monitor for each pollutant and carries the rest behind it", () => {
+		const pm25 = listingOf(withAir.plan, "aqs", 0);
+		const ozone = listingOf(withAir.plan, "aqs", 1);
+
+		expect(pm25.section.filter).toEqual({ field: "pollutant", equals: "PM2.5" });
+		expect(shownOf(withAir.store, pm25).map((entry) => entry.recordId.sourceRecordId)).toEqual([
+			"48-201-1039-88101",
+		]);
+		expect(restOf(withAir.store, pm25).map((entry) => entry.recordId.sourceRecordId)).toEqual([
+			"48-201-0416-88101",
+		]);
+		expect(shownOf(withAir.store, ozone).map((entry) => entry.recordId.sourceRecordId)).toEqual([
+			"48-201-0024-44201",
+		]);
+		expect(sectionOrdering(withAir.store, pm25.section)).toHaveLength(2);
+		expect(carriedCount(withAir.store, pm25.section)).toBe(2);
+	});
+
+	it("renders the monitor, its distance and the unverified-shape clause on the card", () => {
+		const pm25 = listingOf(withAir.plan, "aqs", 0);
+
+		expect(mustRender(withAir.store, firstPlacementFor(withAir.store, pm25, "48-201-1039-88101"))).toBe(
+			"PM2.5 monitor 48-201-1039-88101 is 1.51 km from the mapped point, and measures its own location, not this" +
+				" address. 2025 annual arithmetic mean: 9.8 Micrograms/cubic meter (LC). AQS data lags collection by six" +
+				" months or more. Observations in the summary: 121." +
+				AQS_DERIVATION,
+		);
+		expect(mustRender(withAir.store, cardOf(withAir.plan, "aqs").status)).toBe(
+			`EPA Air Quality System answered with records, retrieved ${RETRIEVED_AT}.`,
+		);
+		expect(mustRender(withAir.store, headline(withAir.plan, "aqs", 0))).toBe(
+			`Searched within 50 km of the mapped point, retrieved ${RETRIEVED_AT}.`,
+		);
+	});
+
+	/**
+	 * The assertion the whole file is built around, over the records the air
+	 * cards added: per record, per placement, against the store the placement
+	 * was selected from. A record the report holds and cannot describe is the
+	 * defect, and it is invisible in a card-level assertion.
+	 */
+	it("renders every placement, per record, for every record on every card", () => {
+		let checked = 0;
+		for (const card of withAir.plan.cards) {
+			for (const listing of card.listings) {
+				for (const entry of entriesOf(withAir.store, listing)) {
+					for (const placement of entry.placements) {
+						const one = render(withAir.store, placement);
+
+						expect(one, `${entry.recordId.sourceRecordId} / ${placement.template.id}`).not.toBeNull();
+						if (one === null) continue;
+						expect(verify(withAir.store, one, ALL_TEMPLATES), textOf(one)).toBe(true);
+						checked += 1;
+					}
+				}
+			}
+		}
+		// Five air records among them: three monitors and two observations.
+		expect(withAir.store.ofKind("aqs-monitor-summary")).toHaveLength(3);
+		expect(withAir.store.ofKind("airnow-observation")).toHaveLength(2);
+		expect(checked).toBeGreaterThan(30);
+	});
+
+	it("renders every placement of the whole plan, including both air cards' chrome", () => {
+		for (const placement of planPlacements(withAir.store, withAir.plan)) {
+			const one = render(withAir.store, placement);
+
+			expect(one, `${placement.scope} / ${placement.template.id}`).not.toBeNull();
+		}
 	});
 });
 
@@ -1739,7 +2202,10 @@ describe("a source that answered with no records, over a store that holds its re
  */
 describe("what the bound cost, on the card", () => {
 	const TIGHT: Bounds = { shown: 2, carried: 3 };
-	const bounded = planOf(HOUSTON, TIGHT);
+	// Over the plan the inventory answered about in full: the gap this block is
+	// about sits beside both counts, and a card withholding one of them would
+	// make every index below a statement about `nplCountHeadline` instead.
+	const bounded = planOf(ANSWERED, TIGHT);
 
 	it("bounds every section a listing reads from, and leaves a count-only section unbounded", () => {
 		for (const card of houston.plan.cards) {
@@ -1890,10 +2356,17 @@ describe("a final-NPL site the layer sent no coordinate for", () => {
 		const nulled = await runSource(
 			locus,
 			semsAdapter,
-			semsIo({
-				derived: `${LAYER_5MI}, LATITUDE83 and LONGITUDE83 nulled on ${FINAL_NPL_NO_POINT}`,
-				body: semsLayerBody({ [FINAL_NPL_NO_POINT]: { LATITUDE83: null, LONGITUDE83: null } }),
-			}),
+			// Every status request answered, so the count this test is about is
+			// one the card states: `nplCountHeadline` withholds it over a store
+			// holding a site the inventory did not answer for, and a missing
+			// coordinate is not that.
+			semsIo(
+				{
+					derived: `${LAYER_5MI}, LATITUDE83 and LONGITUDE83 nulled on ${FINAL_NPL_NO_POINT}`,
+					body: semsLayerBody({ [FINAL_NPL_NO_POINT]: { LATITUDE83: null, LONGITUDE83: null } }),
+				},
+				[],
+			),
 			POLICY,
 		);
 		const derived = planOf({ ...HOUSTON, sems: nulled });

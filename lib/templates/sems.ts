@@ -14,8 +14,8 @@
  * names no origin, and a reader has no way to know whether it is measured from
  * the mapped point, from the city, or between two sites. `npl@1` has said
  * "from the mapped point" since it was written and `lib/templates/echo.ts`
- * states the rule and applies it to all five of its lead clauses; the other
- * three here had never said it and now do.
+ * states the rule and applies it to both of the clauses it still prints a
+ * distance in; the other three here had never said it and now do.
  *
  * On which status a sentence prints. Envirofacts' `npl_status_name` and the
  * FRS layer's `ACTIVE_STATUS` are not two agencies' answers to one question.
@@ -72,10 +72,10 @@
  * pronoun costs them the fact.
  *
  * The other two templates were checked for the same lean and neither has one.
- * `summary@1`'s three remaining clauses are labelled statements of their own
- * column — `NPL status: …` — that point at nothing outside themselves, so a
- * dropped lead clause costs the reader the site's name and leaves no sentence
- * false.
+ * `summary@1`'s three status clauses are labelled statements of their own
+ * column — `NPL status: …` — that point at nothing outside themselves, and its
+ * naming clause cannot drop, so the one clause there that can drop is the
+ * distance and it takes only itself.
  *
  * THE DISTANCE IN `npl@1` IS NOW ITS OWN CLAUSE. It used to be one clause
  * carrying the NPL status and the distance together, and a clause dies whole
@@ -99,17 +99,24 @@
  * put text on screen with a dead trace behind it.
  *
  * The other three were then read for the same shape — one clause carrying a
- * slot that can be null beside one that cannot — and all three have it, in the
- * lead clause `${subject}, ${km(distanceMeters)} from the mapped point.`. In
- * `registry-only@1` and `status-unavailable@1` the cost is bounded: the clause
- * after it names the facility again, which is the paragraph above, so a null
- * coordinate costs the distance and one repeat of the name and nothing that was
- * asserted. `summary@1` is the one still open. Its other three clauses name no
- * site, so a coordinate-less joined row renders `NPL status: Site is Part of
- * NPL Site. Non-NPL status date: 2017-05-11.` with the site named nowhere on
- * the card — no false sentence, but the reader cannot tell whose status it is.
- * The fix is the same split this pass made; this pass was scoped to `npl@1`,
- * so the string is recorded here and asserted below rather than changed.
+ * slot that can be null beside one that cannot — and all three had it, in the
+ * lead clause `${subject}, ${km(distanceMeters)} from the mapped point.`. Two
+ * of them still do. In `registry-only@1` and `status-unavailable@1` the cost is
+ * bounded: the clause after it names the facility again, which is the paragraph
+ * above, so a null coordinate costs the distance and one repeat of the name and
+ * nothing that was asserted. `summary@1` paid more, because its other clauses
+ * are labelled column readouts that name no site: a coordinate-less joined row
+ * rendered `NPL status: Site is Part of NPL Site. Non-NPL status date:
+ * 2017-05-11.` with the site named nowhere on the card — no false sentence, but
+ * the reader could not tell whose status it was.
+ *
+ * It is split too, and the inline comment on the template says so. Its naming
+ * clause closes on the EPA site ID rather than the distance: `epaSiteId` is
+ * `Sourced<string>` and cannot be null, so the clause cannot drop, and unlike
+ * the other two templates `summary@1` prints that ID nowhere else, so nothing
+ * is said twice. The same coordinate-less row now renders `MCC RECYCLING, EPA
+ * ID TXN000607155. NPL status: Site is Part of NPL Site. Non-NPL status date:
+ * 2017-05-11.`, and the distance drops alone.
  *
  * Which of these a record gets is still the selection policy's decision and
  * never a branch inside a template, because a visible choice is a testable

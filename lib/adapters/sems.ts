@@ -5,29 +5,49 @@
  * runs against the FRS `FRS_INTERESTS_SEMS` ArcGIS layer, and each site found
  * there is joined to its Envirofacts `envirofacts_site` row by EPA site ID.
  *
- * The two systems are two agencies' views of one site and they disagree in
- * three ways this adapter is careful never to paper over:
+ * The two systems are two agencies' views of one site and they disagree in two
+ * ways this adapter is careful never to paper over:
  *
  *   - The names differ. `HOUSTON REFINERY` in FRS is `VALERO PLUME` in
  *     Envirofacts. `subject` coalesces the Superfund name over the registry
  *     name, so the trace carries both and neither is lost.
- *   - The statuses differ, in vocabulary as well as value. FRS `ACTIVE_STATUS`
- *     and Envirofacts `npl_status_name` land in separate fields and one is
- *     never a stand-in for the other. Both are passed through verbatim; a
- *     status string this code has never seen reaches the screen unchanged.
  *   - The coordinates differ, and sometimes one of them is null. `location`,
  *     which is what the kernel measures the distance from, is always the FRS
  *     coordinate; the Envirofacts coordinate stays visible as
  *     `semsCoordinate` rather than being reconciled away.
  *
- * A site with no Envirofacts row at all is a real and common case (the call
- * answers `[]`). Such a record keeps every Superfund-side field null, which is
- * what `sems-site/registry-only@1` prints. That is a different fact from a
- * status the inventory could not be asked for, and the record's `statusRow`
- * keeps the two apart: `no-row` when the inventory answered empty,
- * `unavailable` with the kernel's own classification when the request failed.
- * One failed join therefore costs one site its status, never the other
- * fourteen their records, and never lets a fetch error pose as "no status row".
+ * THE STATUSES ARE NOT THE THIRD OF THOSE, and this comment said they were
+ * until 2026-09-16: "the statuses differ, in vocabulary as well as value". They
+ * do not. `lib/evidence/records.ts` corrects it on `frsActiveStatus` by name and
+ * by date, and the committed bytes settle it — on all fifteen sites of
+ * `tests/fixtures/sems/arcgis-5mi-houston.json`, FRS `ACTIVE_STATUS` is that
+ * site's Envirofacts `npl_status_name` upper-cased, differing on none. The FRS
+ * layer's own field description calls `ACTIVE_STATUS` "the status of the
+ * environmental interest at the facility or site", and the interest on every
+ * row of `FRS_INTERESTS_SEMS` is Superfund, so it is not a second agency's
+ * vocabulary for the same thing. `sems-site/disagreement@1` was deleted for
+ * this, and a template that prints the FRS status must say whose interest it is
+ * the status of.
+ *
+ * What stays true is narrower: the two land in separate fields and neither
+ * fills the other. `frsActiveStatus` survives a failed Envirofacts join and
+ * `semsNplStatus` does not, which is the whole reason they are two fields.
+ * Both are passed through verbatim; a status string this code has never seen
+ * reaches the screen unchanged.
+ *
+ * A site with no Envirofacts row at all is rare rather than common, which this
+ * comment also had backwards until 2026-09-16 — `docs/BRIEF.md` B14 and
+ * `tests/fixtures/README.md` were both written as corrections of the word
+ * "common", and both record 15 of 15 Houston sites having a row. It is still a
+ * real case (the call answers `[]`, which
+ * `tests/fixtures/sems/envirofacts-no-row.json` holds). Such a record keeps
+ * every Superfund-side field null, which is what `sems-site/registry-only@1`
+ * prints. That is a different fact from a status the inventory could not be
+ * asked for, and the record's `statusRow` keeps the two apart: `no-row` when
+ * the inventory answered empty, `unavailable` with the kernel's own
+ * classification when the request failed. One failed join therefore costs one
+ * site its status, never the other fourteen their records, and never lets a
+ * fetch error pose as "no status row".
  *
  * The status joins run at most `STATUS_CONCURRENCY` at a time. Fifteen sites
  * in the demo radius would otherwise be fifteen simultaneous requests to one

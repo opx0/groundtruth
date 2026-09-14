@@ -116,8 +116,9 @@ export type OriginSubject = {
  * Several records the B6 grouping rules tied together: two EPA site IDs under
  * one registry ID, one site carrying two names, two sources disagreeing on a
  * coordinate. Which records form a group is `lib/report/grouping.ts`'s
- * decision and is wired in a later unit; this is only the shape a group is
- * rendered through.
+ * decision, wired into the report by `app/api/report/handler.ts` through
+ * `groupPlacements` and `groupsFor` in `lib/report/selection.ts`; this is only
+ * the shape a group is rendered through.
  *
  * `members` is the count of members still in the store, so a deleted member
  * shrinks the group instead of leaving a stale number behind.
@@ -215,11 +216,13 @@ export type Clause<T extends SubjectKey> = {
  * A condition the subject must satisfy before a template may render over it.
  *
  * The kind gate stops a Superfund template rendering an ECHO facility. It does
- * not stop the *wrong* Superfund template rendering the *right* record: four of
- * the five `sems-site` templates each assert something about what the Superfund
- * inventory answered, and every one of them would render happily over a record
- * in any of the three states, because none of them references the field that
- * decides which is true. The same hole let `echo-facility/no-status@1` state
+ * not stop the *wrong* Superfund template rendering the *right* record: three
+ * of the four `sems-site` templates each assert something about what the
+ * Superfund inventory answered -- a row came back, it held none, it could not
+ * be asked -- and every one of them would render happily over a record in any
+ * of the three states, because none of them references the field that decides
+ * which is true. (There were five until `sems-site/disagreement@1` was deleted;
+ * `lib/templates/sems.ts` records why.) The same hole let `echo-facility/no-status@1` state
  * that ECHO reported no compliance status over a record whose status is
  * "Violation Identified".
  *

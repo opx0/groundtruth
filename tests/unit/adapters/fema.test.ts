@@ -6,19 +6,46 @@
  * recorded Esri bytes at the NFHL address. The field names are identical, and
  * what those tests prove is that the dataset label and the no-polygon wording
  * follow the host that answered, not the bytes. They are named accordingly.
+ *
+ * B12's seven cases, and where each one sits:
+ *
+ *   1 success          "Esri fallback, zone AE, Pasadena", "…shaded X…", "NFHL answers with a polygon"
+ *   2 no records       "no polygon: the two datasets must not be confused"
+ *   3 missing optional "B12 case 3" — ZONE_SUBTY and STATIC_BFE are null in the recorded Pasadena row
+ *   4 unknown status   "a zone code and an SFHA letter the code has never seen"
+ *   5 malformed        "the ArcGIS error body" (an error delivered with HTTP 200) and "B12 case 5"
+ *                      (a body that is not JSON at all, and JSON the schema rejects)
+ *   6 rate limit       "B12 case 6"
+ *   7 timeout          "B12 case 7"
+ *
+ * Neither host has ever rate-limited or timed out on this machine, so 6 and 7
+ * are raised by the io double rather than by bytes. That double mirrors
+ * `lib/io/fetch-source-io.ts` — the failure before any parse, `safeParse`
+ * rather than `parse`, and a `SourceFailure` carrying no URL — because a
+ * double that parsed more forgivingly than the real `SourceIo` would prove
+ * nothing about the malformed case.
+ *
+ * Both of those cases mean two things here, because there are two datasets and
+ * a fallback between them. A failure at the NFHL host is not the end of the
+ * flood section: Esri is asked next, and `FloodZoneResult.nfhl` is the record
+ * that the authoritative layer failed, with its cause and its retry hint. A
+ * failure at the Esri host ends the section, and what it must end as is
+ * unavailable and never empty — "no polygon here" and "we could not ask" are
+ * the distinction the whole product rests on.
  */
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { Locus, SourceIo } from "@/lib/evidence";
-import { complete, SourceFailure } from "@/lib/evidence";
+import type { Locus, SourceIo, SourcePolicy } from "@/lib/evidence";
+import { complete, runSource, SourceFailure } from "@/lib/evidence";
 import {
 	ArcgisQueryBody,
 	esriReducedSetAdapter,
 	FEMA_DATASETS,
 	FEMA_VERSION,
+	FloodAreaAttrs,
 	floodZoneOutcome,
 	floodZoneQueryUrl,
 	nfhlAdapter,
@@ -52,8 +79,14 @@ const NFHL_NOTE =
 const ESRI_NOTE =
 	"No 1% or 0.2% flood hazard polygon intersects this point in the Esri copy of FEMA's layer, dated 2026-03-11. This copy omits minimal-hazard areas, so it cannot tell minimal hazard from an unmapped area.";
 
-/** What a host answers: recorded bytes, a transport failure, or (one test only) a derived body. */
-type Route = { readonly fixture: string } | { readonly fail: SourceFailure } | { readonly body: string };
+/** What a host answers: recorded bytes, a transport failure, a body written inline by a test, or nothing, ever. */
+type Route =
+	| { readonly fixture: string }
+	| { readonly fail: SourceFailure }
+	/** Bytes written inline by a test. Never a claim about what either host sends, and never filed as a fixture. */
+	| { readonly body: string }
+	/** The request is issued and never answers. The policy handed to `runSource` is the only thing that ends it. */
+	| { readonly hang: true };
 
 const refused: Route = { fail: new SourceFailure("refused") };
 
@@ -65,9 +98,21 @@ function stubIo(routes: Readonly<Record<string, Route>>): { readonly io: SourceI
 			const route = routes[url.host];
 			if (route === undefined) throw new Error(`test io has no route for ${url.host}`);
 			if ("fail" in route) throw route.fail;
+			if ("hang" in route) return new Promise<never>(() => undefined);
 			const bytes = "fixture" in route ? readFileSync(`${fixturesDir}${route.fixture}`) : Buffer.from(route.body, "utf8");
+			// Mirrors `lib/io/fetch-source-io.ts`: a body that is not JSON and a
+			// body the schema rejects are both `malformed`, raised before the
+			// adapter is handed anything.
+			let json: unknown;
+			try {
+				json = JSON.parse(bytes.toString("utf8"));
+			} catch {
+				throw new SourceFailure("malformed", null);
+			}
+			const parsed = schema.safeParse(json);
+			if (!parsed.success) throw new SourceFailure("malformed", null);
 			return {
-				raw: schema.parse(JSON.parse(bytes.toString("utf8"))),
+				raw: parsed.data,
 				payload: {
 					url: url.toString(),
 					sha256: createHash("sha256").update(bytes).digest("hex"),
@@ -344,6 +389,263 @@ describe("a zone code and an SFHA letter the code has never seen", () => {
 			rawValue: "U",
 			transform: "map-boolean",
 		});
+	});
+});
+
+describe("B12 case 3, missing optional fields", () => {
+	it("validates the recorded row's nulls rather than rejecting them, including a column no record field reads", () => {
+		const parsed = ArcgisQueryBody.parse(
+			JSON.parse(readFileSync(`${fixturesDir}esri-zone-ae-pasadena.json`).toString("utf8")),
+		);
+		if ("error" in parsed) throw new Error("expected a features body");
+		const [feature] = parsed.features;
+		if (feature === undefined) throw new Error("expected one feature");
+		// Real recorded nulls, in a row that is otherwise complete. STATIC_BFE is
+		// requested and validated and has no record field yet; a null there must
+		// not make the whole response malformed.
+		expect(feature.attributes.ZONE_SUBTY).toBeNull();
+		expect(feature.attributes.STATIC_BFE).toBeNull();
+		expect(feature.attributes.FLD_ZONE).toBe("AE");
+	});
+
+	it("keeps a null the layer sent apart from a field the layer does not carry", async () => {
+		const { io } = stubIo({ [NFHL_HOST]: refused, [ESRI_HOST]: { fixture: "esri-zone-ae-pasadena.json" } });
+		const result = await floodZoneOutcome(locus(), io);
+		if (result.outcome.status !== "ok") throw new Error(`expected ok, got ${result.outcome.status}`);
+		const record = result.outcome.records[0];
+
+		// ZONE_SUBTY arrived, empty: a field provenance whose rawValue is null.
+		expect(record.zoneSubtype.value).toBeNull();
+		expect(record.zoneSubtype.provenance).toEqual([
+			{
+				kind: "field",
+				dataset: "esri_usa_flood_hazard_reduced_set",
+				sourceField: "ZONE_SUBTY",
+				rawValue: null,
+				transform: "identity",
+				adapterVersion: "fema@1",
+				payload: { url: `${ESRI_LAYER}/query?${QUERY_TAIL}`, sha256: SHA.pasadena, retrievedAt: NOW },
+			},
+		]);
+		// UPDATE_DATE never arrived at all: an absent provenance, which has no
+		// rawValue to show. Both read null; they are not the same fact.
+		expect(record.sourceUpdatedAt.value).toBeNull();
+		expect(record.sourceUpdatedAt.provenance).toEqual([
+			{
+				kind: "absent",
+				dataset: "esri_usa_flood_hazard_reduced_set",
+				sourceField: "UPDATE_DATE",
+				adapterVersion: "fema@1",
+				payload: { url: `${ESRI_LAYER}/query?${QUERY_TAIL}`, sha256: SHA.pasadena, retrievedAt: NOW },
+			},
+		]);
+		// And the neighbours on the same row are present, so the null is the row's.
+		expect(record.zoneCode.value).toBe("AE");
+		expect(record.sourceCitation.value).toBe("48201C_FIRM1");
+	});
+
+	it("builds a whole record from a row where every nullable column is null", async () => {
+		// No recorded row is this empty. The row is built through the adapter's
+		// own schema rather than typed as bytes, so it claims nothing about what
+		// either host sends: FLD_AR_ID is the one column S_Fld_Haz_Ar requires,
+		// and this asserts the record survives on it alone.
+		const row = FloodAreaAttrs.parse({
+			FLD_ZONE: "A",
+			ZONE_SUBTY: null,
+			SFHA_TF: null,
+			DFIRM_ID: null,
+			FLD_AR_ID: "48201C_9999",
+			STATIC_BFE: null,
+			SOURCE_CIT: null,
+		});
+		const { io } = stubIo({
+			[NFHL_HOST]: refused,
+			[ESRI_HOST]: { body: JSON.stringify({ features: [{ attributes: row }] }) },
+		});
+		const result = await floodZoneOutcome(locus(), io);
+		if (result.outcome.status !== "ok") throw new Error(`expected ok, got ${result.outcome.status}`);
+		const record = result.outcome.records[0];
+
+		expect(record.sourceRecordId).toBe("48201C_9999");
+		expect(record.subject.value).toBe("A");
+		expect(record.zoneCode.value).toBe("A");
+		expect(record.zoneSubtype.value).toBeNull();
+		expect(record.firmPanelId.value).toBeNull();
+		expect(record.sourceCitation.value).toBeNull();
+		// One null column read three ways, and all three stay null rather than
+		// guessing a side of the SFHA boundary.
+		expect(record.specialFloodHazardArea.value).toBeNull();
+		expect(record.sfhaLabel.value).toBeNull();
+		expect(record.sfhaFlag.value).toBeNull();
+		expect(record.specialFloodHazardArea.provenance[0]).toMatchObject({
+			sourceField: "SFHA_TF",
+			rawValue: null,
+			transform: "map-boolean",
+		});
+		expect(record.sourceUrl.value).toBe(`${ESRI_LAYER}/query?where=FLD_AR_ID%3D%2748201C_9999%27&outFields=*&f=html`);
+	});
+});
+
+describe("B12 case 5, malformed: a body that is not JSON, and JSON the schema rejects", () => {
+	it("is unavailable and malformed when the Esri host answers with an HTML error page", async () => {
+		const { io } = stubIo({
+			[NFHL_HOST]: refused,
+			[ESRI_HOST]: { body: "<html><head><title>502 Bad Gateway</title></head><body>502 Bad Gateway</body></html>" },
+		});
+		const result = await floodZoneOutcome(locus(), io);
+
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		expect(result.outcome).toEqual({ status: "unavailable", cause: "malformed", rawCode: null, retryAfter: null });
+	});
+
+	it("is unavailable and malformed for a feature row missing the one required column", async () => {
+		// FLD_AR_ID is the record's id and the key its citable URL is built from.
+		// A row without it must not become a record with a guessed identity.
+		const { io } = stubIo({
+			[NFHL_HOST]: refused,
+			[ESRI_HOST]: { body: JSON.stringify({ features: [{ attributes: { FLD_ZONE: "AE", SFHA_TF: "T" } }] }) },
+		});
+		const result = await floodZoneOutcome(locus(), io);
+
+		expect(result.outcome).toEqual({ status: "unavailable", cause: "malformed", rawCode: null, retryAfter: null });
+	});
+
+	it("falls back when NFHL answers a body we cannot read, and says malformed rather than refused", async () => {
+		// This is the likeliest way the NFHL half fails in production: its parse
+		// follows FEMA's published field names and no response from that host has
+		// ever been checked against it. The reader is owed the difference between
+		// a layer that never answered and one whose answer we could not read.
+		const { io, calls } = stubIo({
+			[NFHL_HOST]: { body: '{"features":[{"attributes":{"FLD_ZONE":"AE"}}]}' },
+			[ESRI_HOST]: { fixture: "esri-zone-ae-pasadena.json" },
+		});
+		const result = await floodZoneOutcome(locus(), io);
+
+		expect(calls).toEqual([`${NFHL_LAYER}/query?${QUERY_TAIL}`, `${ESRI_LAYER}/query?${QUERY_TAIL}`]);
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "malformed", rawCode: null, retryAfter: null });
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		expect(result.outcome.status).toBe("ok");
+	});
+});
+
+describe("B12 case 6, rate limit: which host was rate-limited decides whether anything else is asked", () => {
+	// Neither host has ever rate-limited this machine, and no 429 from either is
+	// recorded — `tests/fixtures/aqs/rate-limited.json` is the repo's only one.
+	// So the io raises this the way `lib/io/fetch-source-io.ts` does from a real
+	// 429: the source's own status, its own `Retry-After`, and no parse.
+	const rateLimited: Route = { fail: new SourceFailure("rate-limited", 429, "120") };
+
+	it("NFHL rate-limited: Esri answers, and the retry hint survives on the record of the failure", async () => {
+		const { io, calls } = stubIo({
+			[NFHL_HOST]: rateLimited,
+			[ESRI_HOST]: { fixture: "esri-zone-x-levee-neworleans.json" },
+		});
+		const result = await floodZoneOutcome(locus(), io);
+
+		expect(calls).toEqual([`${NFHL_LAYER}/query?${QUERY_TAIL}`, `${ESRI_LAYER}/query?${QUERY_TAIL}`]);
+		// Not flattened to "unknown": the card can say which layer was throttled
+		// and when it is worth asking again.
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "rate-limited", rawCode: 429, retryAfter: "120" });
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		if (result.outcome.status !== "ok") throw new Error(`expected ok, got ${result.outcome.status}`);
+		const record = result.outcome.records[0];
+		expect(record.sourceRecordId).toBe("22071C_10770");
+		expect(record.dataset.value).toBe("ESRI_REDUCED_SET");
+		expect(record.caveats).toEqual(FEMA_DATASETS.ESRI_REDUCED_SET.caveats);
+		expect(record.caveats).not.toEqual(FEMA_DATASETS.NFHL.caveats);
+	});
+
+	it("Esri rate-limited: the section ends unavailable, carrying Esri's own code and retry hint", async () => {
+		const { io, calls } = stubIo({ [NFHL_HOST]: refused, [ESRI_HOST]: rateLimited });
+		const result = await floodZoneOutcome(locus(), io);
+
+		expect(calls).toHaveLength(2);
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "refused", rawCode: null, retryAfter: null });
+		expect(result.outcome).toEqual({ status: "unavailable", cause: "rate-limited", rawCode: 429, retryAfter: "120" });
+	});
+
+	it("throws through the single-dataset adapter, so the kernel is what classifies it", async () => {
+		const { io } = stubIo({ [ESRI_HOST]: rateLimited });
+		await expect(esriReducedSetAdapter.run(locus(), io)).rejects.toMatchObject({
+			name: "SourceFailure",
+			reason: "rate-limited",
+			rawCode: 429,
+			retryAfter: "120",
+		});
+	});
+});
+
+describe("B12 case 7, timeout: two datasets, so two meanings", () => {
+	// 20ms, not the 8s `DEFAULT_POLICY`. The last test here waits for it twice.
+	const IMPATIENT: SourcePolicy = { timeoutMs: 20 };
+
+	it("NFHL timing out is not the end of the section: Esri is asked and answers", async () => {
+		const { io, calls } = stubIo({ [NFHL_HOST]: { hang: true }, [ESRI_HOST]: { fixture: "esri-zone-ae-pasadena.json" } });
+		const result = await floodZoneOutcome(locus(), io, IMPATIENT);
+
+		expect(calls).toEqual([`${NFHL_LAYER}/query?${QUERY_TAIL}`, `${ESRI_LAYER}/query?${QUERY_TAIL}`]);
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		if (result.outcome.status !== "ok") throw new Error(`expected ok, got ${result.outcome.status}`);
+		const record = result.outcome.records[0];
+		// The record that reaches the reader is Esri's, and says so in every
+		// place it could be mistaken for FEMA's own layer.
+		expect(record.dataset.value).toBe("ESRI_REDUCED_SET");
+		expect(record.datasetLabel.value).toBe("Esri's reduced-set copy of FEMA's National Flood Hazard Layer");
+		expect(record.caveats).toEqual(FEMA_DATASETS.ESRI_REDUCED_SET.caveats);
+		expect(record.sourceUrl.value).toBe(`${ESRI_LAYER}/query?where=FLD_AR_ID%3D%2748201C_8563%27&outFields=*&f=html`);
+		expect(record.payloads[0].url).toBe(`${ESRI_LAYER}/query?${QUERY_TAIL}`);
+	});
+
+	it("an NFHL timeout never becomes an empty answer from NFHL", async () => {
+		const { io } = stubIo({ [NFHL_HOST]: { hang: true }, [ESRI_HOST]: { fixture: "esri-no-polygon-houston.json" } });
+		const result = await floodZoneOutcome(locus(), io, IMPATIENT);
+
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		// The layer that did not answer must not be the one quoted as having
+		// found nothing. Esri's wording, on Esri's empty answer.
+		expect(result.outcome).toEqual({ status: "no-data", note: ESRI_NOTE, retrievedAt: NOW });
+		expect(result.outcome.status === "no-data" && result.outcome.note).not.toBe(NFHL_NOTE);
+	});
+
+	it("Esri timing out is the end of the section: unavailable, and nothing follows it", async () => {
+		const { io, calls } = stubIo({ [NFHL_HOST]: refused, [ESRI_HOST]: { hang: true } });
+		const result = await floodZoneOutcome(locus(), io, IMPATIENT);
+
+		// There is no third dataset, so this is the last word: unavailable, never
+		// the no-data note of a copy that never answered.
+		expect(calls).toEqual([`${NFHL_LAYER}/query?${QUERY_TAIL}`, `${ESRI_LAYER}/query?${QUERY_TAIL}`]);
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "refused", rawCode: null, retryAfter: null });
+		expect(result.outcome).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
+	});
+
+	it("both hosts hanging is unavailable twice over, and each dataset is given the whole budget in turn", async () => {
+		const { io, calls } = stubIo({ [NFHL_HOST]: { hang: true }, [ESRI_HOST]: { hang: true } });
+		const started = Date.now();
+		const result = await floodZoneOutcome(locus(), io, IMPATIENT);
+		const elapsed = Date.now() - started;
+
+		expect(calls).toHaveLength(2);
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
+		expect(result.outcome).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
+		// The two runs are sequential and each starts its own timer, so the flood
+		// section's worst case is two whole policies rather than one.
+		// `app/api/report/handler.ts` hands it `DEFAULT_POLICY`, which makes that
+		// 16s here against 8s for every other source.
+		expect(elapsed).toBeGreaterThanOrEqual(2 * IMPATIENT.timeoutMs);
+	});
+
+	it("is unavailable rather than zero rows when one dataset is run on its own", async () => {
+		// A source we could not ask has not answered with nothing. `runSource` is
+		// what draws that line, and it has to draw it for each adapter alone as
+		// well as for the pair.
+		const { io } = stubIo({ [NFHL_HOST]: { hang: true } });
+		const outcome = await runSource(locus(), nfhlAdapter, io, IMPATIENT);
+
+		expect(outcome).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
 	});
 });
 

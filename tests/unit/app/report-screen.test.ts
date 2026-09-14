@@ -282,10 +282,10 @@ describe("the four card states look different from each other", () => {
 	it("marks each card with the state the wire gave it", () => {
 		const html = viewHtml(state);
 		const expected: readonly (readonly [string, string])[] = [
-			["sems", "records"],
-			["echo", "no-records"],
+			["echo", "records"],
+			["sems", "no-records"],
 			["fema", "unavailable"],
-			["aqs", "not-asked"],
+			["frs", "not-asked"],
 		];
 		for (const [source, cardState] of expected) {
 			expect(html).toContain(`data-source="${source}"`);
@@ -294,14 +294,14 @@ describe("the four card states look different from each other", () => {
 	});
 
 	it("shows four different things, and only one of them is this screen talking", () => {
-		const records = visibleText(cardHtml(state, "sems"));
-		const nothing = visibleText(cardHtml(state, "echo"));
+		const records = visibleText(cardHtml(state, "echo"));
+		const nothing = visibleText(cardHtml(state, "sems"));
 		const unreachable = visibleText(cardHtml(state, "fema"));
-		const unasked = visibleText(cardHtml(state, "aqs"));
+		const unasked = visibleText(cardHtml(state, "frs"));
 
 		// Answered with records: the count sentence and the records themselves.
-		expect(records).toContain("Superfund sites EPA's inventory lists within 5 miles of the mapped point: 15.");
-		expect(records).toContain("VALERO PLUME");
+		expect(records).toContain("Regulated facilities EPA ECHO lists within 5 miles of the mapped point: 7.");
+		expect(records).toContain("SOUTH COAST TERMINALS PTF");
 
 		// Answered with nothing: B10's own wording, from the server, and no record.
 		expect(nothing).toContain("answered with no matching records");
@@ -315,7 +315,9 @@ describe("the four card states look different from each other", () => {
 
 		// Never asked: no status sentence exists for a request nobody made, so the
 		// screen says what it did, and says nothing about what the source holds.
-		expect(unasked).toContain("EPA Air Quality System");
+		// The registry is the card that reaches this state: it is asked about a
+		// registry ID, and the Superfund layer with no rows in it named none.
+		expect(unasked).toContain("EPA Facility Registry Service");
 		expect(unasked).toContain("This source was not asked.");
 		expect(unasked).not.toContain("No matching records");
 		expect(unasked).not.toContain("could not be reached");
@@ -327,13 +329,17 @@ describe("the four card states look different from each other", () => {
 	});
 
 	it("puts each card's limits on that card, in the words of the adapter that carried them", () => {
-		const sems = visibleText(cardHtml(state, "sems"));
+		// The demo stream, because a limit is carried by a record and the four-state
+		// stream's Superfund layer has no rows in it: a card with nothing on it
+		// states no limits, which is the point of the state above, not of this one.
+		const whole = stateOf(demo);
+		const sems = visibleText(cardHtml(whole, "sems"));
 		expect(sems).toContain("Limits");
 		expect(sems).toContain("A SEMS record can mean assessment, proposed action, active cleanup, or completed work.");
 		expect(sems).toContain("The coordinate is a reference point, not a boundary.");
 		// The flood card's limit is a sentence with a trace, not a caveat, and it
 		// names the dataset that answered.
-		const fema = visibleText(cardHtml(stateOf(demo), "fema"));
+		const fema = visibleText(cardHtml(whole, "fema"));
 		expect(fema).toContain("This copy omits minimal-hazard areas, so it cannot tell minimal hazard from an unmapped area.");
 		expect(fema).toContain("FEMA's National Flood Hazard Layer could not be reached");
 	});
@@ -359,6 +365,14 @@ describe("clicking any slotted span of any sentence in any card", () => {
 	it("hands the panel the sentence and the span, for every span on every card", () => {
 		const state = stateOf(demo);
 		let clicked = 0;
+		// The spans of the two cards this deployment holds no credential for,
+		// counted apart: they are the whole of the difference between the 172 the
+		// brief's audit took, when those two were `not-asked` and carried no
+		// sentence, and the 173 below -- which is five short of 178 for the two
+		// claims the report withdrew: the registry card's boundary and retrieval
+		// time over a lookup that searched no area, and a group sentence naming
+		// the registry's own record of an identifier as a sharer of it.
+		let onNotConfigured = 0;
 
 		for (const card of state.cards) {
 			const groups = groupsOf(state, card.source);
@@ -398,12 +412,15 @@ describe("clicking any slotted span of any sentence in any card", () => {
 					expect(trace.record.sourceRecordId.length).toBeGreaterThan(0);
 					expect(trace.record.sourceUrl.normalized).not.toBeNull();
 				}
+				if (trace.scope === "source" && trace.source.cause === "not-configured") onNotConfigured += 1;
 				clicked += 1;
 			}
 		}
 
-		// The same 172 the state machine walks, through the rendered card this time.
-		expect(clicked).toBe(172);
+		// The same 173 the state machine walks, through the rendered card this
+		// time.
+		expect(onNotConfigured).toBe(6);
+		expect(clicked).toBe(173);
 	});
 
 	it("gives a slotted span its field name and leaves connective text alone", () => {
@@ -433,25 +450,27 @@ describe("every string on the screen is either a span the server sent or enumera
 		const written = textNodes(html).filter((text) => !server.has(text));
 
 		// Every string on the finished Houston report that no agency produced.
-		// Five of them, and the sixth is the line for the two sources nobody
-		// asked. Add a string to a component and this list stops matching.
+		// Six of them, and the sixth is the retry the two air cards offer. "This
+		// source was not asked." is no longer among them: every source on this
+		// stream was asked, the two air ones included, and what they answered --
+		// that this deployment holds no credential for them -- is a sentence the
+		// server rendered, above a Retry, not a line this screen wrote. Add a
+		// string to a component and this list stops matching.
 		expect([...new Set(written)].sort()).toEqual(
-			[
-				"Hide the rest",
-				"Limits",
-				"Report",
-				"Search another address",
-				"Sources settled: 6 of 6.",
-				"This source was not asked.",
-			].sort(),
+			["Hide the rest", "Limits", "Report", "Retry", "Search another address", "Sources settled: 6 of 6."].sort(),
 		);
 		for (const text of written) expect(CHROME).toContain(text);
 	});
 
 	it("leaves nothing over in the states that have their own chrome either", () => {
 		// Mid-stream: cards, placeholders for what has not settled, and the line
-		// for a source nobody asked.
-		const partial = stateOf(fourStates.slice(0, 3));
+		// for a source nobody asked. Cut at the registry's card rather than at a
+		// fixed index, because that card is the one carrying the line and nothing
+		// pins the settle order; the two assertions below fail loudly if that cut
+		// leaves nothing outstanding after it.
+		const registry = fourStates.findIndex((event) => event.type === "card" && event.card.source === "frs");
+		expect(registry).toBeGreaterThan(-1);
+		const partial = stateOf(fourStates.slice(0, registry + 1));
 		const midStream = textNodes(viewHtml(partial)).filter((text) => !serverStrings(partial).has(text));
 		for (const text of midStream) expect(CHROME).toContain(text);
 		expect(midStream).toContain("This source was not asked.");

@@ -55,9 +55,15 @@ we did not get to ask.
 
 ## Not recorded
 
-ECHO and the authoritative FEMA NFHL endpoint both refuse connections from the
-machine this was built on. See the blocker note in `.dev/PLAN.md`.
-AQS and AirNow need free keys that have not been registered.
+The authoritative FEMA NFHL endpoint refuses connections from the machine this
+was built on. AQS and AirNow need free keys that have not been registered. See
+the blocker note in `.dev/PLAN.md`.
+
+*Corrected 2026-09-16.* This section read "ECHO and the authoritative FEMA NFHL
+endpoint both refuse connections from the machine this was built on." The ECHO
+half is wrong, and this file contradicted itself about it six lines down: the
+next heading is "## ECHO, recorded 2026-09-16" and `echo/` holds seven payloads.
+Only the NFHL half was ever true of both, and it still is.
 
 ## ECHO, recorded 2026-09-16
 

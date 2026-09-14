@@ -43,6 +43,7 @@ import {
 	latestLikelySummaryYear,
 	NO_KEY,
 	noMonitorsNote,
+	pollutantOf,
 	REDACTED_ECHO,
 	STATISTIC,
 } from "@/lib/adapters/aqs";
@@ -443,6 +444,55 @@ describe("unknown status", () => {
 		// this codebase owns.
 		expect(JSON.stringify(record)).not.toContain("Partial data returned during scheduled maintenance");
 		expect(record.payloads[0].sha256).toBe(SHA.unknownStatus);
+	});
+});
+
+describe("a parameter code named for a key of Object.prototype", () => {
+	/*
+	 * `AQS_PARAMETERS` is an object literal, so an index into it reaches
+	 * `Object.prototype`: `AQS_PARAMETERS["constructor"]` is a function and
+	 * `["__proto__"]` is an object, and until 2026-09-16 the guard beside the
+	 * index was `!== undefined`. The row was dropped anyway, because the
+	 * `selections` map is asked for the same code on the next line and a `Map`
+	 * has no prototype keys — a guard by coincidence, not by intent.
+	 * `lib/adapters/airnow.ts` had the same index with nothing beside it, and
+	 * there the same string cost the whole card. Both read through `pollutantOf`
+	 * now, so the drop is the table's decision in both files.
+	 */
+	it("is not a pollutant, so the drop no longer depends on the selections map beside it", async () => {
+		expect(pollutantOf("constructor")).toBeNull();
+		expect(pollutantOf("__proto__")).toBeNull();
+		expect(pollutantOf("42101")).toBeNull();
+		expect(pollutantOf("88101")).toBe("PM2.5");
+		expect(pollutantOf("44201")).toBe("Ozone");
+		// The hole itself, shown rather than described. Both stay true: the table
+		// is still an object literal and it is the read that changed.
+		expect(AQS_PARAMETERS["constructor"]).toBeDefined();
+		expect(AQS_PARAMETERS["__proto__"]).toBeDefined();
+
+		// Written inline: not a claim about what EPA sends, and not a fixture.
+		const body = JSON.stringify({
+			Header: [{ status: "Success" }],
+			Body: [
+				{
+					state_code: "48",
+					county_code: "201",
+					site_number: "1039",
+					parameter_code: "constructor",
+					poc: 1,
+					latitude: 29.733726,
+					longitude: -95.257593,
+					datum: "WGS84",
+					parameter_name: "Not a pollutant this report covers",
+					unit_of_measure: "Micrograms/cubic meter (LC)",
+					date_of_last_change: "2026-04-22",
+					arithmetic_mean: 9.8,
+					observation_count: 121,
+				},
+			],
+		});
+		const { outcome } = await outcomeFor({ body });
+		expect(outcome).toMatchObject({ status: "no-data" });
 	});
 });
 

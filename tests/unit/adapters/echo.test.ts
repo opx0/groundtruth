@@ -6,6 +6,13 @@
  * replaced, because ECHO has never sent a status we do not already have a
  * fixture for and the point of that test is that the adapter has no vocabulary
  * to fail on.
+ *
+ * The rate-limit case carries no payload at all, and none is invented: ECHO has
+ * never rate-limited this repository, so there are no recorded bytes, and a 429
+ * body would never reach the adapter in any case. `lib/io/fetch-source-io.ts`
+ * raises `SourceFailure("rate-limited", 429, <Retry-After>)` from the status
+ * line before it parses anything, so the failure is driven through the io in
+ * exactly that shape, and what is asserted is what the reader is left holding.
  */
 
 import { createHash } from "node:crypto";
@@ -442,6 +449,95 @@ describe("echo adapter", () => {
 
 		expect(outcome.status).toBe("ok");
 		expect(calls).toHaveLength(3);
+	});
+
+	it("hands the reader ECHO's own 429 and its retry hint after the retries are spent", async () => {
+		// Three attempts because `retryable()` lists rate-limited, and then the
+		// source's own code and hint, unmapped. "unknown" here would tell the
+		// reader nothing; "no-data" would tell them something false.
+		const { outcome, calls } = await outcomeOf([{ fail: new SourceFailure("rate-limited", 429, "60") }]);
+
+		expect(outcome).toEqual({ status: "unavailable", cause: "rate-limited", rawCode: 429, retryAfter: "60" });
+		expect(outcome.status).not.toBe("no-data");
+		expect(calls).toHaveLength(3);
+		for (const call of calls) expect(call.pathname).toBe("/echo/echo_rest_services.get_facilities");
+	});
+
+	it("retries a 429 on the page call against the same QueryID and page, and still reports the hint", async () => {
+		// Retry-After is a delta in seconds or an HTTP date; EPA's gateway may
+		// send either, so the hint is carried through as the string it sent.
+		const httpDate = "Wed, 16 Sep 2026 10:00:00 GMT";
+		const { outcome, calls } = await outcomeOf([
+			{ fixture: "facilities-quarter-mi.json" },
+			{ fail: new SourceFailure("rate-limited", 429, httpDate) },
+		]);
+
+		expect(outcome).toEqual({ status: "unavailable", cause: "rate-limited", rawCode: 429, retryAfter: httpDate });
+		// The spatial query ran once; only the page request was retried, and a
+		// retry never re-runs the query or advances the page.
+		expect(calls).toHaveLength(4);
+		expect(calls[0]?.pathname).toBe("/echo/echo_rest_services.get_facilities");
+		for (const call of calls.slice(1)) {
+			expect(call.pathname).toBe("/echo/echo_rest_services.get_qid");
+			expect(call.searchParams.get("qid")).toBe("77");
+			expect(call.searchParams.get("pageno")).toBe("1");
+		}
+	});
+
+	it("reports a 429 that arrives without a Retry-After header as rate-limited with no hint", async () => {
+		// `response.headers.get("retry-after")` is null when EPA sends none. The
+		// hint going missing must not cost the reader the cause as well.
+		const { outcome } = await outcomeOf([{ fail: new SourceFailure("rate-limited", 429, null) }]);
+
+		expect(outcome).toEqual({ status: "unavailable", cause: "rate-limited", rawCode: 429, retryAfter: null });
+	});
+
+	it("does not retry a 429 when the deployment is configured for one attempt", async () => {
+		const { io, calls } = stubIo([{ fail: new SourceFailure("rate-limited", 429, "60") }]);
+		const outcome = await runSource(
+			houstonLocus(QUARTER_MILE),
+			createEchoAdapter({ attempts: 1, retryDelayMs: 0 }),
+			io,
+			TEST_POLICY,
+		);
+
+		expect(outcome).toEqual({ status: "unavailable", cause: "rate-limited", rawCode: 429, retryAfter: "60" });
+		expect(calls).toHaveLength(1);
+	});
+
+	it("loses nothing from the record when a 429 clears on the next attempt", async () => {
+		const { outcome, calls } = await outcomeOf([
+			{ fail: new SourceFailure("rate-limited", 429, "1") },
+			...QUARTER_MILE_STEPS,
+		]);
+
+		if (outcome.status !== "ok") throw new Error(`expected ok, got ${outcome.status}`);
+		expect(calls).toHaveLength(3);
+		expect(outcome.retrievedAt).toBe(RETRIEVED_AT);
+		expect(outcome.records).toHaveLength(7);
+
+		// The same literal record the un-throttled run produces: a retried
+		// request is the same request, and the trace still names the page it
+		// came from rather than the attempt that failed.
+		const cargill = byId(outcome.records, "110005085898");
+		expect(cargill.subject.value).toBe("CARGILL INCORPORATED");
+		expect(cargill.complianceStatus.value).toBe("No Violation Identified");
+		expect(cargill.lastPenaltyAmountUsd.value).toBe(0);
+		expect(cargill.location?.latitude.value).toBe(29.72263);
+		expect(cargill.distanceMeters?.value).toBe(219);
+		expect(fieldProvenance(cargill.registryId)).toMatchObject({
+			dataset: "echo_get_qid",
+			sourceField: "RegistryID",
+			rawValue: "110005085898",
+			adapterVersion: ECHO_VERSION,
+			payload: {
+				sha256: createHash("sha256").update(bytesOf("echo/facilities-page-quarter-mi.json")).digest("hex"),
+				retrievedAt: RETRIEVED_AT,
+			},
+		});
+		expect(new URL(fieldProvenance(cargill.registryId).payload.url).pathname).toBe(
+			"/echo/echo_rest_services.get_qid",
+		);
 	});
 
 	it("does not retry a malformed body", async () => {

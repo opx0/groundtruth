@@ -130,6 +130,10 @@ type Plan = {
 	readonly frs: (registryId: string) => Answer;
 	readonly nfhl: Answer;
 	readonly esri: Answer;
+	/** Reached only with `AQS_EMAIL` and `AQS_KEY` set: without them the adapter fails before the network. */
+	readonly aqs: Answer;
+	/** Reached only with `AIRNOW_KEY` set, for the same reason. */
+	readonly airnow: Answer;
 };
 
 /** The EPA ID out of `.../efservice/envirofacts_site/epa_id/<EPA_ID>/JSON`. */
@@ -162,6 +166,8 @@ const DEMO: Plan = {
 	},
 	nfhl: { fail: NFHL_REFUSED },
 	esri: { fixture: "fema/esri-no-polygon-houston.json" },
+	aqs: { fixture: "aqs/derived-annual-summary-houston.json" },
+	airnow: { fixture: "airnow/derived-current-observations.json" },
 };
 
 function planned(plan: Plan): Requested {
@@ -172,6 +178,8 @@ function planned(plan: Plan): Requested {
 			return echoCalls === 1 ? plan.echoSummary : plan.echoPage;
 		}
 		if (url.host === "data.epa.gov") return plan.status(epaIdOf(url));
+		if (url.host === "aqs.epa.gov") return plan.aqs;
+		if (url.host === "www.airnowapi.org") return plan.airnow;
 		if (url.host === "hazards.fema.gov") return plan.nfhl;
 		if (url.pathname.includes("FRS_INTERESTS_SEMS")) return plan.semsLayer;
 		if (url.pathname.includes("/FRS_INTERESTS/")) return plan.frs(registryIdOf(url));
@@ -278,6 +286,51 @@ function serialize(value: unknown): string {
 }
 
 /* -------------------------------------------------------------------------- */
+/* The air credentials, decided here rather than inherited                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The three names the two air adapters read, cleared before every test in this
+ * file and restored after it.
+ *
+ * Which state the air cards are in is the one thing in this report that a
+ * value outside the process decides: `lib/adapters/aqs.ts` and
+ * `lib/adapters/airnow.ts` read `process.env` at the point of use, and with
+ * nothing there neither gets as far as a socket. So a developer who exports a
+ * real `AQS_KEY` would otherwise run a different report from CI's -- with
+ * different cards, different sentences and different counts -- and the two
+ * states below would each pass only on one machine. Clearing them makes the
+ * unconfigured state the default here and `withAirKeys` the one way out of it.
+ */
+const AIR_ENV: readonly string[] = ["AQS_EMAIL", "AQS_KEY", "AIRNOW_KEY"];
+
+let airEnv: readonly { readonly name: string; readonly value: string | undefined }[];
+
+beforeEach(() => {
+	airEnv = AIR_ENV.map((name) => ({ name, value: process.env[name] }));
+	for (const name of AIR_ENV) delete process.env[name];
+});
+
+afterEach(() => {
+	for (const { name, value } of airEnv) {
+		if (value === undefined) delete process.env[name];
+		else process.env[name] = value;
+	}
+});
+
+/**
+ * A run made by a deployment an operator has registered keys with. The values
+ * are this file's own and reach no assertion: what they buy is the request,
+ * which the stub io answers from committed bytes.
+ */
+async function withAirKeys<T>(run: () => Promise<T>): Promise<T> {
+	process.env["AQS_EMAIL"] = "route-test@example.test";
+	process.env["AQS_KEY"] = "route-test-aqs-key";
+	process.env["AIRNOW_KEY"] = "route-test-airnow-key";
+	return run();
+}
+
+/* -------------------------------------------------------------------------- */
 /* 2. The whole route, over the Houston demo point                            */
 /* -------------------------------------------------------------------------- */
 
@@ -287,18 +340,19 @@ describe("the Houston demo point, every source, one stream", () => {
 		expect(response.status).toBe(200);
 		expect(response.headers.get("content-type")).toBe("application/x-ndjson");
 
-		// The exact sequence, for these bytes. The two air sources have no adapter
-		// yet and were never asked, so they settle first: a source nobody asked
-		// settles the moment the report starts. Everything after that is the
-		// order these sources answered in -- ECHO reads two pages, FEMA two
-		// layers, SEMS the layer and then fifteen status rows four at a time, and
-		// FRS cannot start until SEMS has finished. That this is stable is a
-		// property worth pinning; that it is not a *fixed* order is what the
-		// settle-order test below proves, by moving the delay and watching it
-		// change.
+		// The exact sequence, for these bytes and this environment. Both air
+		// sources are asked now, and both settle first because this deployment
+		// holds no key for either: the adapter fails before it opens a socket,
+		// which is an answer the card can state and not a source nobody asked.
+		// Everything after that is the order these sources answered in -- ECHO
+		// reads two pages, FEMA two layers, SEMS the layer and then fifteen
+		// status rows four at a time, and FRS cannot start until SEMS has
+		// finished. That this is stable is a property worth pinning; that it is
+		// not a *fixed* order is what the settle-order test below proves, by
+		// moving the delay and watching it change.
 		expect(events.map(shapeOf)).toEqual([
-			"card:aqs:not-asked",
-			"card:airnow:not-asked",
+			"card:aqs:asked",
+			"card:airnow:asked",
 			"card:echo:asked",
 			"card:fema:asked",
 			"card:sems:asked",
@@ -366,6 +420,157 @@ describe("the Houston demo point, every source, one stream", () => {
 		expect(listing.shown.length).toBe(5);
 		expect(listing.shown.length + listing.rest.length).toBe(listing.carried);
 		expect(textsOf(sems)).toContain("Superfund sites EPA's inventory lists within 5 miles of the mapped point: 15.");
+	});
+});
+
+/* -------------------------------------------------------------------------- */
+/* 2b. The two air sources, in the two states a credential decides between    */
+/* -------------------------------------------------------------------------- */
+
+function mustStatus(card: CardView, source: string): Sentence {
+	const status = card.status;
+	if (status === null) throw new Error(`the ${source} card carries no status sentence`);
+	return status;
+}
+
+/** The two air sources and the names `lib/evidence/records.ts` gives them, which is what the card prints. */
+const AIR_AGENCIES: readonly (readonly [string, string])[] = [
+	["aqs", "EPA Air Quality System"],
+	["airnow", "EPA AirNow"],
+];
+
+describe("the two air sources, asked by a deployment holding no credential", () => {
+	/**
+	 * docs/BRIEF.md A6 beat 6, end to end, and the state the demo will show
+	 * until an operator registers a key.
+	 *
+	 * The distinction this pins is the one registering the adapters bought.
+	 * Until they were registered the report said these two sources were
+	 * `not-asked` -- that nobody made the request -- which was true then and is
+	 * a lie now: the request is made, `credentialsOrFail` refuses it before the
+	 * network, and `not-configured` is a cause the card can state. A reader gets
+	 * a sentence naming the source, saying it could not be reached, and saying
+	 * why, which is what B7's "the status of every source" asks for.
+	 */
+	it("says of each one that it could not be reached, and why, rather than that nobody asked it", async () => {
+		const { events } = await report(DEMO);
+
+		for (const [source, agency] of AIR_AGENCIES) {
+			const card = cardFor(events, source);
+			expect(card.state).toBe("asked");
+			expect(card.agency).toBe(agency);
+			expect(textOf(mustStatus(card, source))).toBe(
+				`${agency} could not be reached: this deployment holds no credential for it. It answered no-api-key.`,
+			);
+
+			// Machine-readable beside the prose, so the screen never has to read
+			// the sentence to know which of B10's states this is.
+			const trace = mustStatus(card, source).trace;
+			if (trace === null || trace.scope !== "source") throw new Error(`the ${source} status lost its source trace`);
+			expect(trace.source.status).toBe("unavailable");
+			expect(trace.source.cause).toBe("not-configured");
+			expect(trace.source.rawCode).toBe("no-api-key");
+
+			// A source that could not be reached lists nothing and counts nothing:
+			// there is no boundary sentence to place and no records to place it over.
+			expect(card.listings).toEqual([]);
+			expect(card.headlines).toEqual([]);
+		}
+	});
+
+	it("makes no air request at all, because the failure is before the socket", async () => {
+		const { urls, io } = planned(DEMO);
+		await drive(io);
+
+		expect(urls.some((url) => url.includes("aqs.epa.gov"))).toBe(false);
+		expect(urls.some((url) => url.includes("airnowapi.org"))).toBe(false);
+		// And the rest of the report is untouched by either failure.
+		expect(urls.some((url) => url.includes("echodata.epa.gov"))).toBe(true);
+	});
+});
+
+/** The two committed AirNow rows recombined: one with an index, one without, which no single fixture holds. */
+function airnowBothStates(): JsonValue {
+	const indexed = parseJson("airnow/derived-current-observations.json");
+	const none = parseJson("airnow/derived-null-aqi.json");
+	if (!isJsonArray(indexed) || !isJsonArray(none)) throw new Error("an AirNow fixture is not an array of rows");
+	return [objectAt(indexed[0], "the ozone row"), objectAt(none[0], "the row with no index")];
+}
+
+describe("the two air sources, asked by a deployment an operator has given a key", () => {
+	it("puts the monitor, its distance and the unverified-shape clause on the AQS card", async () => {
+		const { events } = await withAirKeys(() => report(DEMO));
+		const aqs = cardFor(events, "aqs");
+		const texts = textsOf(aqs);
+
+		expect(textOf(mustStatus(aqs, "aqs"))).toBe(
+			`EPA Air Quality System answered with records, retrieved ${RETRIEVED_AT}.`,
+		);
+		expect(texts).toContain(`Searched within 50 km of the mapped point, retrieved ${RETRIEVED_AT}.`);
+		expect(texts).toContain(
+			"PM2.5 monitor 48-201-1039-88101 is 1.51 km from the mapped point, and measures its own location, not" +
+				" this address. 2025 annual arithmetic mean: 9.8 Micrograms/cubic meter (LC). AQS data lags collection by" +
+				" six months or more. Observations in the summary: 121. No response from this service has been recorded," +
+				" so this annual arithmetic mean is read from column names this report derived and is unverified against" +
+				" real bytes.",
+		);
+	});
+
+	/**
+	 * B2's nearest qualified monitor per pollutant, on the wire: one listing
+	 * each, one record shown, the rest carried. The derived Houston body holds
+	 * two PM2.5 monitors and one ozone monitor within 50 km, so the PM2.5
+	 * listing is the one with something behind "View all".
+	 */
+	it("gives each pollutant its own listing, showing the nearest and carrying the rest", async () => {
+		const { events } = await withAirKeys(() => report(DEMO));
+		const aqs = cardFor(events, "aqs");
+
+		expect(aqs.listings.map((listing) => listing.boundary)).toEqual(["50 km", "50 km"]);
+		const pm25 = at(aqs.listings, 0, "the PM2.5 listing");
+		const ozone = at(aqs.listings, 1, "the ozone listing");
+		expect(pm25.ordering).toBe("distance");
+		expect(pm25.total).toBe(2);
+		expect(pm25.shown.length).toBe(1);
+		expect(pm25.rest.length).toBe(1);
+		expect(ozone.total).toBe(1);
+		expect(ozone.shown.length).toBe(1);
+		expect(ozone.rest.length).toBe(0);
+	});
+
+	/**
+	 * The widened `AirTemplates` shape, end to end. AirNow's two templates are
+	 * split on whether the row carries an index, and the route hands the policy
+	 * both, so the card describes a row in either state. The recorded demo body
+	 * has an index on every row, so the two states are put on one card here the
+	 * way `tests/unit/report/selection.test.ts` does it -- and the assertion is
+	 * per record, because a card-level one cannot see a row that fell silent.
+	 */
+	it("describes an AirNow row in either index state, per row, with the template that declares it", async () => {
+		const answered: Plan = { ...DEMO, airnow: { derived: "derived:airnow-one-index-one-not", body: airnowBothStates() } };
+		const { events } = await withAirKeys(() => report(answered));
+		const airnow = cardFor(events, "airnow");
+		const listing = at(airnow.listings, 0, "the AirNow listing");
+		const entries = [...listing.shown, ...listing.rest];
+
+		expect(entries.length).toBe(2);
+		for (const entry of entries) {
+			expect(entry.sentences.length, `${entry.recordId.sourceRecordId} has no sentence`).toBeGreaterThan(0);
+		}
+		expect(entries.flatMap((entry) => entry.sentences.map((sentence) => sentence.templateId))).toEqual([
+			"airnow-observation/summary@1",
+			"airnow-observation/no-index@1",
+		]);
+		expect(entries.flatMap((entry) => entry.sentences.map(textOf))).toEqual([
+			"AirNow reports an air quality index of 41 for Ozone in the Houston reporting area, observed 2026-09-16." +
+				" AirNow's observations describe the Houston reporting area, not the mapped point. No response from this" +
+				" service has been recorded, so this Ozone row is read through field names this report derived and is" +
+				" unverified against real bytes.",
+			"AirNow's PM2.5 observation for the Houston reporting area, observed 2026-09-16, carries no air quality" +
+				" index. AirNow's observations describe the Houston reporting area, not the mapped point. No response" +
+				" from this service has been recorded, so this PM2.5 row is read through field names this report derived" +
+				" and is unverified against real bytes.",
+		]);
 	});
 });
 
@@ -695,17 +900,10 @@ describe("a payload URL carrying an API key does not reach the wire", () => {
 	});
 
 	it("leaves the report alone when no key is configured", async () => {
-		const previous = { aqs: process.env["AQS_KEY"], airnow: process.env["AIRNOW_KEY"] };
-		delete process.env["AQS_KEY"];
-		delete process.env["AIRNOW_KEY"];
-		try {
-			const { raw } = await report(DEMO);
-			expect(raw).toContain("VALERO PLUME");
-			expect(raw).not.toContain(REDACTED);
-		} finally {
-			if (previous.aqs !== undefined) process.env["AQS_KEY"] = previous.aqs;
-			if (previous.airnow !== undefined) process.env["AIRNOW_KEY"] = previous.airnow;
-		}
+		// Which is this file's default state: `beforeEach` clears all three names.
+		const { raw } = await report(DEMO);
+		expect(raw).toContain("VALERO PLUME");
+		expect(raw).not.toContain(REDACTED);
 	});
 });
 
@@ -779,8 +977,8 @@ function isCardFor(value: unknown, source: string): boolean {
  * The response is parsed back in with the spy still installed, which is safe
  * and deliberate: the broken card is the one line that was never written.
  */
-async function brokenCard(source: string): Promise<Run> {
-	const { io } = planned(DEMO);
+async function brokenCard(source: string, plan: Plan = DEMO): Promise<Run> {
+	const { io } = planned(plan);
 	const handler = createReportHandler(io);
 	const parse = ReportEventSchema.parse.bind(ReportEventSchema);
 	const spy = vi.spyOn(ReportEventSchema, "parse").mockImplementation((value: unknown): ReportEvent => {
@@ -808,8 +1006,8 @@ describe("a card that cannot be built", () => {
 		expect(textsOf(frs).some((text) => text.includes("110000460885"))).toBe(true);
 
 		expect(events.map(shapeOf)).toEqual([
-			"card:aqs:not-asked",
-			"card:airnow:not-asked",
+			"card:aqs:asked",
+			"card:airnow:asked",
 			"card:echo:asked",
 			"card:fema:asked",
 			"card:frs:asked",
@@ -822,17 +1020,32 @@ describe("a card that cannot be built", () => {
 		expect(logged).toEqual([["report: a source card could not be built"]]);
 	});
 
-	it("keeps the rest of the report when the card that fails is a source nobody asked", async () => {
-		const { events } = await brokenCard("aqs");
-		expect(events.map(shapeOf)).toEqual([
-			"card:airnow:not-asked",
+	/**
+	 * The one card in the report that can still be `not-asked`. Every source in
+	 * docs/BRIEF.md B2 has an adapter now, so the state is no longer reached at
+	 * the top of the run: it is reached here, where the Superfund layer is
+	 * refused, nothing names a registry ID and the registry is therefore not
+	 * asked at all. A card carrying no sentences is still a card, and losing it
+	 * costs the report exactly itself.
+	 */
+	it("keeps the rest of the report when the card that fails is the source nobody asked", async () => {
+		const unasked: Plan = { ...DEMO, semsLayer: { fail: new SourceFailure("refused") } };
+		const { events } = await brokenCard("frs", unasked);
+		const shapes = events.map(shapeOf);
+
+		// The settle order of the four that answered is not fixed -- that is what
+		// the settle-order test proves -- so what is asserted is which cards are
+		// on the stream, and that the registry's is not.
+		expect([...shapes].sort()).toEqual([
+			"card:airnow:asked",
+			"card:aqs:asked",
 			"card:echo:asked",
 			"card:fema:asked",
 			"card:sems:asked",
-			"card:frs:asked",
-			"groups",
 			"end:failed",
+			"groups",
 		]);
+		expect(() => cardFor(events, "frs")).toThrow("no card was emitted for frs");
 		expect(logged).toEqual([["report: a source card could not be built"]]);
 	});
 
@@ -872,9 +1085,10 @@ async function until(done: () => boolean, what: string): Promise<void> {
 
 describe("a client that disconnects mid-stream", () => {
 	/**
-	 * Every source answers late, so the report is genuinely mid-stream when the
-	 * reader is cancelled: the two not-asked cards are written before the first
-	 * await, and nothing else can have settled yet.
+	 * Every source that reaches the network answers late, so the report is
+	 * genuinely mid-stream when the reader is cancelled: the two air cards are
+	 * written first -- this deployment holds no key, so neither adapter gets as
+	 * far as a request -- and nothing else can have settled yet.
 	 */
 	const LATE: Plan = {
 		...DEMO,
@@ -905,7 +1119,7 @@ describe("a client that disconnects mid-stream", () => {
 			await reader.cancel();
 			expect((await reader.read()).done).toBe(true);
 			const whenTheClientLeft = [...built];
-			expect(whenTheClientLeft).toEqual(["card:aqs:not-asked", "card:airnow:not-asked"]);
+			expect(whenTheClientLeft).toEqual(["card:aqs:asked", "card:airnow:asked"]);
 
 			// The report does not drop the requests it has already made: FRS is
 			// the last thing it asks, and it is asked after the client has gone.

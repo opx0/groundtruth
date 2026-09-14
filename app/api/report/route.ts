@@ -8,6 +8,7 @@
  * route holds and for why the origin sentences are not among them.
  */
 
+import { createCacheSourceIo } from "@/lib/io/cache-source-io";
 import { createFetchSourceIo } from "@/lib/io/fetch-source-io";
 import { createReportHandler } from "./handler";
 
@@ -21,4 +22,12 @@ export const runtime = "nodejs";
  */
 export const dynamic = "force-dynamic";
 
-export const POST = createReportHandler(createFetchSourceIo());
+/**
+ * The B9 cache wraps the fetch io here and nowhere else. It is created once per
+ * process, holds one `Map` that dies with the process, and keys on a digest of
+ * the URL an adapter asked for -- never on anything about who asked, which is
+ * not in scope at that seam. `app/api/geocode/route.ts` does not wrap its io,
+ * so the one request that carries an address is never cached; see
+ * `lib/io/cache-source-io.ts` for the lifetimes and for what a heap dump shows.
+ */
+export const POST = createReportHandler(createCacheSourceIo(createFetchSourceIo()));

@@ -21,8 +21,16 @@
  * 2. **No coordinate in any error payload.** The terminal event says `failed`
  *    and carries nothing else, and the one non-stream response is
  *    `{"status":"invalid"}`, the same body the geocode route returns.
- * 3. **No cache, and so no cache key tied to a user, session, IP or browser.**
- *    U3.2 adds a cache; this unit adds none.
+ * 3. **No cache key tied to a user, session, IP or browser.** The report path
+ *    *is* cached -- `app/api/report/route.ts` wraps the io it passes here in
+ *    `lib/io/cache-source-io.ts`, so most of what this file asks for on a warm
+ *    process is served from a map rather than the network. The property is not
+ *    "no cache"; it is that the cache cannot key on any of those things,
+ *    because the only seam it sits on carries a `URL` and a schema and there is
+ *    no request, header, cookie or socket in its scope. That file's own module
+ *    comment is where the argument and the heap-dump caveat live, and its tests
+ *    assert the digest rather than the intention. Nothing about the cache
+ *    reaches this file: it is one `SourceIo` standing in for another.
  * 4. **No payload URL carrying a key**, checked a second time in
  *    `app/lib/report-contract.ts` by the same parse that strips unknown keys.
  *
@@ -52,6 +60,44 @@
  * returns an unavailable outcome, which the selection policy turns into a
  * status sentence. The stream ends only when every source has settled or the
  * client disconnects.
+ *
+ * A DISCONNECT STOPS THE EVENTS AND NOT THE REQUESTS, AND THAT IS A DEBT.
+ * `cancel` sets `open` false, which stops this file building or sending
+ * anything further. It does not stop what is already running. Measured against
+ * the committed fixtures with every source answering 30 ms late, cancelling the
+ * reader after the first card:
+ *
+ *     requests issued when the client cancelled: 3
+ *     requests issued 2s later                 : 25
+ *
+ * Twenty-two of twenty-five requests to EPA hosts are issued after the reader
+ * is gone -- the fifteen Envirofacts status lookups, ECHO's second page, the
+ * registry lookups. An abandoned tab then runs until its slowest source spends
+ * its whole budget: 45 s for ECHO (`ECHO_POLICY`), 8 s for the rest
+ * (`DEFAULT_POLICY`), plus the FRS lookups the SEMS handoff starts afterwards.
+ * That is the wrong way round for government infrastructure and it is not
+ * being defended here.
+ *
+ * It is not fixed here because the fix is not in this file. Cancelling in
+ * flight needs an `AbortSignal` to reach `fetch`, and the only route to it is
+ * `SourceIo.get(url, schema)`, which has no third parameter: the signal would
+ * have to be added to the kernel's `SourceIo` in `lib/evidence/sourced.ts`,
+ * honoured in `lib/io/fetch-source-io.ts` beside the timeout controller it
+ * already builds, passed through `lib/io/cache-source-io.ts`, and threaded by
+ * every adapter that loops -- SEMS over fifteen sites, ECHO over its pages,
+ * FRS over its registry IDs. Anything cheaper is theatre: a check on `open`
+ * between sources can only stop the SEMS-to-FRS handoff, because `runSource`
+ * runs an adapter to completion and the fifteen status lookups are inside one.
+ *
+ * Two smaller things worth knowing before someone picks it up. `withTimeout`
+ * in `lib/evidence/source.ts` rejects the race without cancelling the loser, so
+ * an adapter whose budget expired keeps looping and keeps issuing requests
+ * after the card that gave up on it was sent; only the one request in flight is
+ * bounded, by `createFetchSourceIo`'s own 8 s `AbortController`. Same debt, one
+ * level down, and the same signal closes both. And
+ * `tests/unit/app/report-route.test.ts` currently asserts this behaviour as
+ * intended ("the report does not drop the requests it has already made"); that
+ * assertion is the thing to rewrite first, not to route around.
  *
  * AND A CARD THAT CANNOT BE BUILT COSTS THAT CARD AND NO OTHER. A source
  * failing is an answer; a card failing to build is a defect -- a render with no
@@ -101,12 +147,16 @@ import type {
 	SourcePolicy,
 	SourceUnavailable,
 } from "@/lib/evidence";
+import { airnowAdapter } from "@/lib/adapters/airnow";
+import { aqsAdapter, latestLikelySummaryYear } from "@/lib/adapters/aqs";
 import { ECHO_POLICY, echoAdapter } from "@/lib/adapters/echo";
 import { floodZoneOutcome } from "@/lib/adapters/fema";
 import { lookupFrsFacility } from "@/lib/adapters/frs";
 import { semsAdapter } from "@/lib/adapters/sems";
 import { groupRecords } from "@/lib/report/grouping";
 import {
+	airnowCard,
+	aqsCard,
 	carriedCount,
 	groupsFor,
 	echoCard,
@@ -116,11 +166,14 @@ import {
 	NO_GROUPS,
 	semsCard,
 	SHOWN_RECORDS,
+	type AirTemplates,
 	type AnyListing,
 	type Card,
 	type ListingEntry,
 	type ReportSource,
 } from "@/lib/report/selection";
+import { airnowTemplates } from "@/lib/templates/airnow";
+import { aqsMonitorSummary } from "@/lib/templates/aqs";
 import { sentenceView, type SentenceView } from "@/lib/report/sentence-view";
 import {
 	NDJSON_CONTENT_TYPE,
@@ -218,30 +271,49 @@ const CONFIRMED_POINT = "urn:ground-truth:confirmed-point";
 /* -------------------------------------------------------------------------- */
 
 /**
+ * The templates the air cards speak with.
+ *
+ * One entry per kind, and they are shaped differently because the kinds are:
+ * `lib/templates/aqs.ts` is one template declaring no requirement, so it speaks
+ * for every monitor summary, while `lib/templates/airnow.ts` is two split on
+ * whether the row carries an index, so the policy is handed both and chooses
+ * per record. Passing `airnowTemplates` rather than naming its two members is
+ * what makes a third template of that kind a change to that file alone.
+ */
+const AIR_TEMPLATES: AirTemplates = { aqs: aqsMonitorSummary, airnow: airnowTemplates };
+
+/**
  * Every source a locus alone is enough to ask, with the card its outcome
  * becomes.
  *
- * AQS and AirNow are absent because neither adapter exists yet: both are
- * blocked on a key the operator must register (`.dev/briefs/U1.6-U1.7-air.md`)
- * and both are being written in parallel with this unit. Registering one is one
- * entry in this list and nothing else -- `NOT_ASKED` below is derived from what
- * is here, so a source added here stops being reported as unasked in the same
- * edit.
+ * `adapter` is a function of this request's `SourceIo` because one of them is:
+ * `aqsAdapter` takes the summary year it reports on, since AQS lags collection
+ * by six months or more and the year a card states has to be a decision the
+ * caller made rather than one buried in a clock read (`lib/adapters/aqs.ts`).
+ * The report's clock is `io.now()` -- the instant every payload's `retrievedAt`
+ * already comes from, and the one a test fixes -- so the year is read off that
+ * and never off a wall clock in here. Every other entry ignores the argument.
  *
- * FEMA is absent for a different reason: `runSources`' shared fan-out would
- * give the flood slot one outcome with no way to say which of the two datasets
- * answered, and that distinction is the entire reason the flood card exists.
- * FRS is absent because it takes a registry ID rather than a locus.
+ * FEMA is absent: `runSources`' shared fan-out would give the flood slot one
+ * outcome with no way to say which of the two datasets answered, and that
+ * distinction is the entire reason the flood card exists. FRS is absent because
+ * it takes a registry ID rather than a locus.
  */
 type LocusSource = {
 	readonly source: ReportSource;
-	readonly adapter: Adapter<Kind>;
+	readonly adapter: (io: SourceIo) => Adapter<Kind>;
 	readonly card: (store: EvidenceStore, outcome: SourceOutcome) => Card;
 };
 
 const LOCUS_SOURCES: readonly LocusSource[] = [
-	{ source: "sems", adapter: semsAdapter, card: (store, outcome) => semsCard(store, outcome, NO_GROUPS) },
-	{ source: "echo", adapter: echoAdapter, card: (store, outcome) => echoCard(store, outcome, NO_GROUPS) },
+	{ source: "sems", adapter: () => semsAdapter, card: (store, outcome) => semsCard(store, outcome, NO_GROUPS) },
+	{ source: "echo", adapter: () => echoAdapter, card: (store, outcome) => echoCard(store, outcome, NO_GROUPS) },
+	{
+		source: "aqs",
+		adapter: (io) => aqsAdapter(latestLikelySummaryYear(io.now())),
+		card: (store, outcome) => aqsCard(store, outcome, AIR_TEMPLATES),
+	},
+	{ source: "airnow", adapter: () => airnowAdapter, card: (store, outcome) => airnowCard(store, outcome, AIR_TEMPLATES) },
 ];
 
 const REPORT_SOURCES: readonly ReportSource[] = ReportSourceSchema.options;
@@ -260,6 +332,14 @@ const ASKED_SEPARATELY: readonly ReportSource[] = ["fema", "frs"];
  * name, the `not-asked` state and no status sentence at all, because no
  * template speaks for a request that was not made and this file may not write
  * prose that no agency's fields produced.
+ *
+ * It is empty now, because every source in docs/BRIEF.md B2 has an adapter and
+ * every one of them is registered above or asked by a path of its own. The
+ * state is still reached, and still tested: FRS is asked only when a Superfund
+ * record names a registry ID, so a report where nothing did emits exactly this
+ * card for it. An air source with no key configured does **not** reach it --
+ * that request was made, it failed before the network for a reason the card can
+ * state, and `not-configured` is the cause that states it.
  */
 const NOT_ASKED: readonly ReportSource[] = REPORT_SOURCES.filter(
 	(source) =>
@@ -607,13 +687,20 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 					// the only way to reach it: everything below is a source, and a
 					// source that fails is a card.
 					const point = confirmedPoint(body, requestSha256, io);
+					// Every locus source's adapter, built against this request's io
+					// before any card is emitted. AQS's is why this is not a constant:
+					// it takes the summary year it reports on, read from `io.now()`.
+					// A clock that cannot be read fails the whole report here, which is
+					// where `confirmedPoint` already puts it, rather than costing one
+					// card outside the guard that confines a card's failure to itself.
+					const asked = LOCUS_SOURCES.map((registered) => ({ registered, adapter: registered.adapter(io) }));
 
 					for (const source of NOT_ASKED) emitNotAsked(source);
 
-					const tasks: Promise<void>[] = LOCUS_SOURCES.map(async (registered) => {
+					const tasks: Promise<void>[] = asked.map(async ({ registered, adapter }) => {
 						const outcome = await runSource(
 							locusFor(point, registered.source),
-							registered.adapter,
+							adapter,
 							io,
 							policyFor(registered.source),
 						);
@@ -696,6 +783,14 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 						}
 					});
 			},
+			/**
+			 * The whole disconnect path, and it stops events rather than requests:
+			 * twenty-two of a report's twenty-five upstream requests are issued
+			 * after this runs. Measured, argued and left as a debt under "A
+			 * DISCONNECT STOPS THE EVENTS AND NOT THE REQUESTS" at the top of this
+			 * file, which also says what closing it takes -- an `AbortSignal` on
+			 * `SourceIo.get`, not another line here.
+			 */
 			cancel() {
 				open = false;
 			},

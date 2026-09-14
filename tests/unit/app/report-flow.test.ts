@@ -66,12 +66,28 @@ describe("the stream folds into one state, in arrival order", () => {
 		expect(waitingSources(state)).toEqual([]);
 	});
 
+	/**
+	 * docs/BRIEF.md A3. This asserted "VALERO PLUME and HOUSTON REFINERY share
+	 * one EPA facility registry ID, 110000460885" until 2026-09-16 — a sentence
+	 * about two records carrying a third thing's identifier, where HOUSTON
+	 * REFINERY is the registry's own record of that identifier and A3 and B6
+	 * establish the two as one site under two names. The cross-reference below
+	 * it, which the card already carried, is the correct statement of it, and
+	 * the group sentence that remains is two Superfund records that do share
+	 * one.
+	 */
 	it("carries the groups the route sent after every source settled", () => {
 		const state = stateOf(demo);
 		const sems = state.groups.find((card) => card.source === "sems");
-		expect(sems?.groups.map((one) => one.spans.map((span) => span.text).join(""))).toContain(
-			"VALERO PLUME and HOUSTON REFINERY share one EPA facility registry ID, 110000460885.",
-		);
+		const text = (one: SentenceViewMessage): string => one.spans.map((span) => span.text).join("");
+
+		expect(sems?.groups.map(text)).toEqual([
+			"PASADENA REFINING FIRE and PRSI FIRE share one EPA facility registry ID, 110000462703.",
+		]);
+		expect(sems?.crossReferences.map(text)).toEqual([
+			"EPA's facility registry carries the name HOUSTON REFINERY for registry ID 110000460885.",
+		]);
+		for (const one of sems?.groups ?? []) expect(text(one)).not.toContain("HOUSTON REFINERY");
 	});
 
 	it("ends unavailable when the stream itself broke, which is not a source failing", () => {
@@ -104,24 +120,34 @@ describe("the four states a card can be in are four different states", () => {
 		const states: { readonly [source: string]: CardState } = Object.fromEntries(
 			state.cards.map((card) => [card.source, cardStateOf(card)]),
 		);
+		// Four states over six cards: ECHO answered with records, SEMS answered
+		// with nothing, the flood card and the two air cards could not be
+		// reached -- the air ones because this deployment holds no key -- and the
+		// registry was never asked, because a Superfund layer with no rows in it
+		// named no registry ID for it to be asked about.
 		expect(states).toEqual({
-			sems: "records",
-			frs: "records",
-			echo: "no-records",
+			echo: "records",
+			sems: "no-records",
 			fema: "unavailable",
-			aqs: "not-asked",
-			airnow: "not-asked",
+			aqs: "unavailable",
+			airnow: "unavailable",
+			frs: "not-asked",
 		});
+		expect(new Set(Object.values(states)).size).toBe(4);
 	});
 
 	it("keeps 'answered with nothing' and 'could not be reached' apart, as B10 does", () => {
 		const state = stateOf(fourStates);
-		expect(sourceStatusOf(cardOf(state, "echo"))).toBe("no-data");
+		expect(sourceStatusOf(cardOf(state, "sems"))).toBe("no-data");
 		expect(sourceStatusOf(cardOf(state, "fema"))).toBe("unavailable");
+		// Unavailable is one status with a cause under it, and the cause is what
+		// tells a refused connection from a key this deployment does not hold.
+		// Neither is "answered with nothing".
+		expect(sourceStatusOf(cardOf(state, "aqs"))).toBe("unavailable");
 		// A source nobody asked has no status sentence at all: no template speaks
 		// for a request that was never made.
-		expect(cardOf(state, "aqs").status).toBeNull();
-		expect(sourceStatusOf(cardOf(state, "aqs"))).toBeNull();
+		expect(cardOf(state, "frs").status).toBeNull();
+		expect(sourceStatusOf(cardOf(state, "frs"))).toBeNull();
 	});
 
 	it("puts the source's own limits on the card that made the claim, deduplicated", () => {
@@ -159,11 +185,27 @@ function everySentence(state: ReportFlowState): readonly SentenceViewMessage[] {
 	];
 }
 
+/**
+ * The status sentences of the sources this deployment holds no credential for,
+ * which is AQS and AirNow on every stream here (docs/BRIEF.md A6 beat 6).
+ *
+ * They are what separates the counts below from the 172 and 27 the brief's own
+ * audit took, when those two sources arrived as `not-asked` and carried no
+ * sentence at all: one `source/unavailable@1` sentence each, three slotted
+ * spans apiece -- the agency, the cause, and the raw code the adapter reported.
+ */
+function notConfigured(sentences: readonly SentenceViewMessage[]): readonly SentenceViewMessage[] {
+	return sentences.filter(
+		(sentence) => sentence.trace?.scope === "source" && sentence.trace.source.cause === "not-configured",
+	);
+}
+
 describe("every slotted span of every sentence resolves to the value behind it", () => {
 	it("finds the clicked value in the sentence's own trace, by the span's field", () => {
-		const state = stateOf(demo);
+		const sentences = everySentence(stateOf(demo));
+		const air = notConfigured(sentences);
 		let walked = 0;
-		for (const sentence of everySentence(state)) {
+		for (const sentence of sentences) {
 			for (const { span, index } of slottedSpans(sentence)) {
 				const value = clickedValue({ sentence, spanIndex: index });
 				expect(value, `${sentence.templateId} span ${index}`).not.toBeNull();
@@ -175,8 +217,15 @@ describe("every slotted span of every sentence resolves to the value behind it",
 			}
 		}
 		// Not a sample. Every slotted span of every sentence of every card of the
-		// demo report, which the brief's own audit counted at 172.
-		expect(walked).toBe(172);
+		// demo report: the 172 the brief's own audit counted, plus the six the two
+		// air cards brought with them when they stopped being `not-asked`, less
+		// the five the report stopped claiming — the registry card's boundary and
+		// retrieval time, over a lookup by registry ID that searched no area, and
+		// the three of a group sentence naming the registry's own record of an
+		// identifier as a record sharing it.
+		expect(air.length).toBe(2);
+		expect(air.flatMap((sentence) => [...slottedSpans(sentence)]).length).toBe(6);
+		expect(walked).toBe(173);
 	});
 
 	it("resolves nothing for the template's own connective text", () => {
@@ -190,24 +239,33 @@ describe("every slotted span of every sentence resolves to the value behind it",
 	});
 
 	it("grounds a value with no provenance of its own on the scope header instead", () => {
-		const state = stateOf(demo);
+		const sentences = everySentence(stateOf(demo));
+		const air = new Set(notConfigured(sentences));
 		let empty = 0;
-		for (const sentence of everySentence(state)) {
+		let emptyOnAir = 0;
+		for (const sentence of sentences) {
 			for (const { index } of slottedSpans(sentence)) {
 				const value = clickedValue({ sentence, spanIndex: index });
 				if (value === null || value.provenance.length > 0) continue;
 				empty += 1;
+				if (air.has(sentence)) emptyOnAir += 1;
 				const trace = sentence.trace;
 				// Every one of them is a status or a count: the grounding is the
 				// source outcome, or the section's `counted` list, on the header.
 				// A panel rendering only `values[].provenance` would show an empty
-				// citation on all 27 of them.
+				// citation on all 31 of them.
 				expect(trace?.scope === "source" || trace?.scope === "section").toBe(true);
 				if (trace?.scope === "source") expect(trace.source.agency.length).toBeGreaterThan(0);
 				if (trace?.scope === "section") expect(trace.section.agency.length).toBeGreaterThan(0);
 			}
 		}
-		expect(empty).toBe(27);
+		// The 27 the audit counted, plus all six spans of the two air cards — an
+		// agency, a cause and a raw code are facts about our own request, and no
+		// agency's record stands behind any of them — less the registry card's
+		// boundary and retrieval time, which the card stopped claiming because
+		// its lookup searched no area.
+		expect(emptyOnAir).toBe(6);
+		expect(empty).toBe(31);
 	});
 });
 

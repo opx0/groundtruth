@@ -155,8 +155,10 @@ export type OriginPlacement = {
  * because two of the B6 rules are about two sources disagreeing, so
  * `groupedBy` names a slot read from the lead member at render time and is
  * null when that member does not have it. Which records belong in a group, and
- * which slot ties them, is `lib/report/grouping.ts`'s decision and is wired in
- * a later unit; nothing here decides it.
+ * which slot ties them, is `lib/report/grouping.ts`'s decision, wired into the
+ * report by `app/api/report/handler.ts`, which runs `groupRecords` over the
+ * settled records and turns the result into placements with `groupPlacements`
+ * and `groupsFor` in `lib/report/selection.ts`; nothing here decides it.
  */
 export type GroupPlacement<K extends Kind = Kind, F extends string = string> = {
 	readonly scope: "group";

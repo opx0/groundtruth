@@ -107,18 +107,22 @@
  * `run` throws before it fetches and the kernel reports `unavailable`, which is
  * a different screen state from `no-data` by construction.
  *
- * The cause is the honest problem in this file. `FailureCause` in
- * `lib/evidence/source.ts` is a closed enum of six and none of them is "this
- * deployment has no credential for this source". `refused` would assert the
- * host refused a connection nobody opened, and `http` would assert the source
- * answered; both are claims about AirNow that are false. `unknown` asserts
- * nothing about AirNow at all — `lib/evidence/sentence.ts` words it as "the
- * reason is not known", which under-claims our own state rather than
- * misdescribing the agency's. That is the wrong direction to be imprecise in
- * by the smallest margin available, so `unknown` it is, with `NO_KEY` as the
- * `rawCode` so the outcome is still machine-distinguishable from every other
- * unknown and the trace carries the real reason. The enum wants a seventh
- * member; adding one is not this unit's to do.
+ * AND THE CAUSE IS NO LONGER THE HONEST PROBLEM IN THIS FILE. It was, and this
+ * comment argued the wrong way out of it until 2026-09-16, so the argument is
+ * left here rather than deleted: `FailureCause` in `lib/evidence/source.ts` was
+ * a closed enum of six, `refused` would have asserted a host refused a
+ * connection nobody opened and `http` would have asserted the source answered —
+ * both false claims about AirNow — so this file settled for `unknown`, which
+ * asserts nothing about AirNow at all, and said the enum wanted a seventh
+ * member that was not this unit's to add.
+ *
+ * The seventh member was added in `295e639`, after three separate units reached
+ * that same conclusion and settled the same way. `run` throws `not-configured`
+ * and `lib/evidence/sentence.ts` words it as "this deployment holds no
+ * credential for it", where `unknown` had the card saying the reason was not
+ * known when it was the one thing that was. Reading the paragraph above as a
+ * live argument would undo that commit. `NO_KEY` stays the `rawCode`, now for
+ * the trace alone: the cause is what makes the outcome machine-distinguishable.
  *
  * NO DISTANCE. B2's boundary row for AirNow is "the reporting area AirNow
  * returns", and an area contains the mapped point rather than sitting some way
@@ -130,9 +134,11 @@
  * `Sourced<"PM2.5" | "Ozone">`, no field reader produces a literal union, and
  * neither agency sends that vocabulary. It is the parameter this report covers,
  * so it is built by `fromQuery` against a query provenance, exactly as
- * `lib/adapters/fema.ts` sources its `dataset`. `AIRNOW_PARAMETERS` selects the
- * rows: a `ParameterName` outside it parses fine and simply produces no record,
- * because the kind has two members and this file may not add a third. AirNow's
+ * `lib/adapters/fema.ts` sources its `dataset`. `pollutantOf` selects the rows
+ * against `AIRNOW_PARAMETERS`: a `ParameterName` outside it parses fine and
+ * simply produces no record, because the kind has two members and this file may
+ * not add a third. It is an own-property read rather than an index, and the
+ * comment on `pollutantOf` says what an index cost before 2026-09-16. AirNow's
  * own parameter string does reach the trace, through `subject`, which is the
  * reporting area and the parameter joined — that is the only slot on this kind
  * that can hold the agency's own word for what was measured.
@@ -187,9 +193,10 @@ export const KEY_ENV = "AIRNOW_KEY";
 
 /**
  * The `rawCode` of the outcome an unconfigured deployment produces. A marker of
- * ours, not something AirNow said, and the only thing that separates this
- * outcome from any other `unknown` failure. Never a key and never a fragment of
- * one.
+ * ours, not something AirNow said. It was the only thing separating this
+ * outcome from any other `unknown` failure until `not-configured` existed; now
+ * the cause carries that and this is what the trace shows beside it. Never a
+ * key and never a fragment of one.
  */
 export const NO_KEY = "no-api-key";
 
@@ -219,11 +226,40 @@ export type Pollutant = "PM2.5" | "Ozone";
  * for this kind. Not a `z.enum` and not a validation: a row whose parameter is
  * absent from this table is dropped, not rejected, so an unfamiliar parameter
  * never costs the report the rows beside it.
+ *
+ * Read it through `pollutantOf` and never by indexing it. See there for why.
  */
 export const AIRNOW_PARAMETERS: Readonly<Record<string, Pollutant>> = {
 	"PM2.5": "PM2.5",
 	O3: "Ozone",
 };
+
+/**
+ * The pollutant this report covers a row's parameter as, or null for every
+ * other string AirNow can send.
+ *
+ * `Object.hasOwn` and not `!== undefined`, because the table above is an object
+ * literal and an index into one reaches `Object.prototype`:
+ *
+ *   AIRNOW_PARAMETERS["NO2"]         -> undefined         (dropped)
+ *   AIRNOW_PARAMETERS["constructor"] -> [Function Object]  (kept, until 2026-09-16)
+ *   AIRNOW_PARAMETERS["__proto__"]   -> {}                 (kept, until 2026-09-16)
+ *
+ * A row kept that way built a record with a function or an object in
+ * `pollutant.value`, which this kind types as one of two words. The wire schema
+ * in `app/lib/report-contract.ts` then refused the record and the whole AirNow
+ * card was lost — no `card:airnow` event at all, so the reader got "Sources
+ * settled: 5 of 6" with nothing naming the source that went missing. One string
+ * in one row, and the guard against it was one word.
+ *
+ * `lib/adapters/aqs.ts` has the same table and now the same read. There the row
+ * was dropped anyway, by the `selections` lookup beside it rather than by the
+ * table, which is a guard against this by coincidence and not by intent.
+ */
+export function pollutantOf(parameterName: string): Pollutant | null {
+	if (!Object.hasOwn(AIRNOW_PARAMETERS, parameterName)) return null;
+	return AIRNOW_PARAMETERS[parameterName] ?? null;
+}
 
 /**
  * One current observation. Four keys, every one of them argued in
@@ -376,8 +412,8 @@ function scrubbedRow(row: AirNowObservation, scrub: Scrub): AirNowObservation {
 function selected(rows: readonly AirNowObservation[]): readonly { row: AirNowObservation; pollutant: Pollutant }[] {
 	const out: { row: AirNowObservation; pollutant: Pollutant }[] = [];
 	for (const row of rows) {
-		const pollutant = AIRNOW_PARAMETERS[row.ParameterName];
-		if (pollutant !== undefined) out.push({ row, pollutant });
+		const pollutant = pollutantOf(row.ParameterName);
+		if (pollutant !== null) out.push({ row, pollutant });
 	}
 	return out;
 }

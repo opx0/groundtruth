@@ -75,7 +75,11 @@
  *   noncompliance@1      secondary  quartersInNoncompliance >= 1  the facility has a quarter
  *   formal-action@1      secondary  lastFormalActionDate present  the summary carries a date
  *   no-formal-action@1   secondary  lastFormalActionDate absent   that column is empty
- *   industry-codes@1     secondary  none                          it only prints two columns
+ *   industry-codes@1     not placed none                          it only prints two columns
+ *
+ * `industry-codes@1` is a secondary by shape and no card places it. That is a
+ * selection decision, made in `lib/report/selection.ts` and argued there; the
+ * paragraph on it below says what it costs.
  *
  * `noncompliance@1` needs a threshold, not a presence check. `present` is
  * satisfied by the value `0`, and five of the seven rows have `FacQtrsWithNC`
@@ -185,10 +189,20 @@
  * 5171" read as a single code.
  *
  * `echoFacilityIndustryCodes` answers what a facility is rather than what its
- * record says, so it stands beside one of the others rather than instead of
- * it. It was the first secondary and its shape is now the shape of all four:
- * no naming clause, the subject named inside each clause instead, and the
- * whole template null when every column it reads is null.
+ * record says, so it was written to stand beside one of the others rather than
+ * instead of it. It was the first secondary and its shape is now the shape of
+ * all four: no naming clause, the subject named inside each clause instead,
+ * and the whole template null when every column it reads is null.
+ *
+ * The card no longer places it, and nothing here changed for that: the
+ * template still renders, and `echoTemplatesFor` in `lib/report/selection.ts`
+ * stops at the primary, the formal-action pair and `noncompliance@1` above its
+ * threshold. The reason is the one that made every secondary name its own
+ * facility — four of them named it in four consecutive sentences — and of
+ * the four the industry codes are the cheapest to lose, since docs/BRIEF.md B2
+ * asks for none and NAICS and SIC are bare numbers a reader cannot act on
+ * here. `naicsCodes` and `sicCodes` are slots on the record either way, so the
+ * trace behind every other ECHO sentence still carries both.
  *
  * Every clause that prints a distance says what the distance is measured from.
  * `0.22 km` alone names no origin, and `sems-site/npl@1` has said "from the

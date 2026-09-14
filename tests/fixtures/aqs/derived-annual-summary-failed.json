@@ -1,0 +1,13 @@
+{
+  "Header": [
+    {
+      "status": "Failed",
+      "request_time": "2026-09-16T08:05:46.588-04:00",
+      "url": "https://aqs.epa.gov/data/api/annualData/byBox?email=operator@example.test&key=REDACT-ME-NOT-A-REAL-KEY&bdate=20250101&edate=20251231&minlat=29.270999&maxlat=30.170319&minlon=-95.779767&maxlon=-94.744224",
+      "error": [
+        "value is missing or the value is empty: param"
+      ]
+    }
+  ],
+  "Body": []
+}

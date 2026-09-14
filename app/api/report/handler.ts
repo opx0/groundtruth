@@ -1,0 +1,681 @@
+/**
+ * The report route's logic, factored out of `route.ts` so a test can inject a
+ * fixture-backed `SourceIo` instead of the real network implementation -- the
+ * same substitution `app/api/geocode/handler.ts` makes, for the same reason.
+ *
+ * PRIVACY. The geocode route is the one server boundary that ever holds a raw
+ * address. This one holds a coordinate, and the strongest privacy property in
+ * the codebase is the shape of its request: **no address reaches this route at
+ * all**. `ReportRequestSchema` is a strict object of two numbers, so a body
+ * carrying an address, a matched address or a tiger line is refused rather than
+ * stripped and acted on. docs/BRIEF.md B9 step 6 -- environmental adapters
+ * receive coordinates and query parameters only -- is then true here by
+ * construction and not by care: there is no address in this process to leak.
+ *
+ * The rest of B9's last paragraph, held here:
+ *
+ * 1. **No coordinate in any log line.** The geocode handler's rule holds: every
+ *    log line this file writes is a fixed string, never an error's own
+ *    `.message`, never a value derived from the request. Here the thing that
+ *    must not leak is the coordinate.
+ * 2. **No coordinate in any error payload.** The terminal event says `failed`
+ *    and carries nothing else, and the one non-stream response is
+ *    `{"status":"invalid"}`, the same body the geocode route returns.
+ * 3. **No cache, and so no cache key tied to a user, session, IP or browser.**
+ *    U3.2 adds a cache; this unit adds none.
+ * 4. **No payload URL carrying a key**, checked a second time in
+ *    `app/lib/report-contract.ts` by the same parse that strips unknown keys.
+ *
+ * The coordinate does reach the browser inside the trace, and that is not a
+ * leak but a round trip: docs/BRIEF.md B8 requires a calculated distance to
+ * carry both coordinates and the formula, so the kernel's haversine provenance
+ * names the mapped point by construction, and a five-mile query's payload URL
+ * is the citation the trace panel exists to show. It goes back down the same
+ * connection the browser sent it up. Nothing here writes it anywhere else.
+ *
+ * THE ORIGIN SENTENCES DO NOT COME FROM THIS ROUTE. A `GeocodeMatch` holds
+ * `Sourced` values and there is no exported way to build one, so this route
+ * cannot reconstruct the match from the two numbers the browser sends, and it
+ * must not try. The rendered origin sentences arrive from the geocode route,
+ * beside the match view it already returns; `app/api/geocode/handler.ts` is the
+ * one place a match exists. That is why `app/lib/report-contract.ts` has no
+ * origin arm on the wire at all.
+ *
+ * FRS RUNS AFTER SEMS, AND THAT IS A REAL DEPENDENCY. `lookupFrsFacility` takes
+ * a registry ID, not a locus: a five-mile FRS query answers 6,915 interest rows
+ * (docs/BRIEF.md B2), so FRS is an identity lookup and there is nothing to ask
+ * it until something has named an identifier. The registry card therefore
+ * depends on which Superfund records the report is showing, and cannot start
+ * until SEMS has settled. Every other source starts at once.
+ *
+ * A FAILING SOURCE IS A CARD, NOT A STREAM ERROR. `runSource` never rejects; it
+ * returns an unavailable outcome, which the selection policy turns into a
+ * status sentence. The stream ends only when every source has settled or the
+ * client disconnects.
+ *
+ * NO CONDITIONAL ABOUT WHICH TEMPLATE OR WHICH RECORD IS WRITTEN HERE.
+ * `lib/report/selection.ts` decides what appears; this renders what it decided,
+ * against a live store, and puts it on the wire through
+ * `lib/report/sentence-view.ts`.
+ */
+
+import { createHash } from "node:crypto";
+import { NextResponse } from "next/server";
+import {
+	AGENCY,
+	complete,
+	DEFAULT_POLICY,
+	fieldsOf,
+	NO_DATA_NOTE,
+	render,
+	runSource,
+	sectionOrdering,
+	storeOf,
+	unavailableOf,
+} from "@/lib/evidence";
+import type {
+	Adapter,
+	AdapterVersion,
+	Built,
+	EvidenceRecord,
+	EvidenceStore,
+	GeoPoint,
+	Kind,
+	Locus,
+	PayloadRef,
+	Placement,
+	RecordOf,
+	Sealed,
+	SourceIo,
+	SourceOutcome,
+	SourcePolicy,
+	SourceUnavailable,
+} from "@/lib/evidence";
+import { ECHO_POLICY, echoAdapter } from "@/lib/adapters/echo";
+import { floodZoneOutcome } from "@/lib/adapters/fema";
+import { lookupFrsFacility } from "@/lib/adapters/frs";
+import { semsAdapter } from "@/lib/adapters/sems";
+import { groupRecords } from "@/lib/report/grouping";
+import {
+	carriedCount,
+	echoCard,
+	floodCard,
+	frsCard,
+	groupPlacements,
+	idKey,
+	NO_GROUPS,
+	semsCard,
+	SHOWN_RECORDS,
+	type AnyListing,
+	type Card,
+	type CardGroups,
+	type LeadGroup,
+	type ListingEntry,
+	type ReportSource,
+} from "@/lib/report/selection";
+import { sentenceView, type SentenceView } from "@/lib/report/sentence-view";
+import {
+	NDJSON_CONTENT_TYPE,
+	ReportErrorSchema,
+	ReportEventSchema,
+	ReportRequestSchema,
+	ReportSourceSchema,
+	withoutSecretValues,
+	type CardView,
+	type ReportError,
+	type ReportEvent,
+	type ReportRequest,
+	type SentenceViewMessage,
+	type WireSentenceTrace,
+} from "@/app/lib/report-contract";
+
+/* -------------------------------------------------------------------------- */
+/* The boundaries, out of docs/BRIEF.md B2                                    */
+/* -------------------------------------------------------------------------- */
+
+/** The international mile, which is the unit ECHO's `p_radius` is in. */
+const METERS_PER_MILE = 1609.344;
+
+/**
+ * B2's boundary table: five miles for ECHO, SEMS and FRS. The radius is not in
+ * the request and never will be -- it is a product decision per source, and a
+ * radius a client could choose is a radius a client could use to probe.
+ */
+const FIVE_MILES_METERS = Math.round(5 * METERS_PER_MILE);
+
+/** B2: the nearest qualified PM2.5 and ozone monitors within fifty kilometres. */
+const FIFTY_KM_METERS = 50_000;
+
+/**
+ * B2: FEMA answers for the exact mapped point, and AirNow answers for a
+ * reporting area it defines itself. Neither takes a radius, so neither has one.
+ */
+const AT_THE_POINT_METERS = 0;
+
+/**
+ * `Locus` carries one radius, so the report builds one locus per source rather
+ * than passing a single radius around. Complete by construction: a mapped type
+ * over `ReportSource` will not compile with a source missing.
+ */
+const BOUNDARY_METERS: { readonly [S in ReportSource]: number } = {
+	echo: FIVE_MILES_METERS,
+	frs: FIVE_MILES_METERS,
+	sems: FIVE_MILES_METERS,
+	aqs: FIFTY_KM_METERS,
+	airnow: AT_THE_POINT_METERS,
+	fema: AT_THE_POINT_METERS,
+};
+
+/**
+ * B10: every source has an independent timeout. ECHO's is 45 seconds because
+ * its five-mile query at the demo point answers 1,686 facilities from a host
+ * that needs it (`lib/adapters/echo.ts`); everything else gets the kernel's
+ * default, and no source's timeout can hold another's card.
+ */
+const POLICIES: { readonly [S in ReportSource]: SourcePolicy } = {
+	echo: ECHO_POLICY,
+	frs: DEFAULT_POLICY,
+	sems: DEFAULT_POLICY,
+	aqs: DEFAULT_POLICY,
+	airnow: DEFAULT_POLICY,
+	fema: DEFAULT_POLICY,
+};
+
+/**
+ * How many registry lookups the FRS card makes.
+ *
+ * FRS is an identity lookup and each lookup is its own request, so the number
+ * has to be bounded and the bound has to be defensible. It is B7's own: the
+ * five records a section shows before "View all". The registry card resolves
+ * the identity of records the reader can actually see; a lookup for a record
+ * behind "View all" spends a request on a sentence nobody has asked for, and
+ * bounding it at what the report carries instead would be fifty requests for
+ * one card. The ids come from the Superfund card's own shown entries, in the
+ * order it shows them, deduplicated -- two SEMS sites can share one registry
+ * ID (docs/BRIEF.md B6 names a verified pair), and that is one facility.
+ */
+const FRS_LOOKUPS = SHOWN_RECORDS;
+
+const REPORT_VERSION: AdapterVersion = "report@1";
+
+/**
+ * The payload the confirmed point is read from. Not a URL and not derived from
+ * the coordinate: it names the request, so the trace can say the mapped point
+ * came from the browser's own confirmation rather than from any agency.
+ */
+const CONFIRMED_POINT = "urn:ground-truth:confirmed-point";
+
+/* -------------------------------------------------------------------------- */
+/* The source table                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every source a locus alone is enough to ask, with the card its outcome
+ * becomes.
+ *
+ * AQS and AirNow are absent because neither adapter exists yet: both are
+ * blocked on a key the operator must register (`.dev/briefs/U1.6-U1.7-air.md`)
+ * and both are being written in parallel with this unit. Registering one is one
+ * entry in this list and nothing else -- `NOT_ASKED` below is derived from what
+ * is here, so a source added here stops being reported as unasked in the same
+ * edit.
+ *
+ * FEMA is absent for a different reason: `runSources`' shared fan-out would
+ * give the flood slot one outcome with no way to say which of the two datasets
+ * answered, and that distinction is the entire reason the flood card exists.
+ * FRS is absent because it takes a registry ID rather than a locus.
+ */
+type LocusSource = {
+	readonly source: ReportSource;
+	readonly adapter: Adapter<Kind>;
+	readonly card: (store: EvidenceStore, outcome: SourceOutcome) => Card;
+};
+
+const LOCUS_SOURCES: readonly LocusSource[] = [
+	{ source: "sems", adapter: semsAdapter, card: (store, outcome) => semsCard(store, outcome, NO_GROUPS) },
+	{ source: "echo", adapter: echoAdapter, card: (store, outcome) => echoCard(store, outcome, NO_GROUPS) },
+];
+
+const REPORT_SOURCES: readonly ReportSource[] = ReportSourceSchema.options;
+
+/** Asked by a path of its own: FEMA through `floodZoneOutcome`, FRS through the registry ids SEMS named. */
+const ASKED_SEPARATELY: readonly ReportSource[] = ["fema", "frs"];
+
+/**
+ * What the report says about a source with no adapter: that it was not asked.
+ *
+ * Not "no matching records" -- that is a source answering with nothing, and
+ * B10 gives it its own wording. Not "unavailable" either: B10's unavailable row
+ * offers the reader a Retry, and there is nothing to retry when no request was
+ * ever made. A source nobody asked is neither, and `FailureCause` is right not
+ * to have a member for it: nothing failed. So the card carries the source's
+ * name, the `not-asked` state and no status sentence at all, because no
+ * template speaks for a request that was not made and this file may not write
+ * prose that no agency's fields produced.
+ */
+const NOT_ASKED: readonly ReportSource[] = REPORT_SOURCES.filter(
+	(source) =>
+		!LOCUS_SOURCES.some((registered) => registered.source === source) && !ASKED_SEPARATELY.includes(source),
+);
+
+/* -------------------------------------------------------------------------- */
+/* The mapped point                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The confirmed coordinate as a `GeoPoint`, so every distance the report
+ * computes traces back to where the point came from.
+ *
+ * `sha256` is of the exact request bytes, the same "this is what we saw" record
+ * `lib/io/fetch-source-io.ts` keeps for a response. The `url` names the request
+ * and carries no coordinate.
+ */
+function confirmedPoint(body: ReportRequest, requestSha256: string, io: SourceIo): GeoPoint {
+	const payload: PayloadRef = { url: CONFIRMED_POINT, sha256: requestSha256, retrievedAt: io.now() };
+	const point = fieldsOf(
+		{ raw: { latitude: body.latitude, longitude: body.longitude }, payload },
+		"confirmed_point",
+		REPORT_VERSION,
+	).point("latitude", "longitude", {});
+	if (point === null) throw new Error("report: the confirmed point has no coordinate");
+	return point;
+}
+
+function locusFor(point: GeoPoint, source: ReportSource): Locus {
+	return { point, radiusMeters: BOUNDARY_METERS[source] };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Rendering a card                                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The wire form of one rendered sentence.
+ *
+ * An origin-scoped trace has no wire form, and reaching this with one is a
+ * defect rather than a case: no origin placement is selected here, and
+ * `SentenceTraceSchema` has no arm for one. Throwing makes that loud instead of
+ * quietly shipping a sentence with its provenance dropped.
+ */
+function messageOf(view: SentenceView): SentenceViewMessage {
+	const trace: WireSentenceTrace | null = ((): WireSentenceTrace | null => {
+		if (view.trace === null) return null;
+		if (view.trace.scope === "origin") {
+			throw new Error("report: an origin sentence cannot cross the report wire");
+		}
+		return view.trace;
+	})();
+	return { templateId: view.templateId, spans: view.spans, trace };
+}
+
+function messageFor(store: EvidenceStore, placement: Placement): SentenceViewMessage | null {
+	const sentence = render(store, placement);
+	return sentence === null ? null : messageOf(sentenceView(store, sentence));
+}
+
+/** Every placement that rendered, in reading order. A placement that renders nothing leaves no text, per docs/BRIEF.md B8. */
+function messagesFor(store: EvidenceStore, placements: readonly Placement[]): readonly SentenceViewMessage[] {
+	const out: SentenceViewMessage[] = [];
+	for (const placement of placements) {
+		const message = messageFor(store, placement);
+		if (message !== null) out.push(message);
+	}
+	return out;
+}
+
+/**
+ * One list on a card, with its chrome numbers.
+ *
+ * All three reads -- the entries, the total and what the card carries -- are
+ * taken from one live store in one synchronous block, which is what makes them
+ * agree. `lib/report/selection.ts` holds the argument: a count beside a list
+ * frozen at plan time could not be made to agree with it, so a `Listing` holds
+ * no records and rebuilds them from the ordering on every call. Nothing here
+ * caches the result.
+ */
+type ListingView = CardView["listings"][number];
+type EntryView = ListingView["shown"][number];
+
+function entryView(store: EvidenceStore, entry: ListingEntry): EntryView {
+	return {
+		recordId: { kind: entry.recordId.kind, sourceRecordId: entry.recordId.sourceRecordId },
+		sentences: messagesFor(store, entry.placements),
+	};
+}
+
+function listingView(store: EvidenceStore, listing: AnyListing): ListingView {
+	const entries = listing.entries(store);
+	return {
+		kind: listing.section.kind,
+		boundary: listing.section.boundary,
+		ordering: listing.ordering,
+		total: sectionOrdering(store, listing.section).length,
+		carried: carriedCount(store, listing.section),
+		shown: entries.shown.map((entry) => entryView(store, entry)),
+		rest: entries.rest.map((entry) => entryView(store, entry)),
+	};
+}
+
+/**
+ * What the card is about, in the words its own status sentence uses. FEMA is
+ * one source and two layers, so a card the Esri copy answered is labelled for
+ * Esri's copy and not for FEMA's own service.
+ */
+function agencyOf(card: Card): string {
+	return card.status.agency ?? AGENCY[card.source];
+}
+
+function cardView(store: EvidenceStore, card: Card): CardView {
+	return {
+		source: card.source,
+		agency: agencyOf(card),
+		state: "asked",
+		status: messageFor(store, card.status),
+		priorAttempts: messagesFor(store, card.priorAttempts),
+		headlines: messagesFor(store, card.headlines),
+		listings: card.listings.map((listing) => listingView(store, listing)),
+	};
+}
+
+function notAskedView(source: ReportSource): CardView {
+	return {
+		source,
+		agency: AGENCY[source],
+		state: "not-asked",
+		status: null,
+		priorAttempts: [],
+		headlines: [],
+		listings: [],
+	};
+}
+
+/* -------------------------------------------------------------------------- */
+/* Asking one source                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * One settled source: its card, and the store that card was rendered against.
+ *
+ * The store holds that source's records and no others. Every section a card
+ * reads is filtered to one kind, so a per-source store answers every question
+ * the card asks, and building it that way means a card cannot depend on which
+ * other sources happened to settle first.
+ */
+type CardBuild = {
+	readonly card: Card;
+	readonly store: EvidenceStore;
+	readonly records: readonly Sealed<EvidenceRecord>[];
+};
+
+function recordsOf(outcome: SourceOutcome): readonly Sealed<EvidenceRecord>[] {
+	return outcome.status === "ok" ? outcome.records : [];
+}
+
+function buildCard(records: readonly Sealed<EvidenceRecord>[], make: (store: EvidenceStore) => Card): CardBuild {
+	const store = storeOf(records);
+	return { card: make(store), store, records };
+}
+
+/**
+ * The registry IDs the Superfund card is showing, in the order it shows them,
+ * bounded at `FRS_LOOKUPS`.
+ *
+ * `entries(store)` is the only usable form of a listing for a caller holding a
+ * card, and it is a read of the same store the card was rendered against, so
+ * these are exactly the records that reached the reader.
+ */
+function registryIdsShown(build: CardBuild): readonly string[] {
+	// Read back out of the store by kind, which is what keeps the record typed
+	// without an assertion: a listing entry carries an id of any kind.
+	const sites = new Map(build.store.ofKind("sems-site").map((record) => [record.id.sourceRecordId, record]));
+	const ids: string[] = [];
+	for (const listing of build.card.listings) {
+		for (const entry of listing.entries(build.store).shown) {
+			const record = sites.get(entry.recordId.sourceRecordId);
+			if (record === undefined) continue;
+			const registryId = record.frsRegistryId.value;
+			if (registryId === null || registryId === "" || ids.includes(registryId)) continue;
+			ids.push(registryId);
+			if (ids.length === FRS_LOOKUPS) return ids;
+		}
+	}
+	return ids;
+}
+
+type FrsAnswer =
+	| { readonly built: readonly Built<"frs-facility">[] }
+	| { readonly failed: SourceUnavailable };
+
+/**
+ * The registry lookups, as one source outcome.
+ *
+ * `runSource` cannot run this: FRS is not an `Adapter` and takes no locus, so
+ * the timeout that bounds it is the one `SourceIo` applies per request, and the
+ * lookup count is bounded instead. A lookup that fails belongs to its own
+ * registry ID and is classified by the kernel exactly as a failed source would
+ * be; the card reports unavailable only when nothing at all was built, because
+ * a card that says "unavailable" over records it is also listing says two
+ * things at once.
+ */
+async function askFrs(locus: Locus, io: SourceIo, registryIds: readonly string[]): Promise<SourceOutcome> {
+	const answers = await Promise.all(
+		registryIds.map(async (registryId): Promise<FrsAnswer> => {
+			try {
+				return { built: await lookupFrsFacility(registryId, io) };
+			} catch (error) {
+				return { failed: unavailableOf(error) };
+			}
+		}),
+	);
+	const records: Sealed<RecordOf<"frs-facility">>[] = [];
+	let failed: SourceUnavailable | null = null;
+	for (const answer of answers) {
+		if ("failed" in answer) {
+			failed ??= answer.failed;
+			continue;
+		}
+		for (const one of answer.built) records.push(complete(locus, one));
+	}
+	const [first, ...rest] = records;
+	if (first !== undefined) return { status: "ok", records: [first, ...rest], retrievedAt: io.now() };
+	if (failed !== null) return failed;
+	return { status: "no-data", note: NO_DATA_NOTE, retrievedAt: io.now() };
+}
+
+/* -------------------------------------------------------------------------- */
+/* The groups                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Everything the B6 groups put on one card, deduplicated by record identity: a
+ * record may lead more than one group on one card, and a card must not state
+ * one registry identity twice.
+ *
+ * This is `groupsFor` from `lib/report/selection.ts`, which is not exported.
+ * The rule is the policy's and belongs there; see the report for the one-line
+ * change this unit did not make.
+ */
+function groupsFor(groups: readonly LeadGroup[], source: ReportSource): CardGroups {
+	const mine = groups.filter((group) => group.source === source);
+	const seen = new Set<string>();
+	const crossReferences: CardGroups["crossReferences"][number][] = [];
+	for (const group of mine) {
+		for (const one of group.crossReferences) {
+			const key = idKey(one.recordId);
+			if (seen.has(key)) continue;
+			seen.add(key);
+			crossReferences.push(one);
+		}
+	}
+	return { placements: mine.flatMap((group) => group.placements), crossReferences };
+}
+
+/* -------------------------------------------------------------------------- */
+/* The handler                                                                */
+/* -------------------------------------------------------------------------- */
+
+function invalid(): Response {
+	// Nothing about what was sent is read, logged or echoed: a malformed-JSON
+	// message can quote the body it failed on and a zod issue can carry a
+	// received value, and here that value is a coordinate.
+	const body: ReportError = { status: "invalid" };
+	return NextResponse.json(ReportErrorSchema.parse(body), { status: 400 });
+}
+
+/**
+ * Builds the route's `POST` handler against whatever `SourceIo` it is given.
+ * `route.ts` supplies the real, network-touching one; tests supply fixtures.
+ *
+ * `policies` overrides a source's timeout. Production passes none and gets
+ * `POLICIES` above; a test passes a short one so a timeout case does not cost
+ * the suite forty-five seconds.
+ */
+export function createReportHandler(io: SourceIo, policies: Partial<Record<ReportSource, SourcePolicy>> = {}) {
+	const policyFor = (source: ReportSource): SourcePolicy => policies[source] ?? POLICIES[source];
+
+	return async function POST(request: Request): Promise<Response> {
+		let body: ReportRequest;
+		let requestSha256: string;
+		try {
+			const text = await request.text();
+			requestSha256 = createHash("sha256").update(text, "utf8").digest("hex");
+			const json: unknown = JSON.parse(text);
+			body = ReportRequestSchema.parse(json);
+		} catch {
+			return invalid();
+		}
+
+		const encoder = new TextEncoder();
+		let open = true;
+
+		const stream = new ReadableStream<Uint8Array>({
+			start(controller) {
+				/** One event, parsed through the wire schema before a byte of it leaves. */
+				const emit = (event: ReportEvent): void => {
+					// Checked first: after the client has gone there is nothing to
+					// build a line for, and building one costs a full schema parse of
+					// a payload that can run to hundreds of kilobytes.
+					if (!open) return;
+					// Two redactions, and they fail differently. The schema's own
+					// `withoutKeys` rewrites a credential-bearing query parameter in a
+					// string that parses as a URL; `withoutSecretValues` replaces a
+					// configured credential's own bytes wherever they sit, including
+					// inside a source's verbatim error text, which reaches the card
+					// through `SourceFailure.rawCode` and is not a URL.
+					const line = encoder.encode(
+						`${withoutSecretValues(JSON.stringify(ReportEventSchema.parse(event)))}\n`,
+					);
+					try {
+						controller.enqueue(line);
+					} catch {
+						// The client went away between the check and the enqueue.
+						open = false;
+					}
+				};
+
+				const settled: CardBuild[] = [];
+				const emitCard = (build: CardBuild): void => {
+					settled.push(build);
+					emit({ type: "card", card: cardView(build.store, build.card) });
+				};
+
+				const run = async (): Promise<void> => {
+					// Built inside the stream, so that a failure here is one event and
+					// an ended stream rather than a request that never answers. This
+					// is the "the whole thing failed before any card" case, and it is
+					// the only way to reach it: everything below is a source, and a
+					// source that fails is a card.
+					const point = confirmedPoint(body, requestSha256, io);
+
+					for (const source of NOT_ASKED) emit({ type: "card", card: notAskedView(source) });
+
+					const tasks: Promise<void>[] = LOCUS_SOURCES.map(async (registered) => {
+						const outcome = await runSource(
+							locusFor(point, registered.source),
+							registered.adapter,
+							io,
+							policyFor(registered.source),
+						);
+						const build = buildCard(recordsOf(outcome), (store) => registered.card(store, outcome));
+						emitCard(build);
+						if (registered.source !== "sems") return;
+						// FRS cannot start until SEMS has settled: it takes a registry
+						// ID, and until now nothing had named one. With no registry ID
+						// to resolve there is nothing to ask, and a source nobody asked
+						// is not one that answered with nothing.
+						const ids = registryIdsShown(build);
+						if (ids.length === 0) {
+							emit({ type: "card", card: notAskedView("frs") });
+							return;
+						}
+						const frs = await askFrs(locusFor(point, "frs"), io, ids);
+						emitCard(buildCard(recordsOf(frs), (store) => frsCard(store, frs, NO_GROUPS)));
+					});
+
+					tasks.push(
+						(async (): Promise<void> => {
+							const result = await floodZoneOutcome(locusFor(point, "fema"), io, policyFor("fema"));
+							emitCard(buildCard(recordsOf(result.outcome), (store) => floodCard(store, result)));
+						})(),
+					);
+
+					const outcomes = await Promise.allSettled(tasks);
+
+					const records = settled.flatMap((build) => [...build.records]);
+					const store = storeOf(records);
+					const leads = groupPlacements(groupRecords(records));
+					// One entry per card that has something to say. A source with no
+					// group is simply absent: an empty entry would be six lines of
+					// nothing on every report, and the browser learns the same thing
+					// from not finding its source here.
+					emit({
+						type: "groups",
+						cards: REPORT_SOURCES.map((source) => {
+							const groups = groupsFor(leads, source);
+							return {
+								source,
+								groups: messagesFor(store, groups.placements),
+								crossReferences: messagesFor(store, groups.crossReferences),
+							};
+						}).filter((card) => card.groups.length > 0 || card.crossReferences.length > 0),
+					});
+
+					if (outcomes.some((one) => one.status === "rejected")) {
+						// A fixed string: not the error, not its message, nothing
+						// derived from the request.
+						console.error("report: a source card could not be built");
+						emit({ type: "end", status: "failed" });
+						return;
+					}
+					emit({ type: "end", status: "complete" });
+				};
+
+				void run()
+					.catch(() => {
+						console.error("report: run failed");
+						try {
+							emit({ type: "end", status: "failed" });
+						} catch {
+							// The terminal event itself could not be built. The stream
+							// still closes below rather than being left open.
+						}
+					})
+					.finally(() => {
+						try {
+							controller.close();
+						} catch {
+							// Already closed by `cancel`.
+						}
+					});
+			},
+			cancel() {
+				open = false;
+			},
+		});
+
+		return new Response(stream, {
+			status: 200,
+			headers: { "content-type": NDJSON_CONTENT_TYPE, "cache-control": "no-store" },
+		});
+	};
+}

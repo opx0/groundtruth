@@ -4,24 +4,76 @@
  * collects `*.test.ts` files, so this file stays `.ts` and builds elements
  * with `createElement` rather than JSX -- the components themselves are
  * `.tsx` and import fine from here regardless.
+ *
+ * The confirm screen's match is not hand-written: it is what the geocode
+ * handler actually returns for the recorded Houston bytes, parsed through the
+ * shared schema. So the sentence asserted below is the one
+ * `lib/templates/origin.ts` rendered, and a template edit that changes the
+ * text fails here as well as in the template's own tests.
  */
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import type { SourceIo } from "@/lib/evidence";
+import { createGeocodeHandler } from "@/app/api/geocode/handler";
 import { CandidatesScreen } from "@/app/components/candidates-screen";
 import { ConfirmScreen } from "@/app/components/confirm-screen";
 import { NoMatchScreen } from "@/app/components/no-match-screen";
 import { SearchScreen } from "@/app/components/search-screen";
-import { CURATED_EXAMPLES, type GeocodeMatchView } from "@/app/lib/geocode-contract";
+import {
+	CURATED_EXAMPLES,
+	GeocodeApiResponseSchema,
+	type GeocodeMatchView,
+} from "@/app/lib/geocode-contract";
 import HomePage from "@/app/page";
 
-const MATCH: GeocodeMatchView = {
-	matchedAddress: "9311 E AVE P, HOUSTON, TX, 77012",
-	latitude: 29.720658823001,
-	longitude: -95.261995884462,
-	addressRange: { from: "9301", to: "9399" },
-	streetSide: "L",
-};
+const fixturesDir = fileURLToPath(new URL("../../fixtures/", import.meta.url));
+const RETRIEVED_AT = "2026-09-16T12:00:00Z";
+
+function fixtureIo(fixture: string): SourceIo {
+	const bytes = readFileSync(`${fixturesDir}${fixture}`);
+	const json: unknown = JSON.parse(bytes.toString("utf8"));
+	const sha256 = createHash("sha256").update(bytes).digest("hex");
+	return {
+		get(url, schema) {
+			return Promise.resolve({
+				raw: schema.parse(json),
+				payload: { url: url.toString(), sha256, retrievedAt: RETRIEVED_AT },
+			});
+		},
+		query(parameter, value, adapterVersion, payload) {
+			return { kind: "query", parameter, value, adapterVersion, payload };
+		},
+		now: () => RETRIEVED_AT,
+	};
+}
+
+/** The Houston demo match, exactly as the route returns it. */
+async function houstonMatch(): Promise<GeocodeMatchView> {
+	const handler = createGeocodeHandler(fixtureIo("census/match-9311-e-ave-p.json"));
+	const response = await handler(
+		new Request("http://localhost/api/geocode", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ address: "9311 E Avenue P, Houston, TX 77012" }),
+		}),
+	);
+	const parsed = GeocodeApiResponseSchema.parse(await response.json());
+	if (parsed.status !== "matched") throw new Error(`expected a match, got ${parsed.status}`);
+	return parsed.match;
+}
+
+function confirmHtmlFor(match: GeocodeMatchView): string {
+	return renderToStaticMarkup(createElement(ConfirmScreen, { match, onStartOver: () => undefined }));
+}
+
+/** Server-rendered spans arrive as separate elements; this is the sentence a reader sees. */
+function visibleText(html: string): string {
+	return html.replace(/<[^>]*>/g, "");
+}
 
 describe("the three outcomes render three different screens", () => {
 	it("SearchScreen shows the address field, the privacy note, and the curated examples", () => {
@@ -44,21 +96,62 @@ describe("the three outcomes render three different screens", () => {
 		expect(html.toLowerCase()).toContain("point and a distance only");
 	});
 
-	it("ConfirmScreen shows the matched address, the mapped point, and the precision sentence built from the match", () => {
-		const html = renderToStaticMarkup(createElement(ConfirmScreen, { match: MATCH, onStartOver: () => undefined }));
-		expect(html).toContain("9311 E AVE P, HOUSTON, TX, 77012");
-		expect(html).toContain(String(MATCH.latitude));
-		expect(html).toContain(String(MATCH.longitude));
-		expect(html).toContain(
-			"The point sits on the 9301 to 9399 block, left side of the street segment, interpolated by the Census Geocoder. It marks the block, not the parcel.",
+	it("ConfirmScreen shows the sentences lib/templates/origin.ts rendered, and no sentence of its own", async () => {
+		const match = await houstonMatch();
+		const text = visibleText(confirmHtmlFor(match));
+		expect(text).toContain(
+			"Matched: 9311 E AVE P, HOUSTON, TX, 77012." +
+				" The point sits on the 9301 to 9399 block, street side L," +
+				" interpolated by the Census Geocoder along TIGER line 96085986." +
+				" It marks the block, not the parcel.",
 		);
+		expect(text).toContain("Mapped point: 29.720658823001, -95.261995884462.");
+		// The words the hand-written sentence used, which the Census does not.
+		expect(text).not.toContain("left side of the street segment");
 	});
 
-	it("CandidatesScreen lists every candidate as its own control and preselects none of them", () => {
+	it("ConfirmScreen names the field behind every span that has one, for the trace panel to hang a click on", async () => {
+		const match = await houstonMatch();
+		const html = confirmHtmlFor(match);
+		const fields = [...html.matchAll(/data-field="([^"]+)"/g)].map((hit) => hit[1]);
+		expect(fields).toEqual([
+			"matchedAddress",
+			"blockFrom",
+			"blockTo",
+			"streetSide",
+			"tigerLineId",
+			"latitude",
+			"longitude",
+		]);
+	});
+
+	it("ConfirmScreen shows one paragraph fewer when a sentence did not render, and writes nothing in its place", async () => {
+		const match = await houstonMatch();
+		const [first] = match.origin;
+		if (first === undefined) throw new Error("expected a rendered sentence");
+
+		// What the screen shows if `origin/point@1` had rendered null: the other
+		// sentence, and nothing standing in for the missing one.
+		const withoutPoint = visibleText(confirmHtmlFor({ ...match, origin: [first] }));
+		expect(withoutPoint).toContain("It marks the block, not the parcel.");
+		expect(withoutPoint).not.toContain("Mapped point");
+
+		// And if every sentence dropped: the heading, the note and the control,
+		// with no substitute prose about the match at all.
+		const empty = visibleText(confirmHtmlFor({ ...match, origin: [] }));
+		expect(empty).toContain("Match confirmed");
+		expect(empty).toContain("Search another address");
+		expect(empty).not.toContain("9311");
+		expect(empty).not.toContain("block");
+		expect(empty).not.toContain("Census");
+	});
+
+	it("CandidatesScreen lists every candidate as its own control and preselects none of them", async () => {
+		const match = await houstonMatch();
 		const candidates: readonly GeocodeMatchView[] = [
-			{ ...MATCH, matchedAddress: "100 MAIN ST, SPRINGFIELD, MA, 01105" },
-			{ ...MATCH, matchedAddress: "100 MAIN ST, SPRINGFIELD, VT, 05156" },
-			{ ...MATCH, matchedAddress: "100 MAIN ST, SPRINGFIELD, OH, 45502" },
+			{ ...match, matchedAddress: "100 MAIN ST, SPRINGFIELD, MA, 01105" },
+			{ ...match, matchedAddress: "100 MAIN ST, SPRINGFIELD, VT, 05156" },
+			{ ...match, matchedAddress: "100 MAIN ST, SPRINGFIELD, OH, 45502" },
 		];
 		const html = renderToStaticMarkup(
 			createElement(CandidatesScreen, { candidates, onChoose: () => undefined, onStartOver: () => undefined }),
@@ -82,16 +175,21 @@ describe("the three outcomes render three different screens", () => {
 		expect(lower).not.toContain("risk");
 	});
 
-	it("the three screens produce visibly different markup for the same underlying data shape", () => {
-		const confirmHtml = renderToStaticMarkup(createElement(ConfirmScreen, { match: MATCH, onStartOver: () => undefined }));
+	it("the three screens produce visibly different markup for the same underlying data shape", async () => {
+		const match = await houstonMatch();
+		const confirmHtml = confirmHtmlFor(match);
 		const candidatesHtml = renderToStaticMarkup(
-			createElement(CandidatesScreen, { candidates: [MATCH, { ...MATCH, matchedAddress: "OTHER" }], onChoose: () => undefined, onStartOver: () => undefined }),
+			createElement(CandidatesScreen, {
+				candidates: [match, { ...match, matchedAddress: "OTHER" }],
+				onChoose: () => undefined,
+				onStartOver: () => undefined,
+			}),
 		);
 		const noMatchHtml = renderToStaticMarkup(createElement(NoMatchScreen, { onEdit: () => undefined }));
 		const headings = [confirmHtml, candidatesHtml, noMatchHtml].map((html) => {
-			const match = /<h1[^>]*>([^<]*)<\/h1>/.exec(html);
-			if (match?.[1] === undefined) throw new Error("expected an h1");
-			return match[1];
+			const found = /<h1[^>]*>([^<]*)<\/h1>/.exec(html);
+			if (found?.[1] === undefined) throw new Error("expected an h1");
+			return found[1];
 		});
 		expect(new Set(headings).size).toBe(3);
 	});

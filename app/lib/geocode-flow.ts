@@ -11,6 +11,14 @@
  * rejects an attempt to read one, the same way `GeocodeOutcome` in
  * `lib/adapters/census.ts` rejects reading `.match` off an ambiguous outcome.
  *
+ * A `GeocodeMatchView` now carries the origin sentences the server rendered
+ * from that match, so nothing here changed shape when they were added: a
+ * candidate carries its own sentences, and `choose-candidate` moves them to
+ * the confirm screen along with the match they describe. They are rendered
+ * from Census's reply -- the matched address, the block range, the street
+ * side, the TIGER line -- and not from the string the reader typed, so the
+ * rule above still holds with them on board.
+ *
  * "Several candidates require a choice and must not auto-select" is also a
  * shape fact: the only action that produces a `confirm` state from a
  * `candidates` state is `choose-candidate`, and it takes the chosen match as

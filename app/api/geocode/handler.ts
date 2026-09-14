@@ -4,6 +4,13 @@
  * the same shape of substitution `tests/unit/adapters/census.test.ts` makes
  * for `geocode()` itself.
  *
+ * It is also where `docs/BRIEF.md` A2 screen 2's sentences are rendered. They
+ * cannot be rendered anywhere else: a `GeocodeMatch` holds `Sourced` values,
+ * the kernel exports no way to build one, and this is the only place in the
+ * codebase that ever holds one. The report route is given a coordinate and
+ * nothing else, so it could not reconstruct the match even if it tried -- and
+ * that is the property, not a limitation.
+ *
  * PRIVACY: this is the one server boundary that ever holds a raw address.
  * `geocode()` (see `lib/adapters/census.ts`) already guarantees the address
  * cannot appear in anything it returns or throws; this file's own added
@@ -14,9 +21,17 @@
  *    no field for a raw address on any branch, so even a body object built
  *    with an extra field by mistake cannot carry one out -- zod strips keys
  *    a schema does not declare.
- * 2. `toMatchView` reads only `.value`s off the kernel's `GeocodeMatch`,
- *    never `.payload` or `.provenance`, so nothing here needs to reason
- *    about whether a nested payload URL was redacted -- it never looks.
+ * 2. This route now puts provenance on the wire, which the version that
+ *    hand-wrote its precision sentence did not, so "it never looks at
+ *    `.payload`" is no longer the argument. The argument is where the
+ *    provenance comes from: every slot of an origin subject is a leaf of the
+ *    `GeocodeMatch`, and `lib/adapters/census.ts` builds every one of those
+ *    from a payload whose URL it rebuilt with `address` deleted, never from
+ *    the URL it fetched and never from whatever `SourceIo.get` recorded. The
+ *    origin trace's own header is `match.matchedAddress` and `match.payload`,
+ *    the same two. `tests/unit/app/geocode-route-privacy.test.ts` proves the
+ *    whole chain by planting a marker in the caller's address and grepping
+ *    the serialised response for it, rather than by reading this comment.
  * 3. Nothing caught here is logged by its own message or forwarded as a
  *    response body. The one log line this file writes carries a fixed
  *    string and a `FailureCause` enum value, nothing derived from the
@@ -25,22 +40,70 @@
 
 import { NextResponse } from "next/server";
 import { geocode } from "@/lib/adapters/census";
-import { SourceFailure } from "@/lib/evidence";
+import { emptyStore, render, SourceFailure } from "@/lib/evidence";
 import type { GeocodeMatch, SourceIo } from "@/lib/evidence";
+import { sentenceView } from "@/lib/report/sentence-view";
+import type { SentenceView } from "@/lib/report/sentence-view";
+import { originTemplates } from "@/lib/templates/origin";
 import {
 	GeocodeApiResponseSchema,
 	GeocodeRequestSchema,
 	type GeocodeApiResponse,
 	type GeocodeMatchView,
+	type OriginSentence,
 } from "@/app/lib/geocode-contract";
+
+/**
+ * An origin subject is the match itself, so `render` and `trace` never reach
+ * the store for one -- see the `origin` arms of both in
+ * `lib/evidence/sentence.ts`. Passing the empty store says that in code: this
+ * route holds no records and renders nothing that depends on one.
+ */
+const NO_RECORDS = emptyStore;
+
+/**
+ * Narrows what `sentenceView` returns to the one arm this route can produce.
+ * A geocode match is an `origin` subject, so the trace of a sentence rendered
+ * from one is origin-scoped; the throw is a typed check on a union, not an
+ * assertion, and it lands in the same `catch` as any other failure below, so
+ * it answers 503 rather than leaking anything.
+ */
+function toOriginSentence(view: SentenceView): OriginSentence {
+	const { templateId, spans, trace } = view;
+	if (trace === null) return { templateId, spans, trace: null };
+	if (trace.scope !== "origin") {
+		throw new Error("geocode handler: an origin sentence produced a trace of another scope");
+	}
+	return { templateId, spans, trace: { scope: trace.scope, origin: trace.origin, values: trace.values } };
+}
+
+/**
+ * Every origin template there is, in the order `lib/templates/origin.ts`
+ * declares them, which is the order `selectReport` places them in
+ * `lib/report/selection.ts`. The list rather than the two names, so a third
+ * origin template reaches this screen by being written, not by being wired.
+ *
+ * A template whose clauses all dropped renders null and is simply absent --
+ * see `renderAll`, which this mirrors. There is no substitute text: a
+ * hand-written stand-in for a sentence the fields could not support is the
+ * thing this route just stopped doing.
+ */
+function originSentences(match: GeocodeMatch): readonly OriginSentence[] {
+	const out: OriginSentence[] = [];
+	for (const template of originTemplates) {
+		const sentence = render(NO_RECORDS, { scope: "origin", match, template });
+		if (sentence === null) continue;
+		out.push(toOriginSentence(sentenceView(NO_RECORDS, sentence)));
+	}
+	return out;
+}
 
 function toMatchView(match: GeocodeMatch): GeocodeMatchView {
 	return {
 		matchedAddress: match.matchedAddress.value,
 		latitude: match.point.latitude.value,
 		longitude: match.point.longitude.value,
-		addressRange: { from: match.addressRange.from.value, to: match.addressRange.to.value },
-		streetSide: match.streetSide.value,
+		origin: originSentences(match),
 	};
 }
 
@@ -95,4 +158,3 @@ export function createGeocodeHandler(io: SourceIo) {
 		}
 	};
 }
-

@@ -1,17 +1,64 @@
+/**
+ * The reducer never reads inside a match view, so the shape of one is not what
+ * these tests are about -- but they use a real one, produced by the route from
+ * the recorded Census bytes, so that "the confirm state carries the sentences
+ * about the match the reader chose" is an assertion about real sentences.
+ */
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import type { SourceIo } from "@/lib/evidence";
+import { createGeocodeHandler } from "@/app/api/geocode/handler";
 import { flowReducer, initialFlowState, type FlowState } from "@/app/lib/geocode-flow";
-import type { GeocodeMatchView } from "@/app/lib/geocode-contract";
+import { GeocodeApiResponseSchema, type GeocodeMatchView } from "@/app/lib/geocode-contract";
 
-const MATCH: GeocodeMatchView = {
-	matchedAddress: "9311 E AVE P, HOUSTON, TX, 77012",
-	latitude: 29.72,
-	longitude: -95.26,
-	addressRange: { from: "9301", to: "9399" },
-	streetSide: "L",
-};
+const fixturesDir = fileURLToPath(new URL("../../fixtures/", import.meta.url));
+const RETRIEVED_AT = "2026-09-16T12:00:00Z";
 
-const CANDIDATE_A: GeocodeMatchView = { ...MATCH, matchedAddress: "100 MAIN ST, SPRINGFIELD, MA, 01105" };
-const CANDIDATE_B: GeocodeMatchView = { ...MATCH, matchedAddress: "100 MAIN ST, SPRINGFIELD, VT, 05156" };
+function fixtureIo(fixture: string): SourceIo {
+	const bytes = readFileSync(`${fixturesDir}${fixture}`);
+	const json: unknown = JSON.parse(bytes.toString("utf8"));
+	const sha256 = createHash("sha256").update(bytes).digest("hex");
+	return {
+		get(url, schema) {
+			return Promise.resolve({
+				raw: schema.parse(json),
+				payload: { url: url.toString(), sha256, retrievedAt: RETRIEVED_AT },
+			});
+		},
+		query(parameter, value, adapterVersion, payload) {
+			return { kind: "query", parameter, value, adapterVersion, payload };
+		},
+		now: () => RETRIEVED_AT,
+	};
+}
+
+async function candidateViews(): Promise<readonly GeocodeMatchView[]> {
+	const handler = createGeocodeHandler(fixtureIo("census/ambiguous-100-main-st.json"));
+	const response = await handler(
+		new Request("http://localhost/api/geocode", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ address: "100 Main St, Springfield" }),
+		}),
+	);
+	const parsed = GeocodeApiResponseSchema.parse(await response.json());
+	if (parsed.status !== "ambiguous") throw new Error(`expected candidates, got ${parsed.status}`);
+	return parsed.candidates;
+}
+
+const CANDIDATES = await candidateViews();
+
+function nth(index: number): GeocodeMatchView {
+	const view = CANDIDATES[index];
+	if (view === undefined) throw new Error(`no candidate ${index}`);
+	return view;
+}
+
+const MATCH: GeocodeMatchView = nth(0);
+const CANDIDATE_A: GeocodeMatchView = nth(1);
+const CANDIDATE_B: GeocodeMatchView = nth(2);
 
 describe("the three outcomes each reach their own, distinct screen", () => {
 	it("a matched response goes straight to confirm", () => {
@@ -51,6 +98,16 @@ describe("an ambiguous outcome must not auto-select", () => {
 		expect(state.screen).toBe("confirm");
 		if (state.screen !== "confirm") throw new Error("expected confirm");
 		expect(state.match).toEqual(CANDIDATE_B);
+	});
+
+	it("carries the sentences rendered about the chosen candidate, and only those", () => {
+		const candidates: FlowState = { screen: "candidates", candidates: [CANDIDATE_A, CANDIDATE_B] };
+		const state = flowReducer(candidates, { type: "choose-candidate", match: CANDIDATE_B });
+		if (state.screen !== "confirm") throw new Error("expected confirm");
+		const text = state.match.origin.map((sentence) => sentence.spans.map((span) => span.text).join("")).join(" ");
+		expect(text).toContain(CANDIDATE_B.matchedAddress);
+		expect(text).not.toContain(CANDIDATE_A.matchedAddress);
+		expect(text).toContain("It marks the block, not the parcel.");
 	});
 });
 

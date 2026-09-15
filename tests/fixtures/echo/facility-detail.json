@@ -4366,15 +4366,6 @@
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING HOUSTON REFINERY",
 "ReportSubmissionDate":"2025-01-27",
-"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
-"ReportDocType":"AER",
-"DocumentType":"ZIP",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86152589"
-}
-,{
-"RegistryId":"110000460885",
-"FacilityName":"VALERO REFINING HOUSTON REFINERY",
-"ReportSubmissionDate":"2025-01-27",
 "DocumentName":"2H24 63.7951f_semiannual_compliance_report.zip",
 "ReportDocType":"AER",
 "DocumentType":"ZIP",
@@ -4388,6 +4379,15 @@
 "ReportDocType":"AER",
 "DocumentType":"ZIP",
 "DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86152581"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING HOUSTON REFINERY",
+"ReportSubmissionDate":"2025-01-27",
+"DocumentName":"Valero_Energy-Valero_Houston-CEDRIReport.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=86152589"
 }
 ,{
 "RegistryId":"110000460885",
@@ -4537,19 +4537,19 @@
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING HOUSTON REFINERY",
 "ReportSubmissionDate":"2022-01-28",
-"DocumentName":"4Q21 CEDRI Report.zip",
+"DocumentName":"63.7550c1.zip",
 "ReportDocType":"AER",
 "DocumentType":"ZIP",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81433431"
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81433435"
 }
 ,{
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING HOUSTON REFINERY",
 "ReportSubmissionDate":"2022-01-28",
-"DocumentName":"63.7550c1.zip",
+"DocumentName":"4Q21 CEDRI Report.zip",
 "ReportDocType":"AER",
 "DocumentType":"ZIP",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81433435"
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=81433431"
 }
 ,{
 "RegistryId":"110000460885",
@@ -4636,6 +4636,15 @@
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
 "ReportSubmissionDate":"2020-01-27",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3).pdf",
+"ReportDocType":"AER",
+"DocumentType":"PDF",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80631668"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2020-01-27",
 "DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3).xml",
 "ReportDocType":"AER",
 "DocumentType":"XML",
@@ -4649,15 +4658,6 @@
 "ReportDocType":"AER",
 "DocumentType":"XLSX",
 "DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80631669"
-}
-,{
-"RegistryId":"110000460885",
-"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
-"ReportSubmissionDate":"2020-01-27",
-"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3).pdf",
-"ReportDocType":"AER",
-"DocumentType":"PDF",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80631668"
 }
 ,{
 "RegistryId":"110000460885",
@@ -4729,7 +4729,16 @@
 "DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
 "ReportDocType":"AER",
 "DocumentType":"ZIP",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348724"
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348728"
+}
+,{
+"RegistryId":"110000460885",
+"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
+"ReportSubmissionDate":"2019-05-10",
+"DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
+"ReportDocType":"AER",
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348732"
 }
 ,{
 "RegistryId":"110000460885",
@@ -4756,16 +4765,7 @@
 "DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
 "ReportDocType":"AER",
 "DocumentType":"ZIP",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348732"
-}
-,{
-"RegistryId":"110000460885",
-"FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
-"ReportSubmissionDate":"2019-05-10",
-"DocumentName":"TX_20190510 FLM Valero Houston 2018 Q1-2019 Q1 Final.zip",
-"ReportDocType":"AER",
-"DocumentType":"ZIP",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348728"
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=80348724"
 }
 ,{
 "RegistryId":"110000460885",
@@ -4816,19 +4816,19 @@
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
 "ReportSubmissionDate":"2018-01-18",
-"DocumentName":"2017ValeroHoustonAnnualReport.pdf",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .xml",
 "ReportDocType":"AER",
-"DocumentType":"PDF",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=2355864"
+"DocumentType":"XML",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=2355862"
 }
 ,{
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
 "ReportSubmissionDate":"2018-01-18",
-"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .xml",
+"DocumentName":"2017ValeroHoustonAnnualReport.pdf",
 "ReportDocType":"AER",
-"DocumentType":"XML",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=2355862"
+"DocumentType":"PDF",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=2355864"
 }
 ,{
 "RegistryId":"110000460885",
@@ -4852,19 +4852,19 @@
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
 "ReportSubmissionDate":"2017-01-20",
-"DocumentName":"Boiler MACT Submittal.zip",
+"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .xml",
 "ReportDocType":"AER",
-"DocumentType":"ZIP",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=1180201"
+"DocumentType":"XML",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=1180199"
 }
 ,{
 "RegistryId":"110000460885",
 "FacilityName":"VALERO REFINING - TEXAS LP HOUSTON REFINERY",
 "ReportSubmissionDate":"2017-01-20",
-"DocumentName":"COMPLIANCE REPORT_DDDDD_63.7550(h)(3) .xml",
+"DocumentName":"Boiler MACT Submittal.zip",
 "ReportDocType":"AER",
-"DocumentType":"XML",
-"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=1180199"
+"DocumentType":"ZIP",
+"DocumentLink":"https://cfpub.epa.gov/webfire/FIRE/view/dspERTDocumentDetails.cfm?ID=1180201"
 }
 ,{
 "RegistryId":"110000460885",

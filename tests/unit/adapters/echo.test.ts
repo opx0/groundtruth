@@ -55,6 +55,15 @@ function bytesOf(relative: string): Buffer {
 	return readFileSync(`${fixturesDir}${relative}`);
 }
 
+/**
+ * The QueryID a recorded summary carried, read out of the bytes rather than
+ * written down. ECHO mints a fresh one per call, so every recapture changes it.
+ */
+function summaryQueryId(relative: string): string {
+	const parsed: unknown = JSON.parse(bytesOf(relative).toString("utf8"));
+	return z.object({ Results: z.object({ QueryID: z.string() }) }).parse(parsed).Results.QueryID;
+}
+
 function payloadOf(url: string, bytes: Buffer): PayloadRef {
 	return { url, sha256: createHash("sha256").update(bytes).digest("hex"), retrievedAt: RETRIEVED_AT };
 }
@@ -567,7 +576,14 @@ describe("echo adapter", () => {
 		expect(calls[0]?.searchParams.get("p_radius")).toBe("5");
 		expect(calls[1]?.searchParams.get("pageno")).toBe("1");
 		expect(calls[2]?.searchParams.get("pageno")).toBe("2");
-		expect(calls[2]?.searchParams.get("qid")).toBe("613");
+		// Read from the fixture, never written down. ECHO mints a fresh QueryID on
+		// every call, so the recorded summary carried 613 when it was first
+		// captured and 223 when `scripts/capture-us-fixtures.sh` recaptured it on
+		// 2026-09-16. What the test is about is that the second page is fetched
+		// against the id the FIRST call returned, which is the thing a paging bug
+		// gets wrong; pinning the digits made a recapture break a passing test for
+		// no reason.
+		expect(calls[2]?.searchParams.get("qid")).toBe(summaryQueryId("echo/facilities-5mi-houston.json"));
 	});
 
 	it("calls a counted result set that returns no rows a failure, not an empty neighbourhood", async () => {

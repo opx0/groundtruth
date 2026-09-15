@@ -94,6 +94,29 @@ a `QueryID` with `Message: "Success"`. `get_qid` returns the rows with
 whose body is `Results.Error.ErrorMessage`. That is a different error shape
 from the ArcGIS one above, so the two adapters cannot share a check.
 
+## ECHO, recaptured 2026-09-16 from a US host
+
+`scripts/capture-us-fixtures.sh` was re-run and brought back one thing the repo
+did not have: **`facilities-page-1.json`, the real answer for the demo
+address.** All 1,686 facilities within five miles of 9311 E Ave P, in one page,
+matched to `facilities-5mi-houston.json` by `QueryID` — the summary and its
+page are a pair and must stay one. It is 1.2 MB, which is what 1,686 facilities
+costs, and it is the only fixture in the repo that exercises the query the
+demonstration actually makes; every other ECHO test runs on the quarter-mile
+pair, which is seven rows.
+
+Three files changed in the same run and neither change is interesting:
+`QueryID` went from 613 to 223, because ECHO mints a fresh one per call, and
+`facility-detail.json`'s document list reordered. That `QueryID` broke a passing
+test that had written the digits down — `tests/unit/adapters/echo.test.ts` now
+reads the id out of the bytes, so the next recapture cannot break it either.
+
+**The capture script is not idempotent, by design.** Re-running it replaces
+recordings with whatever the endpoint says today. That is the point — a fixture
+is what a government endpoint really sent — but it means a recapture can change
+rendered text and break a test, and when it does the test is usually right to
+break. Check the diff before assuming otherwise.
+
 ## FEMA NFHL, still not recorded
 
 `hazards.fema.gov` resets the TLS handshake before any HTTP exchange, from

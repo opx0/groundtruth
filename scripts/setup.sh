@@ -183,6 +183,13 @@ finish() {
 # STAGES
 # ──────────────────────────────────────────────────────────────────────────
 
+# Every path below is relative to the repository, not to wherever this was
+# invoked from. Without this, running `./setup.sh` from inside `scripts/` wrote
+# `scripts/.env.local` -- which Next.js never reads, so the keys landed and did
+# nothing, silently. `capture-us-fixtures.sh` has always done this; this script
+# did not. Same line, same reason.
+cd "$(git rev-parse --show-toplevel)"
+
 TOTAL_STAGES=5
 ENV_FILE=".env.local"
 

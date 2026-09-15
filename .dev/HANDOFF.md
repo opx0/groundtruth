@@ -122,6 +122,19 @@ earned its keep more than the rest.
 - **Never write a claim `docs/BRIEF.md` C2 forbids.** The renderer has no path
   that emits a verdict, and three separate audits went looking.
 
+## Two traps this session walked into
+
+- **A stale `next start` on port 3000 silently serves an old build.**
+  `playwright.config.ts` used to reuse an existing server locally, so `pnpm e2e`
+  would rebuild, then test the *previous* build anyway. Six of nine paths failed
+  with the search button stuck disabled and nothing in the output said why. It
+  is now `reuseExistingServer: false`; if you see that failure shape, check
+  nothing is listening on 3000.
+- **`scripts/setup.sh` writes `.env.local` beside itself if you run it from
+  `scripts/`.** Next.js reads `.env.local` from the project root, so the keys
+  are silently not picked up. It was moved by hand once; the script should
+  resolve the repo root rather than the working directory.
+
 ## One judgement call to revisit
 
 The report withholds the final-NPL count entirely when any Superfund site's

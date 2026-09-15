@@ -51,3 +51,8 @@ next-env.d.ts
 # Harness-managed workflow scripts. The durable record of how a unit was
 # briefed lives in .dev/briefs/; this directory is scaffolding.
 .claude/
+
+# A lockfile for a package manager this repo does not use. `package.json`
+# pins pnpm and `pnpm-lock.yaml` is the committed one; a stray bun.lock only
+# confuses tooling.
+bun.lock

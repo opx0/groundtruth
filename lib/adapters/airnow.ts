@@ -1,36 +1,42 @@
 /**
  * AirNow current preliminary conditions at the mapped point. Server-only.
  *
- * Read this before reading the code: almost nothing below is verified, and the
- * file is built so that being wrong is loud rather than quiet.
+ * Read this before reading the code: the success shape was derived rather than
+ * documented, and a real response has since confirmed it. The file is still
+ * built so that being wrong is loud rather than quiet, because that is what the
+ * derivation was betting on.
  *
- * ONE THING IS FACT. AirNow's error envelope. `tests/fixtures/airnow/
- * unauthenticated.json` is real bytes captured live on 2026-09-16 — HTTP 401,
+ * WHAT IS RECORDED. Three responses, all real bytes from this machine.
+ *
+ * `tests/fixtures/airnow/current-observations-houston.json`, captured
+ * 2026-09-16 with a key an operator registered that day, at the
+ * demonstration's own coordinate: three rows, O3, PM2.5 and PM10, each
+ * carrying an index. `tests/fixtures/airnow/no-observations.json` is the same
+ * query where AirNow has no reporting area — a bare `[]`, which is the
+ * answered-with-nothing state and not a failure.
+ * `tests/fixtures/airnow/unauthenticated.json` is the error envelope, HTTP 401,
  * `www-authenticate: proprietary`, body
- * `{"WebServiceError":[{"Message":"Request not authenticated."}]}`. So
- * `WebServiceError` is an array of `{Message}`, and `AirNowWebServiceError`
- * below is the one schema here backed by bytes this repository holds.
+ * `{"WebServiceError":[{"Message":"Request not authenticated."}]}`.
  *
- * NOTHING ELSE IS. `docs/BRIEF.md` B2 marks the success shape unverified and it
- * still is. `lib/adapters/fema.ts`'s NFHL half is the precedent for building
- * anyway, but its claim is stronger than this one: FEMA publishes the field
- * names of S_Fld_Haz_Ar, so NFHL's caveat can say "the parse follows FEMA's
- * published field names". AirNow's cannot. Its per-service documentation is
- * behind a login: `https://docs.airnowapi.org/CurrentObservationsByLatLon/docs`
- * answers 302 to `/login`, as do `/files` and `/feeds`, checked 2026-09-16. The
- * one page that is public, `https://docs.airnowapi.org/webservices`, describes
- * this service in a single line — "Get current AQI values and categories for a
- * reporting area by latitude and longitude" — and names no response field. It
- * also lists this service under "Web Services that will be retired in the fall
- * of 2026", which is worth knowing before anyone builds further on it.
+ * THE DOCUMENTATION IS STILL NOT. `docs/BRIEF.md` B2 marked the success shape
+ * unverified and it was, for the whole of the build: AirNow's per-service
+ * documentation is behind a login —
+ * `https://docs.airnowapi.org/CurrentObservationsByLatLon/docs` answers 302 to
+ * `/login`, as do `/files` and `/feeds`, checked 2026-09-16 — and the one
+ * public page, `https://docs.airnowapi.org/webservices`, describes this service
+ * in a single line ("Get current AQI values and categories for a reporting area
+ * by latitude and longitude") and names no response field. It also lists this
+ * service under "Web Services that will be retired in the fall of 2026", which
+ * is worth knowing before anyone builds further on it.
  *
- * So `AirNowObservation` carries four keys and no more: the three that
- * `lib/evidence/records.ts` forces to be non-null on this kind, and the one
- * nullable field that public line supports. `Category`, `Concentration`, `Unit`
- * and any coordinate are read as `absent`, because the brief's rule is that
- * where the documentation does not say, the field stays out of the schema and
- * out of the record. `tests/fixtures/airnow/derived-current-observations.source.md`
- * argues each of the four and each of the omissions.
+ * So `AirNowObservation` carries four keys and no more, chosen before any
+ * response existed: the three that `lib/evidence/records.ts` forces to be
+ * non-null on this kind, and the one nullable field that public line supports.
+ * All four came back spelled exactly as derived. `Category`, `Concentration`,
+ * `Unit` and any coordinate are read as `absent` and stay that way — the
+ * recording carries `Category` as an object, which is precisely the shape a
+ * guess about it would have had to invent, so the rule that kept it out earned
+ * its keep rather than merely being cautious.
  *
  * AND THAT RULE IS APPLIED ASYMMETRICALLY HERE, WHICH IS WORTH SAYING OUT LOUD.
  * `.dev/briefs/U1.6-U1.7-air.md` rule 2 says that where the documentation does
@@ -42,23 +48,25 @@
  * `observedAt` non-null on this kind and a record cannot be built without them,
  * and `AQI` is kept because it is the one field the public one-line description
  * names that the kind also holds. `Category` is named by that same line and is
- * still dropped, because nothing requires it and nothing says whether it is a
- * string or an object — so a guess about it would be a guess this report did
- * not have to make. That is the exception, stated: the kind's own requirements
- * are what the four names are derived against, the three omissions are what
- * rule 2 gets where nothing forces a name, and `CAVEATS` and the clause in
- * `lib/templates/airnow.ts` tell the reader all four names are unverified.
+ * still dropped, because nothing requires it and nothing said whether it was a
+ * string or an object — so a guess about it would have been a guess this report
+ * did not have to make, and the recording shows it would have been wrong: it
+ * arrives as `{"Number":1,"Name":"Good"}`. That is the exception, stated: the
+ * kind's own requirements are what the four names were derived against, and the
+ * three omissions are what rule 2 gets where nothing forces a name.
  *
  * BEING WRONG IS LOUD. A narrow schema is the point. If AirNow's keys differ
  * from these, `z.safeParse` in `lib/io/fetch-source-io.ts` fails and the source
  * reports `malformed` — the card says AirNow could not be read, and no record
  * exists carrying a value this file guessed at. The failure mode of a wide,
  * permissive schema is the opposite one, and it is the one that puts a wrong
- * number on screen. Every record built here also carries a caveat saying the
- * shape has never been checked against a real response — and, since an audit
- * found that `caveats` reaches the trace panel and never the card, both
- * templates in `lib/templates/airnow.ts` now carry a clause saying it too. That
- * is where a reader meets it, which is what the brief's rule 3 asks for.
+ * number on screen. Until 2026-09-16 every record built here also carried a
+ * caveat saying the shape had never been checked against a real response, and
+ * both templates in `lib/templates/airnow.ts` carried it as a clause because an
+ * audit found `caveats` reaches the trace panel and never the card. The
+ * response arrived, all four names were right, and those three statements are
+ * gone. What is left is the two caveats that are about AirNow rather than about
+ * this repository's confidence in itself.
  *
  * B12's UNKNOWN-STATUS CASE IS NOT REACHABLE FOR THIS SOURCE. `docs/BRIEF.md`
  * B12 asks each adapter to cover a status it has never seen, which for ECHO is
@@ -262,14 +270,17 @@ export function pollutantOf(parameterName: string): Pollutant | null {
 }
 
 /**
- * One current observation. Four keys, every one of them argued in
- * `tests/fixtures/airnow/derived-current-observations.source.md`.
+ * One current observation. Four keys, every one of them derived before any
+ * response existed and every one of them confirmed by
+ * `tests/fixtures/airnow/current-observations-houston.json` on 2026-09-16.
  *
  * `ReportingArea`, `ParameterName` and `DateObserved` are `z.string()` and
  * never an enum or a date shape: an area name, a parameter and a timestamp
  * format this file has never seen all survive verbatim. `AQI` is nullable out
  * of caution rather than from documentation — nothing reachable says what
- * AirNow sends for a reporting area with no current index.
+ * AirNow sends for a reporting area with no current index, and the recording
+ * carries an index on every row, so `derived-null-aqi.json` is still an
+ * authored body and the record built from it still says so.
  */
 export const AirNowObservation = z.object({
 	ReportingArea: z.string(),
@@ -321,13 +332,15 @@ function keyedRequestUrl(locus: Locus, key: string): URL {
 	return url;
 }
 
+// The caveat that stood at the head of this list until 2026-09-16 -- "No
+// response from this service has been recorded yet" -- is gone, because one
+// was. AirNow's per-service documentation is still behind a login and its field
+// list is still not published, but every field this adapter reads is now read
+// off a real response rather than guessed: `ReportingArea`, `ParameterName`,
+// `DateObserved` and `AQI` all arrived exactly as derived, which is the one
+// case where a guess being right is worth recording.
+// `tests/fixtures/airnow/current-observations-houston.json` is that response.
 const CAVEATS: readonly string[] = [
-	// The brief's rule 3, in the register lib/adapters/fema.ts uses for NFHL —
-	// but it may not borrow NFHL's "follows FEMA's published field names",
-	// because AirNow's field list could not be read at all.
-	"No response from this service has been recorded yet. The parse is unverified against real bytes, and"
-		+ " AirNow's own per-service documentation is behind a login, so its field names are not backed by a"
-		+ " published field list either.",
 	// docs/BRIEF.md B2: "Current preliminary conditions", "Observations update hourly."
 	"AirNow reports preliminary current conditions and updates them hourly.",
 	// Also stated in a clause of lib/templates/airnow.ts, so it qualifies the

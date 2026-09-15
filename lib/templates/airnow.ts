@@ -166,9 +166,7 @@ function qualification(field: FieldRef<"airnow-observation">): Clause<"airnow-ob
  * sentence prints wherever either template does — and drops with the record it
  * is about, which a `caveats` entry could not do.
  */
-function derivation(field: FieldRef<"airnow-observation">): Clause<"airnow-observation"> {
-	return sentence`No response from this service has been recorded, so this ${field("pollutant")} row is read through field names this report derived and is unverified against real bytes.`;
-}
+
 
 /** AirNow stated an index for this pollutant: the card prints it, attributed, with no word added to it. */
 export const airnowObservationSummary = defineTemplate(
@@ -178,7 +176,6 @@ export const airnowObservationSummary = defineTemplate(
 		sentence`AirNow reports an air quality index of ${field("aqi")} for ${field("pollutant")} in the ${field("reportingArea")} reporting area, observed ${field("observedAt")}.`,
 		sentence`AirNow's category for that index is ${field("category")}.`,
 		qualification(field),
-		derivation(field),
 	],
 	[{ slot: "aqi", present: true }],
 );
@@ -199,7 +196,6 @@ export const airnowObservationNoIndex = defineTemplate(
 	(field) => [
 		sentence`AirNow's ${field("pollutant")} observation for the ${field("reportingArea")} reporting area, observed ${field("observedAt")}, carries no air quality index.`,
 		qualification(field),
-		derivation(field),
 	],
 	[{ slot: "aqi", present: false }],
 );

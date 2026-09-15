@@ -1,52 +1,50 @@
 /**
  * EPA AQS annual monitor summaries near the mapped point. Server-only.
  *
- * Read this before reading the code: one fact here is recorded, the envelope is
- * published, and the row is not. The file is built so that being wrong about
- * the row is loud rather than quiet.
+ * Read this before reading the code: the envelope and the row are both recorded
+ * now, and neither was until 2026-09-16. The file is still built so that being
+ * wrong about the row is loud rather than quiet, because that is what caught it.
  *
- * WHAT IS RECORDED. `tests/fixtures/aqs/rate-limited.json`, real bytes captured
- * live on 2026-09-16 from EPA's own published shared test account
- * (`email=test@aqs.api&key=test`), which is exhausted: HTTP 429,
- * `Retry-After: 86400`, body `{"error":"Daily limit for account use exceeded.
- * Retry later."}`. Re-checked once from this machine on 2026-09-16 against
- * `metaData/fieldsByService`, which answered the same 429 with the same
- * `Retry-After`. `lib/io/fetch-source-io.ts` turns that into
- * `SourceFailure("rate-limited", 429, "86400")` before any parse, so the
- * rate-limit case of `docs/BRIEF.md` B12 is backed by bytes.
+ * WHAT IS RECORDED. Two responses, both real bytes from this machine.
  *
- * WHAT IS PUBLISHED. The envelope, at
- * `https://aqs.epa.gov/aqsweb/documents/data_api.html`, read 2026-09-16. Two
- * top-level arrays, `Header` and `Body`. `Header` carries `status`,
- * `request_time`, `url` and either `rows` or an `error` array; `Body` is one
- * object per row. It is `Body` and not `Data` — EPA's own OpenAPI file at
- * `https://aqs.epa.gov/aqsweb/documents/aqs_api_specification.json` says `Data`
- * in every response schema, which contradicts the page and its worked examples.
- * The page wins here, because the page carries the actual JSON. That conflict
- * is a live hazard rather than trivia, so
- * `tests/fixtures/aqs/derived-annual-summary-data-envelope.json` pins it:
- * a body whose second array is `Data` fails `AqsResponse` and the source
- * reports `malformed`, which is the loud failure, not a silent empty answer.
+ * `tests/fixtures/aqs/annual-summary-houston.json` is an `annualData/byBox`
+ * answer for the demonstration's own coordinate, captured 2026-09-16 with a
+ * credential an operator registered that day: 212 rows over thirty distinct
+ * monitors. It settles the envelope and all thirteen columns this file
+ * declares. `Header[0].url` echoes the request back, so the two credentials in
+ * the committed copy are replaced with `REDACTED-EMAIL` and `REDACTED-KEY` —
+ * the bytes are otherwise untouched, and `scrubbing` below is what keeps a live
+ * response from printing the real ones.
+ * `tests/fixtures/aqs/annual-summary-no-rows.json` is the same query outside
+ * any monitored box: `"No data matched your selection"` with `rows: 0`, which
+ * is the answered-with-nothing state rather than a failure.
  *
- * WHAT IS NOT PUBLISHED. The columns. The page states that "the columns of data
- * returned are different for each query" and points at `metaData/fieldsByService`
- * for the per-service list — and that service needs a working key, which is the
- * thing this deployment does not have. So **no annualData column name is
- * published anywhere reachable from here**. Ten of the thirteen keys in
- * `AnnualSummaryRow` are EPA's own spelling — published for `sampleData`, in
- * the page's one worked row, and therefore published for a *different service*
- * of this API rather than for this one. The other three —`arithmetic_mean`,
- * `observation_count` and the singular spelling of `unit_of_measure` — are this
- * repository's own spelling of fields EPA names in prose and in its AirData
- * annual-summary file format, and no response has ever confirmed any of the
- * thirteen. `tests/fixtures/aqs/derived-annual-summary-houston.source.md`
- * argues every one of them, and every record built here carries a caveat saying
- * the shape has never been checked against a real response — worded for what is
- * actually true here, which is weaker than what `lib/adapters/fema.ts` can say
- * for NFHL: FEMA publishes the field names of S_Fld_Haz_Ar, and EPA publishes
- * no column list for `annualData` at all. `lib/templates/aqs.ts` carries the
- * same disclosure as a clause, so the reader meets it on the card and not only
- * in the trace.
+ * `tests/fixtures/aqs/rate-limited.json` is older, captured the same day from
+ * EPA's own published shared test account (`email=test@aqs.api&key=test`),
+ * which is exhausted: HTTP 429, `Retry-After: 86400`, body `{"error":"Daily
+ * limit for account use exceeded. Retry later."}`. `lib/io/fetch-source-io.ts`
+ * turns that into `SourceFailure("rate-limited", 429, "86400")` before any
+ * parse, so the rate-limit case of `docs/BRIEF.md` B12 is backed by bytes too.
+ *
+ * WHAT THE PAGE PUBLISHES, AND WHERE IT MISLEADS. The envelope is documented at
+ * `https://aqs.epa.gov/aqsweb/documents/data_api.html`, read 2026-09-16: two
+ * top-level arrays, a `Header` carrying `status`, `request_time`, `url` and
+ * either `rows` or an `error` array, and one object per row beside it. The page
+ * and its worked examples call the second array `Body`; EPA's OpenAPI file at
+ * `https://aqs.epa.gov/aqsweb/documents/aqs_api_specification.json` calls it
+ * `Data`. This file believed the page, because the page carries actual JSON,
+ * and the recording says the OpenAPI file was right — the page's worked example
+ * is a `sampleData` row, and this adapter calls a different service. The
+ * comment on `AqsResponse` keeps that argument, because the reasoning was sound
+ * and the conclusion was still wrong.
+ *
+ * The columns are still not published for this service. The page states that
+ * "the columns of data returned are different for each query" and points at
+ * `metaData/fieldsByService`, which needs a working key. So the thirteen keys
+ * in `AnnualSummaryRow` are read off a response rather than off a specification
+ * — which is a weaker claim than `lib/adapters/fema.ts` can make for NFHL,
+ * where FEMA publishes the field names of S_Fld_Haz_Ar, and a stronger one than
+ * this file could make before the recording existed.
  *
  * BEING WRONG IS LOUD. The schema is narrow on purpose: unknown columns are
  * stripped, but a declared column that is missing or differently typed fails
@@ -279,18 +277,22 @@ export const STATISTIC = "annual arithmetic mean";
  */
 export const ANNUAL_FILE_URL = "https://aqs.epa.gov/aqsweb/airdata/annual_conc_by_monitor_{id}.zip";
 
+// Two caveats stood at the head of this list until 2026-09-16 and are gone.
+// They said the parse was "unverified against real bytes" and that three of the
+// column names were "column names this report derived", and being honest about
+// that is exactly what made the recapture worth doing: a real
+// `annualData/byBox` response was recorded that day on the demonstration's own
+// coordinate, and two of the three derived names were wrong
+// (`parameter_name` is `parameter`, `unit_of_measure` is `units_of_measure`) —
+// as was the envelope. The clause that said it on the card is gone from
+// lib/templates/aqs.ts too.
+//
+// What EPA still does not publish is a column list for this service. The
+// difference is that the columns are now read off an answer rather than off a
+// different service's example, and `tests/fixtures/aqs/annual-summary-houston.json`
+// is that answer.
 const CAVEATS: readonly string[] = [
 	// The brief's rule 3, in the register lib/adapters/fema.ts uses for NFHL —
-	// but not in its words. NFHL's "follows FEMA's published field names" is
-	// true of FEMA; EPA's worked example is a `sampleData` row and the page
-	// publishes no column list for `annualData`, so the strongest honest claim
-	// is the one below. lib/templates/aqs.ts says it on the card as well.
-	"No response from this service has been recorded yet. The parse follows field names EPA publishes for a different"
-		+ " service of the same API, and is unverified against real bytes.",
-	// And the part fema.ts does not have to say: the field names are published
-	// for a different service of the same API.
-	"EPA publishes no column list for the annual summary service, so the mean, the observation count and the unit are"
-		+ " read from column names this report derived: arithmetic_mean, observation_count and unit_of_measure.",
 	// docs/BRIEF.md A2 and B2, and the API page's own first paragraph. Also
 	// stated in the clause of lib/templates/aqs.ts that prints the year and the
 	// value, so it qualifies them on screen; kept here too so a reader who
@@ -309,33 +311,41 @@ const CAVEATS: readonly string[] = [
 /* -------------------------------------------------------------------------- */
 
 /**
- * One annual summary row.
+ * One annual summary row. All thirteen keys are read off
+ * `tests/fixtures/aqs/annual-summary-houston.json`, a real `annualData/byBox`
+ * response.
  *
- * Ten of the thirteen keys are EPA's own, copied from the published row in the
- * "Output Format - JSON" section of `data_api.html` — which is a `sampleData`
- * row, so they are published for this API and not for this service. Three are
- * derived, and `unit_of_measure` is one of the three rather than one of the
- * ten: the published row's spelling is singular and EPA's own annual-summary
- * file format spells the same field plural, so choosing between them for this
- * service is this repository's choice and not EPA's statement.
+ * They were not, until 2026-09-16, and what the recording corrected is worth
+ * keeping. Ten were EPA's own spelling copied from the published row in the
+ * "Output Format - JSON" section of `data_api.html` — a `sampleData` row, so
+ * published for this API and not for this service — and three were this
+ * repository's spelling of fields EPA names only in prose or in its AirData
+ * annual-summary file format. Two of those three were wrong:
  *
- *   arithmetic_mean    the page names no mean column; the AirData annual
- *                      summary file calls the field "Arithmetic Mean".
- *   observation_count  the page names "the 'observation count' field on the
- *                      annualData service" in prose and never spells it.
- *   unit_of_measure    the published row's singular spelling. The annual
- *                      summary file calls the same field "Units of Measure",
- *                      so this is the coin-flip most likely to be wrong, and
- *                      being wrong means `malformed`, not a wrong unit.
+ *   arithmetic_mean    right. The page names no mean column; the AirData
+ *                      annual summary file calls the field "Arithmetic Mean",
+ *                      and so does the service.
+ *   observation_count  right. The page names "the 'observation count' field on
+ *                      the annualData service" in prose and never spells it.
+ *   unit_of_measure    wrong. It is `units_of_measure`. The published row's
+ *                      spelling is singular, the annual summary file's is
+ *                      plural, this file picked the published one, and the
+ *                      service uses the other. It was called out as the
+ *                      coin-flip most likely to be wrong, and it was.
+ *
+ * `parameter_name` was wrong the same way and was not flagged at all: it is
+ * `parameter`, and it sat among the ten because the `sampleData` row spells it
+ * `parameter_name`. Two services of one API, two column lists.
  *
  * Every string is `z.string()`, never `z.enum()`: a unit or a parameter name
  * this file has never seen reaches the screen unchanged. `date_of_last_change`
- * is nullable out of caution — the published row shows a date, and `uncertainty`
- * on the same row shows that nulls occur. Columns the service certainly sends
- * and this file does not read (`year`, `sample_duration`, `pollutant_standard`,
- * `event_type`, `local_site_name`, …) are left out and stripped by zod, because
- * the rule is that an undocumented column stays out of the schema and out of
- * the record.
+ * is nullable out of caution — every row in the recording carries a date, and
+ * `uncertainty` on the published row shows that nulls occur in this API.
+ * `observation_count` is nullable for the same reason and never came back null
+ * in 212 rows. Columns the service sends and this file does not read (`year`,
+ * `sample_duration`, `pollutant_standard`, `event_type`, `local_site_name`, …)
+ * are left out and stripped by zod: a column stays out of the schema unless a
+ * value on the record needs it.
  */
 export const AnnualSummaryRow = z.object({
 	state_code: z.string(),
@@ -348,8 +358,8 @@ export const AnnualSummaryRow = z.object({
 	longitude: z.number(),
 	/** Validated and unread, like FEMA's STATIC_BFE: the record kind has no datum field to put it on. */
 	datum: z.string(),
-	parameter_name: z.string(),
-	unit_of_measure: z.string(),
+	parameter: z.string(),
+	units_of_measure: z.string(),
 	date_of_last_change: z.string().nullable(),
 	arithmetic_mean: z.number(),
 	observation_count: z.number().nullable(),
@@ -372,17 +382,30 @@ export const AqsHeaderEntry = z.union([AqsFailedHeader, AqsOkHeader]);
 export type AqsHeaderEntry = z.infer<typeof AqsHeaderEntry>;
 
 /**
- * `Body`, not `Data`. EPA's OpenAPI file says `Data` and the documentation page
- * and its worked examples say `Body`; the page carries the actual JSON, so the
- * page wins and a `Data` envelope is a parse failure rather than an empty
- * answer. `request_time`, `url` and the row count are documented and unread, so
- * they are not declared — and the page's own prose calls the count `row` while
- * both its examples call it `rows`, which is one more reason not to depend on
- * it. The truth about how many rows arrived is `Body.length`.
+ * `Data`, and this was wrong until 2026-09-16.
+ *
+ * This file used to declare `Body` and reject `Data`, with an argument for it:
+ * EPA's OpenAPI file says `Data`, the documentation page and its worked
+ * examples say `Body`, and the page carries the actual JSON, so the page wins.
+ * The reasoning was sound and the conclusion was wrong. The page's worked
+ * example is a **`sampleData`** row, and this adapter calls `annualData` — a
+ * different service of the same API, whose column list the page does not
+ * publish at all, which the comment above `AnnualSummaryRow` said out loud.
+ *
+ * The first real `annualData/byBox` response, on the demonstration's own
+ * coordinate, answered `{"Header":[…],"Data":[… 212 rows …]}`. So the OpenAPI
+ * file was right about this service and the page was right about the other one,
+ * and the adapter had a test asserting the real envelope was a parse failure.
+ *
+ * `request_time`, `url` and the row count are still not declared. Not
+ * declaring `url` is load-bearing rather than tidy: AQS echoes the request back
+ * in it, credentials and all, and zod strips what it was not told about before
+ * anything downstream can read it. The truth about how many rows arrived is
+ * `Data.length`.
  */
 export const AqsResponse = z.object({
 	Header: z.array(AqsHeaderEntry),
-	Body: z.array(AnnualSummaryRow),
+	Data: z.array(AnnualSummaryRow),
 });
 export type AqsResponse = z.infer<typeof AqsResponse>;
 
@@ -529,8 +552,8 @@ function scrubbedRow(row: AnnualSummaryRow, scrub: Scrub): AnnualSummaryRow {
 		site_number: scrub(row.site_number),
 		parameter_code: scrub(row.parameter_code),
 		datum: scrub(row.datum),
-		parameter_name: scrub(row.parameter_name),
-		unit_of_measure: scrub(row.unit_of_measure),
+		parameter: scrub(row.parameter),
+		units_of_measure: scrub(row.units_of_measure),
 		date_of_last_change: row.date_of_last_change === null ? null : scrub(row.date_of_last_change),
 	};
 }
@@ -587,7 +610,7 @@ export function annualSummaryBuilt(
 		period,
 		statistic: fromQuery(query.service, STATISTIC),
 		value: fields.number("arithmetic_mean"),
-		unit: fields.text("unit_of_measure"),
+		unit: fields.text("units_of_measure"),
 		observationCount: fields.number("observation_count"),
 	};
 }
@@ -670,7 +693,7 @@ export function aqsAdapter(summaryYear: number): AqsAdapter {
 			}
 
 			const built: Built<"aqs-monitor-summary">[] = [];
-			for (const sent of fetched.raw.Body) {
+			for (const sent of fetched.raw.Data) {
 				const row = scrubbedRow(sent, scrub);
 				const pollutant = pollutantOf(row.parameter_code);
 				const selection = selections.get(row.parameter_code);

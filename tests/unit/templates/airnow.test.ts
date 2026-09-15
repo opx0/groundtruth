@@ -81,25 +81,32 @@ function recordOf(row: Fetched<AirNowObservation>, pollutant: Pollutant): AirNow
 	);
 }
 
-const ozone = recordOf(derivedRow("derived-current-observations.json", 0), "Ozone");
-const pm25 = recordOf(derivedRow("derived-current-observations.json", 1), "PM2.5");
+const ozone = recordOf(derivedRow("current-observations-houston.json", 0), "Ozone");
+const pm25 = recordOf(derivedRow("current-observations-houston.json", 1), "PM2.5");
 const noIndex = recordOf(derivedRow("derived-null-aqi.json", 0), "PM2.5");
 
 /** The first clause both templates end on. It names the area again rather than saying "it". */
-const QUALIFICATION = " AirNow's observations describe the Houston reporting area, not the mapped point.";
+/**
+ * A5 on the card, and it names the area the record carries — so it is a
+ * function of the row, not a constant. The two recorded rows are the
+ * Houston-Galveston-Brazoria CBSA; the authored null-index row is an older
+ * shorter name, which is exactly why this stopped being one string.
+ */
+function qualification(area: string): string {
+	return ` AirNow's observations describe the ${area} reporting area, not the mapped point.`;
+}
+
+const HOUSTON = "Houston-Galveston-Brazoria";
+const QUALIFICATION = qualification(HOUSTON);
 
 /**
- * The second, and `.dev/briefs/U1.6-U1.7-air.md` rule 3's whole point: the
- * reader meets the unverified shape on the card, not only in the trace panel.
- * It names the pollutant, so it is a function of the row rather than a
- * constant.
+ * The second sentence this used to add is gone. Until 2026-09-16 every AirNow
+ * card carried a clause saying no response from the service had ever been
+ * recorded and the field names were derived. One was recorded that day, at the
+ * demonstration's own coordinate, and all four names the adapter reads came
+ * back exactly as derived — so the clause became false and went, from the
+ * template and from here.
  */
-function derivation(pollutant: Pollutant): string {
-	return (
-		` No response from this service has been recorded, so this ${pollutant} row is read through field names this` +
-		" report derived and is unverified against real bytes."
-	);
-}
 
 function textOf(spans: readonly { readonly text: string }[]): string {
 	return spans.map((s) => s.text).join("");
@@ -137,16 +144,14 @@ function caseOf(what: string, record: AirNowRecord, expected: Omit<Case, "what" 
 const cases: readonly Case[] = [
 	caseOf("an ozone index", ozone, {
 		summary:
-			"AirNow reports an air quality index of 41 for Ozone in the Houston reporting area, observed 2026-09-16." +
-			QUALIFICATION +
-			derivation("Ozone"),
+			"AirNow reports an air quality index of 20 for Ozone in the Houston-Galveston-Brazoria reporting area, observed 2026-09-16." +
+			QUALIFICATION,
 		noIndex: null,
 	}),
 	caseOf("a PM2.5 index", pm25, {
 		summary:
-			"AirNow reports an air quality index of 58 for PM2.5 in the Houston reporting area, observed 2026-09-16." +
-			QUALIFICATION +
-			derivation("PM2.5"),
+			"AirNow reports an air quality index of 62 for PM2.5 in the Houston-Galveston-Brazoria reporting area, observed 2026-09-16." +
+			QUALIFICATION,
 		noIndex: null,
 	}),
 	caseOf("a row carrying no index", noIndex, {
@@ -154,8 +159,7 @@ const cases: readonly Case[] = [
 		noIndex:
 			"AirNow's PM2.5 observation for the Houston reporting area, observed 2026-09-16," +
 			" carries no air quality index." +
-			QUALIFICATION +
-			derivation("PM2.5"),
+			qualification("Houston"),
 	}),
 ];
 
@@ -215,26 +219,22 @@ describe("every template against every record", () => {
 				expect(rendered, one.what).not.toMatch(/\b(safe|unsafe|risk|healthy|unhealthy|polluter)\b/i);
 				// A5 on the card, qualifying the value rather than sitting in a footer.
 				expect(rendered, one.what).toContain("not the mapped point");
-				// Rule 3 on the card, for the same reason and by the same mechanism.
-				expect(rendered, one.what).toContain("unverified against real bytes");
 				expect(verify(one.store, sentence, airnowTemplates)).toBe(true);
 			}
 		}
 	});
 
-	it("says the shape is unverified on the card, in a clause that dies with the record", () => {
-		// `caveats` is a field of `RecordTrace`, so a record caveat alone reaches
-		// the trace panel and never the card. `.dev/briefs/U1.6-U1.7-air.md` rule 3
-		// wants it where the reader reads the value, and a clause is the only
-		// thing on the wire that cannot outlive the values it qualifies.
+	it("no longer says the shape is unverified, because a response was recorded", () => {
+		// This test asserted the opposite until 2026-09-16, and it was right to:
+		// rule 3 wanted the unverified shape on the card rather than only in the
+		// trace, and a clause was the only thing that could not outlive the value
+		// it qualified. Then a real response arrived and the claim stopped being
+		// true, so the clause went. Kept, inverted, so the next reader sees that
+		// the silence is a decision and not an omission.
 		for (const one of cases) {
 			const template = one.summary === null ? airnowObservationNoIndex : airnowObservationSummary;
 			const placement: Placement = { scope: "record", recordId: one.record.id, template };
-			expect(textOf(mustRender(one.store, placement).spans), one.what).toContain(
-				"is read through field names this report derived and is unverified against real bytes",
-			);
-			// And it goes when the record goes, which is the whole reason it is a
-			// clause hung on `pollutant` rather than a sentence of its own.
+			expect(textOf(mustRender(one.store, placement).spans), one.what).not.toContain("unverified");
 			expect(render(one.store.without(one.record.id), placement), one.what).toBeNull();
 		}
 	});
@@ -242,11 +242,6 @@ describe("every template against every record", () => {
 	it("keeps the caveats that are about the source, not about a value, on the record", () => {
 		for (const { what, record } of cases) {
 			expect(record.caveats, what).toContain("AirNow reports preliminary current conditions and updates them hourly.");
-			expect(record.caveats, what).toContain(
-				"No response from this service has been recorded yet. The parse is unverified against real bytes, and"
-					+ " AirNow's own per-service documentation is behind a login, so its field names are not backed by a"
-					+ " published field list either.",
-			);
 			// No caveat is in the sentence *verbatim*. The derived-shape caveat is
 			// said on the card, but as a clause hung on `pollutant` and in that
 			// clause's own words; the other two have no field behind them and stay
@@ -264,31 +259,37 @@ describe("every template against every record", () => {
 });
 
 describe("a null optional field drops its own clause and nothing else", () => {
+	/**
+	 * Still null, and now for a better reason. The adapter omitted `Category`
+	 * under the brief's rule 2 — where the documentation does not say, the field
+	 * stays out — and that was a decision made in ignorance. The first real
+	 * response, recorded 2026-09-16, carries it on all three rows as an *object*,
+	 * `{"Number":1,"Name":"Good"}`, which `text` cannot read and the record kind
+	 * has no shape for. So the omission stands, and what changed is that it is
+	 * now backed by knowing rather than by not knowing.
+	 */
 	it("drops the category clause, which is null on every record this adapter can build today", () => {
 		expect(ozone.category.value).toBeNull();
 		const placement: Placement = { scope: "record", recordId: ozone.id, template: airnowObservationSummary };
 		const spans = mustRender(storeOf([ozone]), placement).spans;
 
-		// The clause is in the template and references `category`...
 		expect(airnowObservationSummary.clauses.some((c) => c.refs.some((r) => r.field === "category"))).toBe(true);
-		// ...and it is not in the sentence, while every other clause stands.
 		expect(spans.flatMap((s) => (s.slot === null ? [] : [s.slot.field]))).toEqual([
 			"aqi",
 			"pollutant",
 			"reportingArea",
 			"observedAt",
 			"reportingArea",
-			"pollutant",
 		]);
 		expect(textOf(spans)).not.toContain("category");
-		expect(textOf(spans)).toContain("air quality index of 41 for Ozone");
+		expect(textOf(spans)).toContain("air quality index of 20 for Ozone");
 		expect(textOf(spans)).toContain("not the mapped point");
 	});
 
 	it("renders the category clause the moment the column is known, without touching this file", () => {
 		// Not a claim about AirNow: it proves the clause is live rather than dead,
 		// by handing the same builder a record whose category slot holds a value.
-		const row = derivedRow("derived-current-observations.json", 1);
+		const row = derivedRow("current-observations-houston.json", 1);
 		const built = airnowObservationBuilt(
 			row,
 			"PM2.5",
@@ -306,10 +307,9 @@ describe("a null optional field drops its own clause and nothing else", () => {
 			template: airnowObservationSummary,
 		}).spans;
 		expect(textOf(spans)).toBe(
-			"AirNow reports an air quality index of 58 for PM2.5 in the Houston reporting area, observed 2026-09-16." +
+			"AirNow reports an air quality index of 62 for PM2.5 in the Houston-Galveston-Brazoria reporting area, observed 2026-09-16." +
 				" AirNow's category for that index is Moderate." +
-				QUALIFICATION +
-				derivation("PM2.5"),
+				QUALIFICATION,
 		);
 	});
 });
@@ -321,14 +321,14 @@ describe("the trace behind a rendered span", () => {
 	it("takes the index to AirNow's AQI column and the raw number it sent", () => {
 		const t = mustTraceRecord(store, placement, "aqi");
 		expect(t.clicked.field).toBe("aqi");
-		expect(t.clicked.displayed).toBe("58");
-		expect(t.clicked.normalized).toBe(58);
+		expect(t.clicked.displayed).toBe("62");
+		expect(t.clicked.normalized).toBe(62);
 		expect(t.clicked.provenance).toEqual([
 			{
 				kind: "field",
 				dataset: "airnow_current_observations",
 				sourceField: "AQI",
-				rawValue: 58,
+				rawValue: 62,
 				transform: "identity",
 				adapterVersion: "airnow@1",
 				payload: pm25.payloads[0],
@@ -336,7 +336,7 @@ describe("the trace behind a rendered span", () => {
 		]);
 		expect(t.record.source).toBe("airnow");
 		expect(t.record.agency).toBe("EPA AirNow");
-		expect(t.record.sourceRecordId).toBe("Houston/PM2.5");
+		expect(t.record.sourceRecordId).toBe("Houston-Galveston-Brazoria/PM2.5");
 	});
 
 	it("takes the pollutant word to the request, because AirNow never sent that vocabulary", () => {
@@ -349,10 +349,10 @@ describe("the trace behind a rendered span", () => {
 
 	it("takes the reporting area to the column, and the sentence links to a URL carrying no key", () => {
 		const t = mustTraceRecord(store, placement, "reportingArea");
-		expect(t.clicked.displayed).toBe("Houston");
+		expect(t.clicked.displayed).toBe("Houston-Galveston-Brazoria");
 		expect(t.clicked.provenance[0]).toMatchObject({
 			sourceField: "ReportingArea",
-			rawValue: "Houston",
+			rawValue: "Houston-Galveston-Brazoria",
 			transform: "identity",
 		});
 		expect(t.record.sourceUrl.normalized).toBe(CITABLE);

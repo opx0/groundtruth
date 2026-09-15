@@ -1,0 +1,13 @@
+{
+  "Header": [
+    {
+      "status": "No data matched your selection",
+      "request_time": "2026-09-16T10:39:43-04:00",
+      "url": "https://aqs.epa.gov/data/api/annualData/byBox?email=REDACTED-EMAIL&key=REDACTED-KEY&param=88101,44201&bdate=20250101&edate=20251231&minlat=41.00&maxlat=41.30&minlon=-117.60&maxlon=-117.30",
+      "rows": 0
+    }
+  ],
+  "Data": [
+
+  ]
+}

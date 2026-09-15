@@ -4,7 +4,7 @@
  * Records are built through `annualSummaryBuilt` and `complete`, the adapter's
  * own path, so every sentence asserted here is a sentence the real fields fill
  * — as far as anything about AQS can be called real in this repository. The
- * body behind them is `derived-annual-summary-houston.json`, which is authored
+ * body behind them is `annual-summary-houston.json`, which is authored
  * from EPA's published documentation and has never been checked against a
  * response; its `.source.md` says which three column names are this repository's
  * spelling. What these assertions pin is the wording and the clause structure,
@@ -46,20 +46,22 @@ import { aqsMonitorSummary, aqsTemplates } from "@/lib/templates/aqs";
 import { houstonLocus } from "../evidence/helpers/sems-fixtures";
 
 const fixturesDir = fileURLToPath(new URL("../../fixtures/aqs/", import.meta.url));
-const FIXTURE = "derived-annual-summary-houston.json";
+const FIXTURE = "annual-summary-houston.json";
 const RETRIEVED_AT = "2026-09-16T12:00:00Z";
 const YEAR = 2025;
 
 const locus = houstonLocus();
 
 /**
- * The fourth clause, and `.dev/briefs/U1.6-U1.7-air.md` rule 3's whole point:
- * the reader meets the unverified shape on the card, not only in the trace
- * panel. It hangs on `statistic`, so it is the same tail on every record here.
+ * There is no fourth clause any more. Until 2026-09-16 every AQS card ended on
+ * a sentence saying no response from the service had been recorded and the
+ * column names were derived -- rule 3's whole point, that the reader meets an
+ * unverified shape on the card rather than only in the trace. A response was
+ * recorded that day and settled every column, so the clause went. This constant
+ * is kept empty rather than deleted, so a reader diffing these strings sees
+ * that a sentence was removed rather than that one never existed.
  */
-const DERIVATION =
-	" No response from this service has been recorded, so this annual arithmetic mean is read from column names this"
-	+ " report derived and is unverified against real bytes.";
+const DERIVATION = "";
 
 const bytes = readFileSync(`${fixturesDir}${FIXTURE}`);
 const payload: PayloadRef = {
@@ -80,9 +82,31 @@ const query: AqsQuery = {
 };
 
 function rowAt(index: number): Fetched<AnnualSummaryRow> {
-	const row = body.Body[index];
+	const row = body.Data[index];
 	if (row === undefined) throw new Error(`${FIXTURE} has no row ${index}`);
 	return { raw: row, payload };
+}
+
+/** The first row for a monitor, by the id the adapter builds. Rows are EPA's order, not ours. */
+function rowFor(monitor: string): Fetched<AnnualSummaryRow> {
+	const index = body.Data.findIndex(
+		(row) => `${row.state_code}-${row.county_code}-${row.site_number}-${row.parameter_code}` === monitor,
+	);
+	if (index === -1) throw new Error(`${FIXTURE} has no row for ${monitor}`);
+	return rowAt(index);
+}
+
+/**
+ * One real row with its observation count emptied.
+ *
+ * `observation_count` is null in none of the 212 rows EPA returned for this
+ * box, so the template's null branch has nothing in the recording to exercise
+ * it. This is that row with the one column cleared -- a claim about the
+ * template, never about what AQS sends, which is why it is built here rather
+ * than filed as a fixture.
+ */
+function withoutObservationCount(fetched: Fetched<AnnualSummaryRow>): Fetched<AnnualSummaryRow> {
+	return { raw: { ...fetched.raw, observation_count: null }, payload: fetched.payload };
 }
 
 function pollutantOf(row: AnnualSummaryRow): Pollutant {
@@ -91,16 +115,23 @@ function pollutantOf(row: AnnualSummaryRow): Pollutant {
 	return pollutant;
 }
 
-function recordAt(index: number): Sealed<RecordOf<"aqs-monitor-summary">> {
-	const row = rowAt(index);
-	const pollutant = pollutantOf(row.raw);
-	return complete(locus, annualSummaryBuilt(row, pollutant, queryOf("param", row.raw.parameter_code), query));
+/** The station 1.5 km from the mapped point, both its monitors, out of the recorded response. */
+const PM25_MONITOR = "48-201-1035-88101";
+const OZONE_MONITOR = "48-201-1035-44201";
+
+function recordFor(monitor: string): Sealed<RecordOf<"aqs-monitor-summary">> {
+	const row = rowFor(monitor);
+	return complete(locus, annualSummaryBuilt(row, pollutantOf(row.raw), queryOf("param", row.raw.parameter_code), query));
 }
 
-/** Row 0 is the PM2.5 monitor 1.51 km away, row 2 the ozone monitor, row 3 the one with no observation count. */
-const pm25 = recordAt(0);
-const ozone = recordAt(2);
-const noCount = recordAt(3);
+const pm25 = recordFor(PM25_MONITOR);
+const ozone = recordFor(OZONE_MONITOR);
+/** A different station, so it does not collide with `ozone` in the store: one id, one record. */
+const NO_COUNT_MONITOR = "48-201-0046-44201";
+const noCount = ((): Sealed<RecordOf<"aqs-monitor-summary">> => {
+	const row = withoutObservationCount(rowFor(NO_COUNT_MONITOR));
+	return complete(locus, annualSummaryBuilt(row, pollutantOf(row.raw), queryOf("param", row.raw.parameter_code), query));
+})();
 
 const store: EvidenceStore = storeOf([pm25, ozone, noCount]);
 
@@ -137,18 +168,18 @@ describe("the registry entry", () => {
 describe("aqs-monitor-summary/summary@1", () => {
 	it("renders the PM2.5 monitor whole", () => {
 		expect(textFor(store, pm25)).toBe(
-			"PM2.5 monitor 48-201-1039-88101 is 1.51 km from the mapped point, and measures its own location, not this"
-			+ " address. 2025 annual arithmetic mean: 9.8 Micrograms/cubic meter (LC). AQS data lags collection by six"
-			+ " months or more. Observations in the summary: 121."
+			"PM2.5 monitor 48-201-1035-88101 is 1.52 km from the mapped point, and measures its own location, not this"
+			+ " address. 2025 annual arithmetic mean: 10.385577 Micrograms/cubic meter (LC). AQS data lags collection by six"
+			+ " months or more. Observations in the summary: 104."
 			+ DERIVATION,
 		);
 	});
 
 	it("renders the ozone monitor in the unit AQS sent, unmapped", () => {
 		expect(textFor(store, ozone)).toBe(
-			"Ozone monitor 48-201-0024-44201 is 15.76 km from the mapped point, and measures its own location, not this"
-			+ " address. 2025 annual arithmetic mean: 0.0421 Parts per million. AQS data lags collection by six months"
-			+ " or more. Observations in the summary: 214."
+			"Ozone monitor 48-201-1035-44201 is 1.52 km from the mapped point, and measures its own location, not this"
+			+ " address. 2025 annual arithmetic mean: 0.042165 Parts per million. AQS data lags collection by six months"
+			+ " or more. Observations in the summary: 8508."
 			+ DERIVATION,
 		);
 	});
@@ -156,8 +187,8 @@ describe("aqs-monitor-summary/summary@1", () => {
 	it("drops the observation clause when the count is null, and leaves the rest standing", () => {
 		expect(noCount.observationCount.value).toBeNull();
 		expect(textFor(store, noCount)).toBe(
-			"PM2.5 monitor 48-201-0416-88101 is 20.88 km from the mapped point, and measures its own location, not this"
-			+ " address. 2025 annual arithmetic mean: 8.4 Micrograms/cubic meter (LC). AQS data lags collection by six"
+			"Ozone monitor 48-201-0046-44201 is 12.18 km from the mapped point, and measures its own location, not this"
+			+ " address. 2025 annual arithmetic mean: 0.038705 Parts per million. AQS data lags collection by six"
 			+ " months or more."
 			+ DERIVATION,
 		);
@@ -173,15 +204,24 @@ describe("aqs-monitor-summary/summary@1", () => {
 		expect(text).not.toContain("Nearest");
 	});
 
-	it("says on the card that the shape is unverified, in a clause that dies with the record", () => {
-		// `caveats` is a field of `RecordTrace`, so a record caveat alone reaches
-		// the trace panel and never the card. `.dev/briefs/U1.6-U1.7-air.md` rule 3
-		// wants it where the reader reads the value, and a clause is the only thing
-		// on the wire that cannot outlive the values it qualifies.
+	/**
+	 * Inverted on 2026-09-16, and the inversion is the point.
+	 *
+	 * This asserted that every card said its shape was unverified, in a clause
+	 * rather than a caveat, because `caveats` is a field of `RecordTrace` and so
+	 * reaches the trace panel and never the card. That was right while it was
+	 * true. Then a real `annualData/byBox` response was recorded, every column
+	 * the adapter reads was in it, and two of the three names it had derived
+	 * turned out wrong -- so the claim stopped being true and the clause went.
+	 *
+	 * Kept, inverted, so the silence reads as a decision rather than an
+	 * omission: the card says nothing about an unverified shape because there is
+	 * no longer an unverified shape to say anything about.
+	 */
+	it("no longer says the shape is unverified, because a response was recorded", () => {
 		for (const record of [pm25, ozone, noCount]) {
-			expect(textFor(store, record)).toContain(
-				"is read from column names this report derived and is unverified against real bytes",
-			);
+			expect(textFor(store, record)).not.toContain("unverified");
+			expect(textFor(store, record)).not.toContain("column names this report derived");
 			expect(textFor(store.without(record.id), record)).toBeNull();
 		}
 	});
@@ -206,35 +246,30 @@ describe("the trace behind one span", () => {
 		const found = mustTrace(pm25, "value");
 
 		expect(found.clicked.field).toBe("value");
-		expect(found.clicked.displayed).toBe("9.8");
-		expect(found.clicked.normalized).toBe(9.8);
+		expect(found.clicked.displayed).toBe("10.385577");
+		expect(found.clicked.normalized).toBe(10.385577);
 		expect(found.clicked.provenance).toEqual([
 			{
 				kind: "field",
 				dataset: "aqs_annual_summary",
 				sourceField: "arithmetic_mean",
-				rawValue: 9.8,
+				rawValue: 10.385577,
 				transform: "identity",
 				adapterVersion: "aqs@1",
 				payload,
 			},
 		]);
 		expect(found.record.agency).toBe("EPA Air Quality System");
-		expect(found.record.sourceRecordId).toBe("48-201-1039-88101");
+		expect(found.record.sourceRecordId).toBe("48-201-1035-88101");
 		expect(found.record.sourceUrl.normalized).toBe(
 			"https://aqs.epa.gov/aqsweb/airdata/annual_conc_by_monitor_2025.zip",
 		);
-		// The card carries A2's two caveats and the derived-shape one in its
-		// clauses; the trace carries all five, including the one that qualifies the
-		// retrieval rather than a slot.
-		// The caveat no longer borrows FEMA's "follows FEMA's published field
-		// names": EPA's worked row is a `sampleData` row and the page publishes no
-		// column list for `annualData` at all.
-		expect(found.record.caveats).toContain(
-			"No response from this service has been recorded yet. The parse follows field names EPA publishes for a"
-			+ " different service of the same API, and is unverified against real bytes.",
+		// Three now, not five. The two that said the parse was unverified and the
+		// column names derived went with the recording that settled them.
+		expect(found.record.caveats).not.toContain(
+			expect.stringContaining("unverified against real bytes"),
 		);
-		expect(found.record.caveats).toHaveLength(5);
+		expect(found.record.caveats).toHaveLength(3);
 	});
 
 	it("shows the year as a value of our own request, not a column AQS sent", () => {
@@ -250,8 +285,8 @@ describe("the trace behind one span", () => {
 	it("shows the distance as the kernel's own computation over both coordinates", () => {
 		const found = mustTrace(pm25, "distanceMeters");
 
-		expect(found.clicked.displayed).toBe("1.51 km");
-		expect(found.clicked.normalized).toBe(1514);
+		expect(found.clicked.displayed).toBe("1.52 km");
+		expect(found.clicked.normalized).toBe(1515);
 		expect(found.clicked.provenance[0]).toMatchObject({ kind: "computation", formula: "haversine" });
 	});
 });

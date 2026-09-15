@@ -1,12 +1,19 @@
 # Fixtures
 
-Unedited responses from live government endpoints, **except the nine `derived-`
-files**, which were authored from published documentation rather than captured
-and each carry a sibling `.source.md` saying so — see "AQS and AirNow" at the
-end. Nothing else here is hand-written or trimmed. Production code cannot import
-this directory and a test proves it.
+Unedited responses from live government endpoints, **except the three `derived-`
+files**, which were authored rather than captured and each carry a sibling
+`.source.md` saying so — see "AQS and AirNow" at the end. Nothing else here is
+hand-written or trimmed, with one stated exception: the two AQS recordings have
+the two credentials in EPA's echoed request URL replaced, described below.
+Production code cannot import this directory and a test proves it.
 
 Recorded 2026-09-16 unless a later note says otherwise.
+
+*There were nine `derived-` files until 2026-09-16.* An operator registered
+keys for both air sources that day and six of the nine were replaced by
+recordings of the same states. What survives is three bodies that hold a state
+no recording does: a null AQI, a failed AQS header, and an AQS status EPA has
+never sent.
 
 ## Gotchas these fixtures exist to pin
 
@@ -56,8 +63,11 @@ we did not get to ask.
 ## Not recorded
 
 The authoritative FEMA NFHL endpoint refuses connections from the machine this
-was built on. AQS and AirNow need free keys that have not been registered. See
-the blocker note in `.dev/PLAN.md`.
+was built on. See the blocker note in `.dev/PLAN.md`.
+
+*Corrected 2026-09-16, again.* This paragraph also said "AQS and AirNow need
+free keys that have not been registered". They were registered that day and both
+sources are recorded; only the NFHL half is still true.
 
 *Corrected 2026-09-16.* This section read "ECHO and the authoritative FEMA NFHL
 endpoint both refuse connections from the machine this was built on." The ECHO
@@ -123,12 +133,48 @@ break. Check the diff before assuming otherwise.
 every route tried. Unlike ECHO this is not flakiness and retries do not help.
 `scripts/setup.sh` walks through capturing it from a US-reachable host.
 
-## AQS and AirNow, failures only
+## AQS and AirNow, recorded 2026-09-16
 
-Both air sources need a free key the operator has not registered, so neither
-has a recorded success payload. What is recorded is what each answers without
-one, captured live on 2026-09-16, and both are genuinely useful: they are the
-rate-limit and the unauthenticated cases of the seven, in real bytes.
+This section read "AQS and AirNow, failures only" until an operator registered a
+free key for each on 2026-09-16. Both sources now have recorded successes, a
+recorded empty answer, and the failure each gives without a credential.
+
+**`aqs/annual-summary-houston.json`.** `annualData/byBox` for the demonstration
+coordinate: 212 rows over thirty distinct monitors, twelve PM2.5 and eighteen
+ozone, one of which is outside B2's 50 km circle and is dropped by the adapter's
+own haversine rather than by the box.
+
+**Its two credentials are replaced, and nothing else is.** EPA echoes the whole
+request back in `Header[0].url`, query string included, so the committed copy
+carries `REDACTED-EMAIL` and `REDACTED-KEY` in place of the operator's. That is
+the only edit to either AQS recording. `lib/adapters/aqs.ts` does the same
+substitution at runtime on every string EPA sends, for the same reason: a
+failed header quoting the request back would otherwise print a live key in the
+trace panel.
+
+**This recording overturned three published-documentation guesses.** The second
+top-level array is `Data`, not `Body`; the parameter column is `parameter`, not
+`parameter_name`; the unit column is `units_of_measure`, not `unit_of_measure`.
+All three came from the worked example on EPA's API page, which is a
+`sampleData` row — a different service of the same API. The page does not
+publish a column list for `annualData` at all, and still does not; the
+difference is that the columns are now read off an answer.
+
+**`aqs/annual-summary-no-rows.json`.** The same query over a box with no
+monitor: `"No data matched your selection"`, `rows: 0`, `Data: []`. An answer
+with nothing in it, not a failure — a different screen state by construction.
+
+**`airnow/current-observations-houston.json`.** Three rows for
+`Houston-Galveston-Brazoria`: O3, PM2.5 and PM10. All four keys
+`lib/adapters/airnow.ts` derived before any response existed came back spelled
+exactly as derived. `PM10` is outside this report's two-pollutant vocabulary and
+its row is dropped, which is the case `derived-unmapped-parameter.json` used to
+be authored for. `Category` arrives as `{"Number":1,"Name":"Good"}`, which is
+why the rule that kept it out of the schema was worth following: it was named in
+AirNow's one public line and nothing said whether it was a string or an object.
+
+**`airnow/no-observations.json`.** A bare `[]`, two bytes, for a coordinate
+AirNow has no reporting area for.
 
 **`aqs/rate-limited.json`.** EPA publishes a shared test account
 (`email=test@aqs.api&key=test`) and it is exhausted, so every request to it —
@@ -147,9 +193,13 @@ turns into `SourceFailure("rate-limited", 429, "86400")` before parsing. The
 body is recorded; the headers are documented here because a fixture file holds
 bytes, not a response.
 
-AQS's success envelope is `{"Header":[{status,request_time,url,rows}],"Body":[…]}`
-according to EPA's own published API documentation, which is reachable from
-here. It is `Body`, not `Data`. No success payload has been seen.
+*This paragraph said the success envelope was
+`{"Header":[…],"Body":[…]}` "according to EPA's own published API
+documentation", and that "it is `Body`, not `Data`".* The recording says `Data`.
+The documentation page really does print `Body` — in a worked example for
+`sampleData`, a different service — and EPA's OpenAPI file said `Data` all
+along. Believing the page over the specification was a defensible call and it
+was wrong.
 
 **`airnow/unauthenticated.json`.** AirNow without a key:
 
@@ -160,9 +210,11 @@ www-authenticate: proprietary
 {"WebServiceError":[{"Message":"Request not authenticated."}]}
 ```
 
-So its error envelope is `WebServiceError`, an array of `{Message}` — that much
-is now fact rather than assumption. Its success shape is still unverified, and
-`docs/BRIEF.md` B2 still says so.
+So its error envelope is `WebServiceError`, an array of `{Message}`. Its success
+shape was unverified until the recording above; its per-service documentation is
+still behind a login and its field list is still not published anywhere
+reachable, so what changed is that the four field names are read off a response
+instead of derived from the record kind's own requirements.
 
 **B2's AirNow host is a redirect.** Re-checked from this machine on 2026-09-16,
 with no key: `https://airnowapi.org/aq/observation/latLong/current?...` answers
@@ -172,8 +224,9 @@ https://www.airnowapi.org:443/aq/observation/latLong/current?...`, and
 the path. `lib/adapters/airnow.ts` therefore cites `www.`, because the citable
 URL is printed on every AirNow record and it has to be one a reader can repeat.
 
-Neither of these is a recording of a working source, and no adapter may treat
-them as one. Any payload for the success path of either source is authored from
-published documentation, is named with a `derived-` prefix, and carries a
-sibling `.source.md` saying where the shape came from and that no real response
-backs it. That is the same rule FEMA's NFHL half is built under.
+**The `derived-` rule has not changed.** A body this repository authored is
+named with a `derived-` prefix and carries a sibling `.source.md` saying where
+its shape came from and what no real response backs. Three such bodies are left
+here, each pinning a state no recording holds, and each note now says which
+recording settled the rest of its shape. FEMA's NFHL half is still built under
+the same rule, and still has no recording at all.

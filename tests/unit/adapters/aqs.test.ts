@@ -67,19 +67,20 @@ const CITABLE =
 	+ "&minlat=29.270999&maxlat=30.170319&minlon=-95.779767&maxlon=-94.744224";
 
 const SHA = {
-	houston: "8d1ce9cd4b636dfcef652345ceff5a857ff38e69378b63af126c3bb2a9b80e8b",
-	noRows: "1ab55b0e21aa476ffd5af38e5a52a1e3de020ce58ef4e1b3b59aaac75e93019b",
-	unknownStatus: "db74a8c03cf487f71ab7f09f8c456e8aec6906d2f71a1d13ec28455990cc1b1e",
-	failed: "04ac6b27795cb31d49affa2752a96930ab8cca08811f082bb756c7abb90817c4",
-	dataEnvelope: "42a36a52943c121b1e4e883e0d6b43b8e9303fac53528d3254dda90398e492c2",
+	houston: "1950abba52d39cb80be7b9d76a8c5c528e3f329dee7547de0ee2fe34789b6983",
+	noRows: "e4476d5e721fd38ad042a432fdcc43a9bf0b2428752d59230c120b3a9050e680",
+	unknownStatus: "9207f0834659f46b8a0f348c86a1bb316e4f295a3973b04045c45adc29e1fdaf",
+	failed: "23cf8f9c55be1415e7ef88bc0b4fc063ce5b581983419a97ce9f34c9a6e98ded",
 	rateLimited: "96a9c5dce851b9db368a5153efe44737aab55e611aa9f269ef441e66be70352e",
 };
 
+/**
+ * Three, not five. The two that went on 2026-09-16 both said the parse was
+ * unverified and three column names were derived; a real `annualData/byBox`
+ * response was recorded that day and settled all thirteen. Two of the three
+ * derived names had been wrong, which is what the caveats were for.
+ */
 const CAVEATS: readonly string[] = [
-	"No response from this service has been recorded yet. The parse follows field names EPA publishes for a different"
-		+ " service of the same API, and is unverified against real bytes.",
-	"EPA publishes no column list for the annual summary service, so the mean, the observation count and the unit are"
-		+ " read from column names this report derived: arithmetic_mean, observation_count and unit_of_measure.",
 	"AQS data lags collection by six months or more.",
 	"The monitor measures its own location, not this address.",
 	"AQS returns more than one annual summary row for a monitor and year, and the columns that tell those rows apart"
@@ -195,14 +196,18 @@ describe("the request", () => {
 		expect(adapter.summaryYear).toBe(YEAR);
 	});
 
-	it("declares thirteen columns: ten of EPA's own spelling and three this report derived", () => {
-		// The module comment and the fixture's `.source.md` both count these, and
-		// an earlier version of both counted `unit_of_measure` twice.
+	it("declares thirteen columns, every one of them read off a real annualData response", () => {
+		// There is no longer a derived half. Until 2026-09-16 three of these were
+		// this repository's guesses from prose, and two of the guesses were wrong:
+		// `parameter_name` is `parameter` and `unit_of_measure` is
+		// `units_of_measure`. The recorded response settled all thirteen.
 		const keys = Object.keys(AnnualSummaryRow.shape);
 		expect(keys).toHaveLength(13);
-		const derived = ["arithmetic_mean", "observation_count", "unit_of_measure"];
-		for (const key of derived) expect(keys).toContain(key);
-		expect(keys.filter((key) => !derived.includes(key))).toHaveLength(10);
+		for (const key of ["arithmetic_mean", "observation_count", "units_of_measure", "parameter"]) {
+			expect(keys).toContain(key);
+		}
+		expect(keys).not.toContain("unit_of_measure");
+		expect(keys).not.toContain("parameter_name");
 	});
 
 	it("declares its kind, source, version and the no-data note that names the year it asked for", () => {
@@ -216,82 +221,89 @@ describe("the request", () => {
 	});
 });
 
-describe("success: the derived Houston body", () => {
+describe("success: the recorded Houston response", () => {
 	it("builds one record per monitor within 50 km, and the PM2.5 record whole", async () => {
-		const { outcome, calls } = await outcomeFor({ fixture: "derived-annual-summary-houston.json" });
+		const { outcome, calls } = await outcomeFor({ fixture: "annual-summary-houston.json" });
 		const records = recordsOf(outcome);
 
 		expect(calls).toHaveLength(1);
 		expect(outcome.status === "ok" && outcome.retrievedAt).toBe(NOW);
-		expect(records.map((record) => record.sourceRecordId)).toEqual([
-			"48-201-1039-88101",
-			"48-201-0024-44201",
-			"48-201-0416-88101",
-		]);
+		// Thirty distinct monitors in the recorded response, twenty-nine of them
+		// inside B2's 50 km boundary. The ids are not written out: this is a real
+		// answer for a real place and the list is EPA's, not this test's.
+		expect(records).toHaveLength(29);
+		expect(records.map((record) => record.sourceRecordId)).toContain("48-201-1035-88101");
 
-		const record = byId(records, "48-201-1039-88101");
+		// The nearest monitor to the mapped point, at 1.5 km -- which is what
+		// makes this the one the report shows and the one A2's air card is about.
+		const record = byId(records, "48-201-1035-88101");
 		expect(record.kind).toBe("aqs-monitor-summary");
 		expect(record.source).toBe("aqs");
-		expect(record.id).toEqual({ kind: "aqs-monitor-summary", sourceRecordId: "48-201-1039-88101" });
-		expect(record.subject.value).toBe("48-201-1039-88101");
-		expect(record.monitorId.value).toBe("48-201-1039-88101");
+		expect(record.id).toEqual({ kind: "aqs-monitor-summary", sourceRecordId: "48-201-1035-88101" });
+		expect(record.subject.value).toBe("48-201-1035-88101");
+		expect(record.monitorId.value).toBe("48-201-1035-88101");
 		expect(record.pollutant.value).toBe("PM2.5");
 		expect(record.period.value).toBe("2025");
 		expect(record.statistic.value).toBe(STATISTIC);
 		expect(record.statistic.value).toBe("annual arithmetic mean");
-		expect(record.value.value).toBe(9.8);
+		expect(record.value.value).toBe(10.385577);
 		expect(record.unit.value).toBe("Micrograms/cubic meter (LC)");
-		expect(record.observationCount.value).toBe(121);
-		expect(record.location?.latitude.value).toBe(29.733726);
-		expect(record.location?.longitude.value).toBe(-95.257593);
-		expect(record.distanceMeters?.value).toBe(1514);
+		expect(record.observationCount.value).toBe(104);
+		expect(record.location?.latitude.value).toBe(29.733737);
+		expect(record.location?.longitude.value).toBe(-95.257605);
+		expect(record.distanceMeters?.value).toBe(1515);
 		expect(record.effectiveAt.value).toBe("2025");
-		expect(record.sourceUpdatedAt.value).toBe("2026-04-22");
+		expect(record.sourceUpdatedAt.value).toBe("2026-03-27");
 		expect(record.sourceUrl.value).toBe("https://aqs.epa.gov/aqsweb/airdata/annual_conc_by_monitor_2025.zip");
 		expect(record.caveats).toEqual(CAVEATS);
 		expect(record.payloads).toEqual([PAYLOAD]);
 	});
 
 	it("reads the ozone monitor with its own unit, unmapped and verbatim", async () => {
-		const records = recordsOf((await outcomeFor({ fixture: "derived-annual-summary-houston.json" })).outcome);
-		const record = byId(records, "48-201-0024-44201");
+		const records = recordsOf((await outcomeFor({ fixture: "annual-summary-houston.json" })).outcome);
+		// The same site as the PM2.5 record above, its ozone half: one station,
+		// two monitors, two parameter codes, two units.
+		const record = byId(records, "48-201-1035-44201");
 
 		expect(record.pollutant.value).toBe("Ozone");
-		expect(record.value.value).toBe(0.0421);
+		expect(record.value.value).toBe(0.042165);
 		expect(record.unit.value).toBe("Parts per million");
-		expect(record.observationCount.value).toBe(214);
-		expect(record.distanceMeters?.value).toBe(15755);
-		expect(record.sourceUpdatedAt.value).toBe("2026-05-14");
+		expect(record.observationCount.value).toBe(8508);
+		expect(record.distanceMeters?.value).toBe(1515);
+		expect(record.sourceUpdatedAt.value).toBe("2026-02-13");
 	});
 
 	it("keeps the first row of the several AQS returns for one monitor, and drops the rest", async () => {
-		const records = recordsOf((await outcomeFor({ fixture: "derived-annual-summary-houston.json" })).outcome);
-		const pm25 = records.filter((record) => record.sourceRecordId === "48-201-1039-88101");
+		const records = recordsOf((await outcomeFor({ fixture: "annual-summary-houston.json" })).outcome);
+		const pm25 = records.filter((record) => record.sourceRecordId === "48-201-1035-88101");
 
 		expect(pm25).toHaveLength(1);
-		// The second row for this monitor carries 10.4 under a different sample
-		// duration and standard. Those columns are not published, so the adapter
-		// cannot choose between them and keeps the first.
-		expect(pm25[0]?.value.value).toBe(9.8);
+		// Every one of the thirty monitors in this response carries several rows,
+		// under different sample durations, pollutant standards and event types.
+		// The adapter keeps the first and drops the rest, because it has no basis
+		// to choose between them.
+		expect(pm25[0]?.value.value).toBe(10.385577);
 	});
 
 	it("drops a monitor inside the request box but outside B2's 50 km boundary", async () => {
-		const records = recordsOf((await outcomeFor({ fixture: "derived-annual-summary-houston.json" })).outcome);
-		expect(records.map((record) => record.sourceRecordId)).not.toContain("48-473-0002-88101");
-		// 55.90 km from the mapped point, and inside the box: minlat 29.270999 to maxlat 30.170319.
-		expect(30.05).toBeLessThan(30.170319);
+		const records = recordsOf((await outcomeFor({ fixture: "annual-summary-houston.json" })).outcome);
+		// Real, and the only one in the recorded response: EPA returned it inside
+		// the requested box and it is 53.2 km from the mapped point, so the
+		// haversine and not the box is what decides B2's boundary.
+		expect(records.map((record) => record.sourceRecordId)).not.toContain("48-201-0029-44201");
+		expect(records).toHaveLength(29);
 	});
 
 	it("traces every value to the column or the query parameter behind it", async () => {
-		const records = recordsOf((await outcomeFor({ fixture: "derived-annual-summary-houston.json" })).outcome);
-		const record = byId(records, "48-201-1039-88101");
+		const records = recordsOf((await outcomeFor({ fixture: "annual-summary-houston.json" })).outcome);
+		const record = byId(records, "48-201-1035-88101");
 
 		expect(record.value.provenance).toEqual([
 			{
 				kind: "field",
 				dataset: "aqs_annual_summary",
 				sourceField: "arithmetic_mean",
-				rawValue: 9.8,
+				rawValue: 10.385577,
 				transform: "identity",
 				adapterVersion: "aqs@1",
 				payload: PAYLOAD,
@@ -301,7 +313,7 @@ describe("success: the derived Houston body", () => {
 			{
 				kind: "field",
 				dataset: "aqs_annual_summary",
-				sourceField: "unit_of_measure",
+				sourceField: "units_of_measure",
 				rawValue: "Micrograms/cubic meter (LC)",
 				transform: "identity",
 				adapterVersion: "aqs@1",
@@ -313,7 +325,7 @@ describe("success: the derived Houston body", () => {
 				kind: "field",
 				dataset: "aqs_annual_summary",
 				sourceField: "date_of_last_change",
-				rawValue: "2026-04-22",
+				rawValue: "2026-03-27",
 				transform: "normalize-date",
 				adapterVersion: "aqs@1",
 				payload: PAYLOAD,
@@ -357,7 +369,7 @@ describe("success: the derived Houston body", () => {
 				kind: "field",
 				dataset: "aqs_annual_summary",
 				sourceField: "site_number",
-				rawValue: "1039",
+				rawValue: "1035",
 				transform: "join-fields",
 				adapterVersion: "aqs@1",
 				payload: PAYLOAD,
@@ -376,7 +388,7 @@ describe("success: the derived Houston body", () => {
 	});
 
 	it("ignores the columns it does not declare, including the header url that echoes the request", async () => {
-		const records = recordsOf((await outcomeFor({ fixture: "derived-annual-summary-houston.json" })).outcome);
+		const records = recordsOf((await outcomeFor({ fixture: "annual-summary-houston.json" })).outcome);
 		const record = byId(records, "48-201-1039-88101");
 		const serialized = JSON.stringify(record);
 
@@ -390,23 +402,52 @@ describe("success: the derived Houston body", () => {
 
 describe("no records", () => {
 	it("is a no-data outcome naming the year, never an unavailable one", async () => {
-		const { outcome } = await outcomeFor({ fixture: "derived-annual-summary-no-rows.json" });
+		const { outcome } = await outcomeFor({ fixture: "annual-summary-no-rows.json" });
 		expect(outcome).toEqual({ status: "no-data", note: noMonitorsNote(YEAR), retrievedAt: NOW });
-		expect(createHash("sha256").update(readFileSync(`${fixturesDir}derived-annual-summary-no-rows.json`)).digest("hex"))
+		expect(createHash("sha256").update(readFileSync(`${fixturesDir}annual-summary-no-rows.json`)).digest("hex"))
 			.toBe(SHA.noRows);
 	});
 
 	it("returns zero rows from the adapter itself, which the kernel is what turns into no-data", async () => {
-		await expect(builtFor({ fixture: "derived-annual-summary-no-rows.json" })).resolves.toEqual([]);
+		await expect(builtFor({ fixture: "annual-summary-no-rows.json" })).resolves.toEqual([]);
 	});
 });
 
 describe("missing optional fields", () => {
+	/**
+	 * Written inline, and that is the finding. `observation_count` and
+	 * `date_of_last_change` are the two nullable columns this adapter reads, and
+	 * neither is null in any of the 212 rows EPA actually returned for the
+	 * demonstration's own box. So the case cannot be taken from the recording;
+	 * it is one real row with those two columns emptied, which is a claim about
+	 * this adapter and never a claim about what AQS sends.
+	 */
 	it("keeps the record and nulls the two nullable slots, with the null's own provenance", async () => {
-		const records = recordsOf((await outcomeFor({ fixture: "derived-annual-summary-houston.json" })).outcome);
-		const record = byId(records, "48-201-0416-88101");
+		const { outcome } = await outcomeFor({
+			body: JSON.stringify({
+				Header: [{ status: "Success" }],
+				Data: [
+					{
+						state_code: "48",
+						county_code: "201",
+						site_number: "1035",
+						parameter_code: "88101",
+						poc: 1,
+						latitude: 29.733737,
+						longitude: -95.257605,
+						datum: "WGS84",
+						parameter: "PM2.5 - Local Conditions",
+						units_of_measure: "Micrograms/cubic meter (LC)",
+						date_of_last_change: null,
+						arithmetic_mean: 10.385577,
+						observation_count: null,
+					},
+				],
+			}),
+		});
+		const record = byId(recordsOf(outcome), "48-201-1035-88101");
 
-		expect(record.value.value).toBe(8.4);
+		expect(record.value.value).toBe(10.385577);
 		expect(record.observationCount.value).toBeNull();
 		expect(record.observationCount.provenance).toEqual([
 			{
@@ -416,7 +457,7 @@ describe("missing optional fields", () => {
 				rawValue: null,
 				transform: "parse-number",
 				adapterVersion: "aqs@1",
-				payload: PAYLOAD,
+				payload: { ...PAYLOAD, sha256: expect.any(String) },
 			},
 		]);
 		expect(record.sourceUpdatedAt.value).toBeNull();
@@ -425,7 +466,13 @@ describe("missing optional fields", () => {
 			rawValue: null,
 			transform: "normalize-date",
 		});
-		expect(record.distanceMeters?.value).toBe(20876);
+		expect(record.distanceMeters?.value).toBe(1515);
+	});
+
+	it("has no null to read in the recorded response, which is why the case above is authored", async () => {
+		const records = recordsOf((await outcomeFor({ fixture: "annual-summary-houston.json" })).outcome);
+		expect(records.every((record) => record.observationCount.value !== null)).toBe(true);
+		expect(records.every((record) => record.sourceUpdatedAt.value !== null)).toBe(true);
 	});
 });
 
@@ -436,7 +483,7 @@ describe("unknown status", () => {
 		const record = byId(records, "48-201-1039-88101");
 
 		expect(records).toHaveLength(1);
-		expect(record.value.value).toBe(9.8);
+		expect(record.value.value).toBe(8.332773);
 		expect(record.unit.value).toBe("Micrograms/cubic meter (LC)");
 		expect(record.pollutant.value).toBe("PM2.5");
 		// The status EPA has never sent us reaches no value, no provenance and no
@@ -473,7 +520,7 @@ describe("a parameter code named for a key of Object.prototype", () => {
 		// Written inline: not a claim about what EPA sends, and not a fixture.
 		const body = JSON.stringify({
 			Header: [{ status: "Success" }],
-			Body: [
+			Data: [
 				{
 					state_code: "48",
 					county_code: "201",
@@ -483,8 +530,8 @@ describe("a parameter code named for a key of Object.prototype", () => {
 					latitude: 29.733726,
 					longitude: -95.257593,
 					datum: "WGS84",
-					parameter_name: "Not a pollutant this report covers",
-					unit_of_measure: "Micrograms/cubic meter (LC)",
+					parameter: "Not a pollutant this report covers",
+					units_of_measure: "Micrograms/cubic meter (LC)",
 					date_of_last_change: "2026-04-22",
 					arithmetic_mean: 9.8,
 					observation_count: 121,
@@ -518,15 +565,26 @@ describe("an error header delivered at HTTP 200", () => {
 });
 
 describe("malformed response", () => {
-	it("rejects the OpenAPI file's Data envelope rather than reading it as no monitors", async () => {
-		const { outcome } = await outcomeFor({ fixture: "derived-annual-summary-data-envelope.json" });
+	/**
+	 * This test used to assert the opposite, and the opposite was wrong.
+	 *
+	 * Until 2026-09-16 the adapter declared `Body`, because EPA's documentation
+	 * page and its worked examples say `Body` while only the OpenAPI file says
+	 * `Data` — and the page carries real JSON, so the page won. The page's
+	 * example is a `sampleData` row; this adapter calls `annualData`, and the
+	 * first real response from that service was `Data`. So the envelope the
+	 * adapter rejected as malformed was the only one it will ever be sent.
+	 *
+	 * The case is kept, inverted: a `Body` envelope is now what cannot be read,
+	 * and a reader who finds this test is the one who needs to know the page
+	 * describes a different service.
+	 */
+	it("cannot read the documentation page's Body envelope, which is a different service's shape", async () => {
+		const { outcome } = await outcomeFor({
+			body: JSON.stringify({ Header: [{ status: "Success" }], Body: [] }),
+		});
 		expect(outcome).toEqual({ status: "unavailable", cause: "malformed", rawCode: null, retryAfter: null });
 		expect(outcome.status === "unavailable" && outcome.cause).not.toBe("no-data");
-		expect(
-			createHash("sha256")
-				.update(readFileSync(`${fixturesDir}derived-annual-summary-data-envelope.json`))
-				.digest("hex"),
-		).toBe(SHA.dataEnvelope);
 	});
 });
 
@@ -561,7 +619,7 @@ describe("timeout", () => {
 describe("credentials", () => {
 	it("an absent key is unavailable and distinguishable from an answer with no records", async () => {
 		delete process.env[KEY_ENV];
-		const { outcome, calls } = await outcomeFor({ fixture: "derived-annual-summary-houston.json" });
+		const { outcome, calls } = await outcomeFor({ fixture: "annual-summary-houston.json" });
 
 		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 		expect(outcome.status).not.toBe("no-data");
@@ -572,21 +630,21 @@ describe("credentials", () => {
 
 	it("an absent email is the same outcome: AQS authenticates with both", async () => {
 		delete process.env[EMAIL_ENV];
-		const { outcome, calls } = await outcomeFor({ fixture: "derived-annual-summary-houston.json" });
+		const { outcome, calls } = await outcomeFor({ fixture: "annual-summary-houston.json" });
 		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 		expect(calls).toEqual([]);
 	});
 
 	it("an empty key is absent, not a credential", async () => {
 		process.env[KEY_ENV] = "";
-		const { outcome } = await outcomeFor({ fixture: "derived-annual-summary-houston.json" });
+		const { outcome } = await outcomeFor({ fixture: "annual-summary-houston.json" });
 		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 	});
 
 	it("a source that answered with no records stays a different outcome from one that could not be asked", async () => {
-		const asked = (await outcomeFor({ fixture: "derived-annual-summary-no-rows.json" })).outcome;
+		const asked = (await outcomeFor({ fixture: "annual-summary-no-rows.json" })).outcome;
 		delete process.env[KEY_ENV];
-		const unasked = (await outcomeFor({ fixture: "derived-annual-summary-no-rows.json" })).outcome;
+		const unasked = (await outcomeFor({ fixture: "annual-summary-no-rows.json" })).outcome;
 
 		expect(asked.status).toBe("no-data");
 		expect(unasked.status).toBe("unavailable");
@@ -596,7 +654,7 @@ describe("credentials", () => {
 
 describe("neither credential reaches anything a reader can see", () => {
 	it("is in the fetched URL, and in nothing the adapter returns", async () => {
-		const { io, calls } = stubIo({ fixture: "derived-annual-summary-houston.json" });
+		const { io, calls } = stubIo({ fixture: "annual-summary-houston.json" });
 		const outcome = await runSource(locus(), adapter, io, DEFAULT_POLICY);
 		const records = recordsOf(outcome);
 
@@ -631,7 +689,7 @@ describe("neither credential reaches anything a reader can see", () => {
 	});
 
 	it("is not in a record completed straight from the adapter's own Built values", async () => {
-		const built = await builtFor({ fixture: "derived-annual-summary-houston.json" });
+		const built = await builtFor({ fixture: "annual-summary-houston.json" });
 		const [first] = built;
 		if (first === undefined) throw new Error("expected a row");
 		const record = complete(locus(), first);
@@ -666,7 +724,7 @@ describe("a credential the source itself hands back", () => {
 					],
 				},
 			],
-			Body: [],
+			Data: [],
 		});
 		const { outcome } = await outcomeFor({ body });
 
@@ -687,7 +745,7 @@ describe("a credential the source itself hands back", () => {
 	it("keeps it out of the record when a data column carries it, including the id and the trace", async () => {
 		const body = JSON.stringify({
 			Header: [{ status: "success" }],
-			Body: [
+			Data: [
 				{
 					state_code: "48",
 					county_code: "201",
@@ -698,8 +756,8 @@ describe("a credential the source itself hands back", () => {
 					latitude: 29.733726,
 					longitude: -95.257593,
 					datum: "WGS84",
-					parameter_name: "PM2.5 - Local Conditions",
-					unit_of_measure: `Micrograms/cubic meter (LC), reported to ${EMAIL}`,
+					parameter: "PM2.5 - Local Conditions",
+					units_of_measure: `Micrograms/cubic meter (LC), reported to ${EMAIL}`,
 					date_of_last_change: "2026-04-22",
 					arithmetic_mean: 9.8,
 					observation_count: 121,
@@ -713,7 +771,7 @@ describe("a credential the source itself hands back", () => {
 		expect(record.unit.value).toBe(REDACTED_ECHO);
 		// The raw value goes into the trace panel too, so the scrub is upstream of
 		// the reader rather than in the template.
-		expect(record.unit.provenance[0]).toMatchObject({ sourceField: "unit_of_measure", rawValue: REDACTED_ECHO });
+		expect(record.unit.provenance[0]).toMatchObject({ sourceField: "units_of_measure", rawValue: REDACTED_ECHO });
 		// The columns that carried no credential are untouched.
 		expect(record.value.value).toBe(9.8);
 		expect(record.observationCount.value).toBe(121);

@@ -201,8 +201,8 @@ export type AirPlan = Plan & {
 /** `DEMO`, with both air sources answering from their committed fixtures. */
 export const AIR_ANSWERED: AirPlan = {
 	...DEMO,
-	aqs: { fixture: "aqs/derived-annual-summary-houston.json" },
-	airnow: { fixture: "airnow/derived-current-observations.json" },
+	aqs: { fixture: "aqs/annual-summary-houston.json" },
+	airnow: { fixture: "airnow/current-observations-houston.json" },
 };
 
 function epaIdOf(url: URL): string {

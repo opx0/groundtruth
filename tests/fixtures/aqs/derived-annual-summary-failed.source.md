@@ -1,7 +1,8 @@
 # derived-annual-summary-failed.json — authored, not recorded
 
-**Constructed 2026-09-16 by the U1.6 adapter agent. No successful AQS response
-has ever been captured by this repository.**
+**Constructed 2026-09-16 by the U1.6 adapter agent. The header below is EPA's
+own, quoted from the documentation; the envelope around it is this
+repository's.**
 
 The failed-request header, published in full at
 `https://aqs.epa.gov/aqsweb/documents/data_api.html`, section "Error Handling
@@ -20,6 +21,11 @@ and Status Codes", read 2026-09-16:
   "Body": []
 }
 ```
+
+The page spells the second array `Body` and the service really sends `Data` —
+the page's worked examples are for a different service of the same API, which
+the first real response settled on 2026-09-16. The committed fixture carries
+`Data`, so it parses; the quote above is left as the page prints it.
 
 The status, the `error` array and its message are EPA's, verbatim. The timestamp
 and the `url` are this repository's.

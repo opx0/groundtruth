@@ -166,8 +166,8 @@ const DEMO: Plan = {
 	},
 	nfhl: { fail: NFHL_REFUSED },
 	esri: { fixture: "fema/esri-no-polygon-houston.json" },
-	aqs: { fixture: "aqs/derived-annual-summary-houston.json" },
-	airnow: { fixture: "airnow/derived-current-observations.json" },
+	aqs: { fixture: "aqs/annual-summary-houston.json" },
+	airnow: { fixture: "airnow/current-observations-houston.json" },
 };
 
 function planned(plan: Plan): Requested {
@@ -491,7 +491,7 @@ describe("the two air sources, asked by a deployment holding no credential", () 
 
 /** The two committed AirNow rows recombined: one with an index, one without, which no single fixture holds. */
 function airnowBothStates(): JsonValue {
-	const indexed = parseJson("airnow/derived-current-observations.json");
+	const indexed = parseJson("airnow/current-observations-houston.json");
 	const none = parseJson("airnow/derived-null-aqi.json");
 	if (!isJsonArray(indexed) || !isJsonArray(none)) throw new Error("an AirNow fixture is not an array of rows");
 	return [objectAt(indexed[0], "the ozone row"), objectAt(none[0], "the row with no index")];
@@ -508,19 +508,17 @@ describe("the two air sources, asked by a deployment an operator has given a key
 		);
 		expect(texts).toContain(`Searched within 50 km of the mapped point, retrieved ${RETRIEVED_AT}.`);
 		expect(texts).toContain(
-			"PM2.5 monitor 48-201-1039-88101 is 1.51 km from the mapped point, and measures its own location, not" +
-				" this address. 2025 annual arithmetic mean: 9.8 Micrograms/cubic meter (LC). AQS data lags collection by" +
-				" six months or more. Observations in the summary: 121. No response from this service has been recorded," +
-				" so this annual arithmetic mean is read from column names this report derived and is unverified against" +
-				" real bytes.",
+			"PM2.5 monitor 48-201-1035-88101 is 1.52 km from the mapped point, and measures its own location, not" +
+				" this address. 2025 annual arithmetic mean: 10.385577 Micrograms/cubic meter (LC). AQS data lags collection by" +
+				" six months or more. Observations in the summary: 104.",
 		);
 	});
 
 	/**
 	 * B2's nearest qualified monitor per pollutant, on the wire: one listing
-	 * each, one record shown, the rest carried. The derived Houston body holds
-	 * two PM2.5 monitors and one ozone monitor within 50 km, so the PM2.5
-	 * listing is the one with something behind "View all".
+	 * each, one record shown, the rest carried. The recorded Houston body holds
+	 * twelve PM2.5 monitors and seventeen ozone monitors within 50 km, so both
+	 * listings put one on the card and the rest behind "View all".
 	 */
 	it("gives each pollutant its own listing, showing the nearest and carrying the rest", async () => {
 		const { events } = await withAirKeys(() => report(DEMO));
@@ -530,12 +528,12 @@ describe("the two air sources, asked by a deployment an operator has given a key
 		const pm25 = at(aqs.listings, 0, "the PM2.5 listing");
 		const ozone = at(aqs.listings, 1, "the ozone listing");
 		expect(pm25.ordering).toBe("distance");
-		expect(pm25.total).toBe(2);
+		expect(pm25.total).toBe(12);
 		expect(pm25.shown.length).toBe(1);
-		expect(pm25.rest.length).toBe(1);
-		expect(ozone.total).toBe(1);
+		expect(pm25.rest.length).toBe(11);
+		expect(ozone.total).toBe(17);
 		expect(ozone.shown.length).toBe(1);
-		expect(ozone.rest.length).toBe(0);
+		expect(ozone.rest.length).toBe(16);
 	});
 
 	/**
@@ -562,14 +560,12 @@ describe("the two air sources, asked by a deployment an operator has given a key
 			"airnow-observation/no-index@1",
 		]);
 		expect(entries.flatMap((entry) => entry.sentences.map(textOf))).toEqual([
-			"AirNow reports an air quality index of 41 for Ozone in the Houston reporting area, observed 2026-09-16." +
-				" AirNow's observations describe the Houston reporting area, not the mapped point. No response from this" +
-				" service has been recorded, so this Ozone row is read through field names this report derived and is" +
-				" unverified against real bytes.",
+			"AirNow reports an air quality index of 20 for Ozone in the Houston-Galveston-Brazoria reporting area, observed 2026-09-16." +
+				" AirNow's observations describe the Houston-Galveston-Brazoria reporting area, not the mapped point.",
+			// The second row is the authored null-index body, whose area is the
+			// short name, and the qualification names the row's own area.
 			"AirNow's PM2.5 observation for the Houston reporting area, observed 2026-09-16, carries no air quality" +
-				" index. AirNow's observations describe the Houston reporting area, not the mapped point. No response" +
-				" from this service has been recorded, so this PM2.5 row is read through field names this report derived" +
-				" and is unverified against real bytes.",
+				" index. AirNow's observations describe the Houston reporting area, not the mapped point.",
 		]);
 	});
 });

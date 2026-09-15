@@ -83,15 +83,11 @@ function hashOf(file: string): string {
 }
 
 SHA.unauthenticated = hashOf("unauthenticated.json");
-SHA.current = hashOf("derived-current-observations.json");
-SHA.none = hashOf("derived-no-observations.json");
+SHA.current = hashOf("current-observations-houston.json");
+SHA.none = hashOf("no-observations.json");
 SHA.nullAqi = hashOf("derived-null-aqi.json");
-SHA.unmapped = hashOf("derived-unmapped-parameter.json");
 
 const CAVEATS: readonly string[] = [
-	"No response from this service has been recorded yet. The parse is unverified against real bytes, and"
-		+ " AirNow's own per-service documentation is behind a login, so its field names are not backed by a"
-		+ " published field list either.",
 	"AirNow reports preliminary current conditions and updates them hourly.",
 	"The values describe AirNow's own reporting area, which covers more than the mapped point.",
 ];
@@ -161,7 +157,7 @@ describe("the request", () => {
 	});
 
 	it("sends the key, and cites the same URL without it", async () => {
-		const { io, urls } = stubIo({ fixture: "derived-current-observations.json" });
+		const { io, urls } = stubIo({ fixture: "current-observations-houston.json" });
 		const built = await airnowAdapter.run(locus(), io);
 
 		expect(urls).toEqual([`${CITABLE}&${encodeURIComponent("API_KEY")}=${SENTINEL}`]);
@@ -181,7 +177,7 @@ describe("the request", () => {
 
 describe("B12 case 1, success: the derived success shape, read field by field", () => {
 	it("builds one record per covered pollutant, with literal normalized values", async () => {
-		const { io } = stubIo({ fixture: "derived-current-observations.json" });
+		const { io } = stubIo({ fixture: "current-observations-houston.json" });
 		const built = await airnowAdapter.run(locus(), io);
 		expect(built).toHaveLength(2);
 
@@ -190,13 +186,13 @@ describe("B12 case 1, success: the derived success shape, read field by field", 
 
 		expect(ozone.kind).toBe("airnow-observation");
 		expect(ozone.source).toBe("airnow");
-		expect(ozone.sourceRecordId).toBe("Houston/O3");
-		expect(ozone.id).toEqual({ kind: "airnow-observation", sourceRecordId: "Houston/O3" });
-		expect(ozone.subject.value).toBe("Houston O3");
-		expect(ozone.reportingArea.value).toBe("Houston");
+		expect(ozone.sourceRecordId).toBe("Houston-Galveston-Brazoria/O3");
+		expect(ozone.id).toEqual({ kind: "airnow-observation", sourceRecordId: "Houston-Galveston-Brazoria/O3" });
+		expect(ozone.subject.value).toBe("Houston-Galveston-Brazoria O3");
+		expect(ozone.reportingArea.value).toBe("Houston-Galveston-Brazoria");
 		expect(ozone.pollutant.value).toBe("Ozone");
 		expect(ozone.observedAt.value).toBe("2026-09-16");
-		expect(ozone.aqi.value).toBe(41);
+		expect(ozone.aqi.value).toBe(20);
 		expect(ozone.category.value).toBeNull();
 		expect(ozone.concentration.value).toBeNull();
 		expect(ozone.unit.value).toBeNull();
@@ -208,15 +204,15 @@ describe("B12 case 1, success: the derived success shape, read field by field", 
 		expect(ozone.caveats).toEqual(CAVEATS);
 		expect(ozone.payloads).toEqual([payloadOf(SHA.current)]);
 
-		expect(pm.sourceRecordId).toBe("Houston/PM2.5");
-		expect(pm.subject.value).toBe("Houston PM2.5");
+		expect(pm.sourceRecordId).toBe("Houston-Galveston-Brazoria/PM2.5");
+		expect(pm.subject.value).toBe("Houston-Galveston-Brazoria PM2.5");
 		expect(pm.pollutant.value).toBe("PM2.5");
-		expect(pm.aqi.value).toBe(58);
+		expect(pm.aqi.value).toBe(62);
 		expect(pm.payloads).toEqual([payloadOf(SHA.current)]);
 	});
 
 	it("traces every value to the column it was read from, and our two words to the request", async () => {
-		const { io } = stubIo({ fixture: "derived-current-observations.json" });
+		const { io } = stubIo({ fixture: "current-observations-houston.json" });
 		const [first] = await airnowAdapter.run(locus(), io);
 		if (first === undefined) throw new Error("expected a row");
 		const record = complete(locus(), first);
@@ -227,7 +223,7 @@ describe("B12 case 1, success: the derived success shape, read field by field", 
 				kind: "field",
 				dataset: "airnow_current_observations",
 				sourceField: "AQI",
-				rawValue: 41,
+				rawValue: 20,
 				transform: "identity",
 				adapterVersion: "airnow@1",
 				payload,
@@ -273,7 +269,7 @@ describe("B12 case 1, success: the derived success shape, read field by field", 
 
 describe("B12 case 2, no records: an answer, not a failure", () => {
 	it("returns nothing, which the kernel reports as no-data with B10's wording", async () => {
-		const { io } = stubIo({ fixture: "derived-no-observations.json" });
+		const { io } = stubIo({ fixture: "no-observations.json" });
 		await expect(airnowAdapter.run(locus(), io)).resolves.toEqual([]);
 
 		const outcome = await runSource(locus(), airnowAdapter, io, DEFAULT_POLICY);
@@ -282,7 +278,7 @@ describe("B12 case 2, no records: an answer, not a failure", () => {
 			note: "No matching records within the stated boundary.",
 			retrievedAt: NOW,
 		});
-		expect(SHA.none).toBe(createHash("sha256").update("[]\n").digest("hex"));
+		expect(SHA.none).toBe(createHash("sha256").update("[]").digest("hex"));
 	});
 });
 
@@ -323,18 +319,32 @@ describe("B12 case 4 has no status to be unknown: vocabulary this codebase has n
 		expect(JSON.stringify(recorded)).not.toContain("tatus");
 	});
 
-	it("parses a parameter outside the two, keeps the row beside it, and never enumerates the agency", async () => {
-		const { io } = stubIo({ fixture: "derived-unmapped-parameter.json" });
+	/**
+	 * This was an authored two-row body until 2026-09-16, and its note said
+	 * `PM10` was the obvious third criteria pollutant rather than something
+	 * anything reachable confirmed AirNow spells that way. The recording made
+	 * that a fact: AirNow answered the demonstration coordinate with three rows,
+	 * and the third is `PM10`. The authored body was deleted rather than kept
+	 * beside a response that says the same thing with real bytes.
+	 */
+	it("parses a parameter outside the two, keeps the rows beside it, and never enumerates the agency", async () => {
+		const { io } = stubIo({ fixture: "current-observations-houston.json" });
 		const built = await airnowAdapter.run(locus(), io);
+		const rows: unknown = JSON.parse(readFileSync(`${fixturesDir}current-observations-houston.json`).toString("utf8"));
 
-		// The unfamiliar row cost the report nothing except itself.
-		expect(built.map((b) => b.sourceRecordId)).toEqual(["Houston/PM2.5"]);
+		// AirNow sent three rows and one of them is outside this report's
+		// vocabulary, so the unfamiliar row cost the report nothing except itself.
+		expect(JSON.stringify(rows)).toContain('"ParameterName":"PM10"');
+		expect(built.map((b) => b.sourceRecordId)).toEqual([
+			"Houston-Galveston-Brazoria/O3",
+			"Houston-Galveston-Brazoria/PM2.5",
+		]);
 		expect(AIRNOW_PARAMETERS["PM10"]).toBeUndefined();
-		const [kept] = built;
+		const [, kept] = built;
 		if (kept === undefined) throw new Error("expected the PM2.5 row to survive");
 		const record = complete(locus(), kept);
 		expect(record.pollutant.value).toBe("PM2.5");
-		expect(record.payloads).toEqual([payloadOf(SHA.unmapped)]);
+		expect(record.payloads).toEqual([payloadOf(SHA.current)]);
 	});
 
 	/*
@@ -487,7 +497,7 @@ describe("the one recorded fact: AirNow without a key, 2026-09-16", () => {
 describe("an absent key is a source that could not be asked", () => {
 	it("is unavailable with a marker of ours, and is distinguishable from a source that answered with nothing", async () => {
 		delete process.env[KEY_ENV];
-		const { io, urls } = stubIo({ fixture: "derived-current-observations.json" });
+		const { io, urls } = stubIo({ fixture: "current-observations-houston.json" });
 		const unasked = await runSource(locus(), airnowAdapter, io, DEFAULT_POLICY);
 
 		// Nothing was fetched: the adapter fails before it reaches the network.
@@ -495,7 +505,7 @@ describe("an absent key is a source that could not be asked", () => {
 		expect(unasked).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
 
 		process.env[KEY_ENV] = SENTINEL;
-		const { io: emptyIo } = stubIo({ fixture: "derived-no-observations.json" });
+		const { io: emptyIo } = stubIo({ fixture: "no-observations.json" });
 		const answered = await runSource(locus(), airnowAdapter, emptyIo, DEFAULT_POLICY);
 
 		// The two outcomes a reader must never confuse.
@@ -508,7 +518,7 @@ describe("an absent key is a source that could not be asked", () => {
 
 	it("treats an empty key the same as an unset one", async () => {
 		process.env[KEY_ENV] = "";
-		const { io, urls } = stubIo({ fixture: "derived-current-observations.json" });
+		const { io, urls } = stubIo({ fixture: "current-observations-houston.json" });
 		const outcome = await runSource(locus(), airnowAdapter, io, DEFAULT_POLICY);
 		expect(urls).toEqual([]);
 		expect(outcome).toEqual({ status: "unavailable", cause: "not-configured", rawCode: NO_KEY, retryAfter: null });
@@ -522,7 +532,7 @@ describe("an absent key is a source that could not be asked", () => {
 
 describe("the key never leaves the one line that fetches with it", () => {
 	it("appears in no returned value, no payload URL, no provenance and no thrown error", async () => {
-		const { io, urls } = stubIo({ fixture: "derived-current-observations.json" });
+		const { io, urls } = stubIo({ fixture: "current-observations-houston.json" });
 		const built = await airnowAdapter.run(locus(), io);
 		const records = built.map((b) => complete(locus(), b));
 
@@ -558,7 +568,7 @@ describe("the key never leaves the one line that fetches with it", () => {
 
 	it("keeps it out of the outcome an unconfigured deployment produces", async () => {
 		delete process.env[KEY_ENV];
-		const { io } = stubIo({ fixture: "derived-current-observations.json" });
+		const { io } = stubIo({ fixture: "current-observations-houston.json" });
 		const outcome = await runSource(locus(), airnowAdapter, io, DEFAULT_POLICY);
 		const found: string[] = [];
 		strings(outcome, found);

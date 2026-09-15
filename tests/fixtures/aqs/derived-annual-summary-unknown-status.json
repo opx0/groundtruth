@@ -7,21 +7,21 @@
       "rows": 1
     }
   ],
-  "Body": [
+  "Data": [
     {
       "state_code": "48",
       "county_code": "201",
       "site_number": "1039",
       "parameter_code": "88101",
-      "poc": 1.0,
-      "latitude": 29.733726,
-      "longitude": -95.257593,
+      "poc": 8,
+      "latitude": 29.670552,
+      "longitude": -95.129933,
       "datum": "WGS84",
-      "parameter_name": "PM2.5 - Local Conditions",
-      "unit_of_measure": "Micrograms/cubic meter (LC)",
-      "date_of_last_change": "2026-04-22",
-      "arithmetic_mean": 9.8,
-      "observation_count": 121
+      "date_of_last_change": "2026-03-27",
+      "arithmetic_mean": 8.332773,
+      "observation_count": 119,
+      "parameter": "PM2.5 - Local Conditions",
+      "units_of_measure": "Micrograms/cubic meter (LC)"
     }
   ]
 }

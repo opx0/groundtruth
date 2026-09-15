@@ -447,7 +447,7 @@ async function withAirKeys<T>(run: () => Promise<T>): Promise<T> {
  * choice has to be asserted against.
  */
 function airnowBothStates(): JsonValue {
-	const indexed = arrayAt(parseJson("airnow/derived-current-observations.json"), "the observations");
+	const indexed = arrayAt(parseJson("airnow/current-observations-houston.json"), "the observations");
 	const none = arrayAt(parseJson("airnow/derived-null-aqi.json"), "the null-index observations");
 	return [objectAt(indexed[0], "the ozone row"), objectAt(none[0], "the row with no index")];
 }
@@ -456,7 +456,7 @@ const aqsAnswered = await withAirKeys(() =>
 	runSource(
 		locus,
 		aqsAdapter(SUMMARY_YEAR),
-		ioOf(() => ({ fixture: "aqs/derived-annual-summary-houston.json" })),
+		ioOf(() => ({ fixture: "aqs/annual-summary-houston.json" })),
 		POLICY,
 	),
 );
@@ -1861,7 +1861,7 @@ describe("the air cards, built against their record kinds", () => {
 		expect(() => aqsCard(houston.store, NO_RECORDS, null)).not.toThrow();
 		expect(() => aqsCard(houston.store, aqs, AIR)).not.toThrow();
 		// And on the air kinds themselves, which is no longer hypothetical.
-		expect(() => aqsCard(withAir.store, refused, AIR)).toThrow(/3 aqs-monitor-summary records/);
+		expect(() => aqsCard(withAir.store, refused, AIR)).toThrow(/29 aqs-monitor-summary records/);
 		expect(() => airnowCard(withAir.store, NO_RECORDS, null)).toThrow(/2 airnow-observation records/);
 	});
 
@@ -1921,20 +1921,18 @@ describe("the air cards, built against their record kinds", () => {
 /* The air cards with both sources answering                                  */
 /* -------------------------------------------------------------------------- */
 
-/** The clause both AirNow templates end on, which names the area again rather than saying "it". */
-const AIRNOW_QUALIFICATION = " AirNow's observations describe the Houston reporting area, not the mapped point.";
-
-/** `.dev/briefs/U1.6-U1.7-air.md` rule 3 on the card: the row shape is derived, and the reader is told so. */
-function airnowDerivation(pollutant: string): string {
-	return (
-		` No response from this service has been recorded, so this ${pollutant} row is read through field names this` +
-		" report derived and is unverified against real bytes."
-	);
+/**
+ * The clause both AirNow templates end on. It names the area again rather than
+ * saying "it", and it reads the name off the row it is about -- which is why
+ * this is a function and not a constant. The two rows in this store come from
+ * two different bodies: the recording AirNow returned for the demonstration
+ * coordinate calls the area `Houston-Galveston-Brazoria`, and the authored
+ * null-index body calls it `Houston`. A constant here would have asserted one
+ * name over a sentence that carries the other.
+ */
+function airnowQualification(area: string): string {
+	return ` AirNow's observations describe the ${area} reporting area, not the mapped point.`;
 }
-
-const AQS_DERIVATION =
-	" No response from this service has been recorded, so this annual arithmetic mean is read from column names this" +
-	" report derived and is unverified against real bytes.";
 
 describe("the air cards over air records", () => {
 	/**
@@ -1949,8 +1947,12 @@ describe("the air cards over air records", () => {
 	it("gives each AirNow row the template that declares the index state that row is in", () => {
 		const listing = listingOf(withAir.plan, "airnow");
 
-		expect(idsOf(withAir.store, listing)).toEqual(["Houston/O3", "Houston/PM2.5"]);
-		expect(templateIdsFor(withAir.store, listing, "Houston/O3")).toEqual(["airnow-observation/summary@1"]);
+		// The two ids differ in their area because the two bodies do: the recorded
+		// ozone row is AirNow's own `Houston-Galveston-Brazoria`, the authored
+		// null-index row is `Houston`. The record id is built from the area and the
+		// parameter, so it carries whichever name the body used.
+		expect(idsOf(withAir.store, listing)).toEqual(["Houston-Galveston-Brazoria/O3", "Houston/PM2.5"]);
+		expect(templateIdsFor(withAir.store, listing, "Houston-Galveston-Brazoria/O3")).toEqual(["airnow-observation/summary@1"]);
 		expect(templateIdsFor(withAir.store, listing, "Houston/PM2.5")).toEqual(["airnow-observation/no-index@1"]);
 		expect(airnowObservationSummary.requires).toEqual([{ slot: "aqi", present: true }]);
 		expect(airnowObservationNoIndex.requires).toEqual([{ slot: "aqi", present: false }]);
@@ -1958,13 +1960,11 @@ describe("the air cards over air records", () => {
 
 	it("renders a sentence for every row of both states, each one AirNow's own answer", () => {
 		expect(listingText(withAir.store, listingOf(withAir.plan, "airnow"))).toEqual([
-			"AirNow reports an air quality index of 41 for Ozone in the Houston reporting area, observed 2026-09-16." +
-				AIRNOW_QUALIFICATION +
-				airnowDerivation("Ozone"),
+			"AirNow reports an air quality index of 20 for Ozone in the Houston-Galveston-Brazoria reporting area, observed 2026-09-16." +
+				airnowQualification("Houston-Galveston-Brazoria"),
 			"AirNow's PM2.5 observation for the Houston reporting area, observed 2026-09-16, carries no air quality" +
 				" index." +
-				AIRNOW_QUALIFICATION +
-				airnowDerivation("PM2.5"),
+				airnowQualification("Houston"),
 		]);
 	});
 
@@ -1988,9 +1988,15 @@ describe("the air cards over air records", () => {
 
 	/**
 	 * B2's nearest qualified monitor per pollutant, on the card: one listing per
-	 * pollutant showing one record, the rest carried behind it. The derived
-	 * Houston body holds three monitors within 50 km -- two PM2.5 and one ozone
-	 * -- so the PM2.5 listing is the one that has something to carry.
+	 * pollutant showing one record, the rest carried behind it. The recording
+	 * AQS returned for the demonstration coordinate holds thirty distinct
+	 * monitors, twenty-nine of them within 50 km -- twelve PM2.5 and seventeen
+	 * ozone -- so both listings have something to carry, and both carry all of
+	 * it: the carried bound is forty-six and neither list reaches it.
+	 *
+	 * The full PM2.5 order is written out rather than counted because the
+	 * ordering is the claim. Two monitors at the same site as the nearest one
+	 * would make a length assertion pass while the wrong one was on the card.
 	 */
 	it("shows the nearest monitor for each pollutant and carries the rest behind it", () => {
 		const pm25 = listingOf(withAir.plan, "aqs", 0);
@@ -1998,26 +2004,37 @@ describe("the air cards over air records", () => {
 
 		expect(pm25.section.filter).toEqual({ field: "pollutant", equals: "PM2.5" });
 		expect(shownOf(withAir.store, pm25).map((entry) => entry.recordId.sourceRecordId)).toEqual([
-			"48-201-1039-88101",
+			"48-201-1035-88101",
 		]);
 		expect(restOf(withAir.store, pm25).map((entry) => entry.recordId.sourceRecordId)).toEqual([
-			"48-201-0416-88101",
+			"48-201-1056-88101",
+			"48-201-1034-88101",
+			"48-201-1099-88101",
+			"48-201-0046-88101",
+			"48-201-1039-88101",
+			"48-201-1052-88101",
+			"48-201-0024-88101",
+			"48-201-0058-88101",
+			"48-201-0055-88101",
+			"48-201-1050-88101",
+			"48-201-0066-88101",
 		]);
 		expect(shownOf(withAir.store, ozone).map((entry) => entry.recordId.sourceRecordId)).toEqual([
-			"48-201-0024-44201",
+			"48-201-1035-44201",
 		]);
-		expect(sectionOrdering(withAir.store, pm25.section)).toHaveLength(2);
-		expect(carriedCount(withAir.store, pm25.section)).toBe(2);
+		expect(sectionOrdering(withAir.store, pm25.section)).toHaveLength(12);
+		expect(carriedCount(withAir.store, pm25.section)).toBe(12);
+		expect(sectionOrdering(withAir.store, ozone.section)).toHaveLength(17);
+		expect(carriedCount(withAir.store, ozone.section)).toBe(17);
 	});
 
 	it("renders the monitor, its distance and the unverified-shape clause on the card", () => {
 		const pm25 = listingOf(withAir.plan, "aqs", 0);
 
-		expect(mustRender(withAir.store, firstPlacementFor(withAir.store, pm25, "48-201-1039-88101"))).toBe(
-			"PM2.5 monitor 48-201-1039-88101 is 1.51 km from the mapped point, and measures its own location, not this" +
-				" address. 2025 annual arithmetic mean: 9.8 Micrograms/cubic meter (LC). AQS data lags collection by six" +
-				" months or more. Observations in the summary: 121." +
-				AQS_DERIVATION,
+		expect(mustRender(withAir.store, firstPlacementFor(withAir.store, pm25, "48-201-1035-88101"))).toBe(
+			"PM2.5 monitor 48-201-1035-88101 is 1.52 km from the mapped point, and measures its own location, not this" +
+				" address. 2025 annual arithmetic mean: 10.385577 Micrograms/cubic meter (LC). AQS data lags collection by six" +
+				" months or more. Observations in the summary: 104.",
 		);
 		expect(mustRender(withAir.store, cardOf(withAir.plan, "aqs").status)).toBe(
 			`EPA Air Quality System answered with records, retrieved ${RETRIEVED_AT}.`,
@@ -2049,8 +2066,9 @@ describe("the air cards over air records", () => {
 				}
 			}
 		}
-		// Five air records among them: three monitors and two observations.
-		expect(withAir.store.ofKind("aqs-monitor-summary")).toHaveLength(3);
+		// Thirty-one air records among them: the twenty-nine monitors AQS
+		// returned inside the 50 km boundary, and two observations.
+		expect(withAir.store.ofKind("aqs-monitor-summary")).toHaveLength(29);
 		expect(withAir.store.ofKind("airnow-observation")).toHaveLength(2);
 		expect(checked).toBeGreaterThan(30);
 	});

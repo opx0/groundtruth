@@ -119,7 +119,6 @@ export const aqsMonitorSummary = defineTemplate("aqs-monitor-summary", "aqs-moni
 	sentence`${field("pollutant")} monitor ${field("monitorId")} is ${km(field("distanceMeters"))} from the mapped point, and measures its own location, not this address.`,
 	sentence`${field("period")} ${field("statistic")}: ${field("value")} ${field("unit")}. AQS data lags collection by six months or more.`,
 	sentence`Observations in the summary: ${field("observationCount")}.`,
-	sentence`No response from this service has been recorded, so this ${field("statistic")} is read from column names this report derived and is unverified against real bytes.`,
 ]);
 
 export const aqsTemplates = [aqsMonitorSummary];

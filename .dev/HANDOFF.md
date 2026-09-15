@@ -1,7 +1,8 @@
 # Ground Truth — session handoff
 
 Written 2026-09-16 at the end of the session that took the build from the
-selection policy to a passing exit predicate. Everything durable is in the
+selection policy to a passing exit predicate, and extended the same day when an
+operator registered keys for both air sources. Everything durable is in the
 repo; this covers only what would otherwise be lost with the conversation.
 
 **Repo:** own git repo, branch `main`, 51 commits, **no remote and nothing
@@ -10,7 +11,7 @@ pushed** — deliberate, the operator asked for local commits only.
 ## Where it stands
 
 ```
-pnpm verify                        exit 0   733 tests across 35 files
+pnpm verify                        exit 0   734 tests across 35 files
 pnpm e2e                           exit 0   9 passed
 bash .dev/census/mutation-check.sh          8 of 8
 pnpm build                         compiles
@@ -53,10 +54,15 @@ gratuitous, the reason is in its own comment.
 
 **Only the operator can clear these.** `scripts/setup.sh` walks all of them.
 
-1. **AQS and AirNow keys**, both free. Without them both cards honestly report
-   that this deployment holds no credential; the other five sources are
-   unaffected and the demo still runs. Do not register either against the
-   operator's email without them doing it.
+1. ~~**AQS and AirNow keys**, both free.~~ **Cleared 2026-09-16.** The operator
+   registered both. The keys live in the gitignored `.env.local` at the repo
+   root and nowhere else, and both sources now have a recorded success and a
+   recorded empty answer. Two things about that are worth knowing before
+   touching either: AQS echoes the request URL back in `Header[0].url`, so the
+   committed recordings carry `REDACTED-EMAIL`/`REDACTED-KEY` and any recapture
+   must do the same; and the recordings falsified four things this codebase had
+   written down and argued for, which `tests/fixtures/README.md` lists. Do not
+   register anything against the operator's email without them doing it.
 2. **FEMA's NFHL host** resets the TLS handshake from this machine by every
    route tried. The report answers from Esri's reduced-set copy and says on the
    card which layer answered and what the copy cannot distinguish. One capture
@@ -101,6 +107,14 @@ earned its keep more than the rest.
 - **Ask an agent to prove its new test fails** against the old behaviour. Three
   committed tests turned out to be unable to fail, including both tests of an
   ordering that could be deleted entirely with the suite still green.
+- **A derived fixture is a bet, and saying so out loud is what lets you
+  collect.** Every air record carried a caveat naming its shape as unverified,
+  and the cards printed it. When the keys arrived, four of those bets turned
+  out to be losing ones — an envelope, two column names and a field type — and
+  each was found in minutes because the exact claim was written where the
+  recording could contradict it. A schema that had been permissive, or a
+  comment that had said "probably", would have put a wrong number on a card
+  instead.
 - **Verify artifacts, never self-reports.** Several agents reported green while
   a file they did not own was red. That is honest and still not the answer to
   "is the build green".
@@ -116,9 +130,13 @@ earned its keep more than the rest.
 - **Changing a rendered sentence breaks exact-string assertions across four or
   five files**, and that is the design working. Update them and say why; do not
   loosen an assertion to a substring.
-- **A fixture you author is not a recording.** Nine files carry a `derived-`
-  prefix and a sibling `.source.md`; every record built from one says on the
-  card that its shape is unverified. Keep that rule.
+- **A fixture you author is not a recording.** Three files carry a `derived-`
+  prefix and a sibling `.source.md` — there were nine until the air keys
+  arrived, and six were replaced by recordings of the same states. Each of the
+  three survives because it holds a state no recording does, and each note says
+  which recording settled the rest of its shape. Keep that rule; it is what
+  made the air fixtures worth recapturing at all, because the cards said out
+  loud that they were guesses.
 - **Never write a claim `docs/BRIEF.md` C2 forbids.** The renderer has no path
   that emits a verdict, and three separate audits went looking.
 

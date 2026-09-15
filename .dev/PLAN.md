@@ -53,10 +53,11 @@ The exit predicate itself does not ask for more than the eight paths, and it
 passes. This note is here because the sentence above it was the one a reader
 would take as the proof.
 
-What is still blocked on the operator is unchanged and listed below. Nothing in
-the exit predicate depends on it: AQS and AirNow answer `not-configured` until
-a key exists, which is a card the report states honestly and `docs/BRIEF.md`
-A6 beat 6 is exactly that state.
+What is still blocked on the operator is listed below. It is one item now, not
+three: FEMA's authoritative NFHL host. The two air keys were registered on
+2026-09-16 and both sources are recorded. Nothing in the exit predicate depended
+on either, because `not-configured` is a card the report states honestly and
+`docs/BRIEF.md` A6 beat 6 is exactly that state.
 
 ## Model routing
 
@@ -81,8 +82,8 @@ Work is assigned by how much judgment it needs, not by size.
 | U1.3 | FEMA adapter, NFHL with Esri fallback | U0.3 | hard | done (Esri only; NFHL unreachable) |
 | U1.4 | FRS adapter, identity and coordinate quality | U0.3 | specified | done |
 | U1.5 | ECHO adapter, fixture-driven | U0.3 | hard | done |
-| U1.6 | AQS adapter | U0.3 | specified | done; answers `not-configured` until the operator's key exists |
-| U1.7 | AirNow adapter | U0.3 | specified | done; answers `not-configured` until the operator's key exists |
+| U1.6 | AQS adapter | U0.3 | specified | done; recorded against a real key 2026-09-16, still answers `not-configured` where none is configured |
+| U1.7 | AirNow adapter | U0.3 | specified | done; recorded against a real key 2026-09-16, still answers `not-configured` where none is configured |
 | U2.0 | Record templates for the five unserved kinds | U0.2 | judgment | done |
 | U2.1 | Selection and ordering policy | U0.2 U2.0 | judgment | done |
 | U2.2 | Facility grouping by registry and program ID | U1.1 U1.4 | hard | done |
@@ -136,22 +137,38 @@ Work is assigned by how much judgment it needs, not by size.
   against no recorded response, and clearing it needs one of: a US-region
   deploy, one curl from a US host, or a git remote so a CI runner can record
   the fixtures. `scripts/capture-us-fixtures.sh` captures it.
-- AQS and AirNow need free keys the operator must register. **Both adapters are
-  written. Corrected 2026-09-16.** This bullet said "Neither adapter is written
-  yet; `.dev/briefs/U1.6-U1.7-air.md` briefs both", while the Units table two
-  screens up already marked U1.6 and U1.7 done. The table was right:
-  `lib/adapters/aqs.ts` and `lib/adapters/airnow.ts` exist, both are registered
-  in `app/api/report/handler.ts`, and both have templates. What is still blocked
-  is the key and nothing else — without one each adapter answers
-  `not-configured` and the card says this deployment holds no credential for it,
-  which is a state the report states honestly and `docs/BRIEF.md` A6 beat 6
-  demonstrates on purpose. What is recorded is what each answers *without* a
-  key, captured live on 2026-09-16, and both are real bytes worth having: AQS answers HTTP 429 with `Retry-After: 86400` from
+- ~~AQS and AirNow need free keys the operator must register.~~ **Cleared
+  2026-09-16.** The operator registered a key for each, both are in the
+  gitignored `.env.local` at the repo root, and both sources now have recorded
+  successes: `tests/fixtures/aqs/annual-summary-houston.json` (212 rows, thirty
+  monitors) and `tests/fixtures/airnow/current-observations-houston.json` (three
+  rows), each with its empty answer beside it. Six of the nine `derived-`
+  fixtures were deleted; three survive because they hold states no recording
+  does.
+
+  **The recordings overturned four published-documentation guesses**, which is
+  the part worth carrying forward. AQS's envelope is `Data`, not `Body`; its
+  parameter column is `parameter`, not `parameter_name`; its unit column is
+  `units_of_measure`, not `unit_of_measure`. All three came from the worked
+  example on EPA's API page, which is a `sampleData` row — a different service
+  of the same API — and this repository had argued explicitly for believing the
+  page over EPA's own OpenAPI file. The fourth is AirNow's `Category`, which
+  `lib/adapters/airnow.ts` refused to guess at because nothing said whether it
+  was a string or an object: it is an object. Every caveat and every rendered
+  clause that said an air shape was unverified has been removed, because it no
+  longer is.
+
+  **AQS echoes the request back in `Header[0].url`**, credentials and all. The
+  committed recordings carry `REDACTED-EMAIL` and `REDACTED-KEY`, which is the
+  only edit to either file, and `lib/adapters/aqs.ts` does the same substitution
+  at runtime on every string EPA sends.
+
+  What is still recorded is what each source answers *without* a key, and both
+  are still worth having: AQS answers HTTP 429 with `Retry-After: 86400` from
   EPA's own exhausted shared test account, and AirNow answers HTTP 401 with
-  `{"WebServiceError":[{"Message":"Request not authenticated."}]}`, which pins
-  its error envelope for the first time. Neither success shape has been seen.
-  AQS's response envelope is `{"Header":[...],"Body":[...]}` per EPA's own
-  published API documentation, which is reachable from here.
+  `{"WebServiceError":[{"Message":"Request not authenticated."}]}`. The
+  `not-configured` state is unchanged and still what a deployment holding no
+  credential shows, which is `docs/BRIEF.md` A6 beat 6.
 
 ## Queued after the adapter fan-out
 

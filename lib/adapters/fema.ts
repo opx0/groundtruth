@@ -8,9 +8,15 @@
  * 28, S_Fld_Haz_Ar. It holds every mapped polygon, including unshaded zone X,
  * which FEMA uses to mean "mapped, and minimal hazard". An empty answer from
  * it therefore means something close to "not mapped". Its host refuses
- * connections from outside the US, so no response from it has been recorded.
- * The parse below follows FEMA's published field names and is unverified
- * against real bytes; every record it produces says so in its caveats.
+ * connections from outside the US; on 2026-09-17 a host inside the US asked it
+ * and it answered, for the first time in this project's life, and the two
+ * point responses are recorded in `tests/fixtures/fema/`. The parse below was
+ * written from FEMA's published field names before either of them existed and
+ * reads both rows with no change, so no record it produces calls itself a
+ * guess any more. The egress block is unchanged and is a fact about where this
+ * process runs rather than about the parse: from a machine that cannot reach
+ * the layer, the flood card still says the authoritative attempt failed and
+ * that the copy below answered in its place.
  *
  * The fallback is Esri's reduced-set redistribution of the same layer. Same
  * field names, reachable, fixtured, and missing unshaded zone X entirely. An
@@ -82,9 +88,27 @@ export const FEMA_DATASETS: { readonly [D in FemaDataset]: DatasetSpec } = {
 		// place a `section` subject can carry it.
 		noPolygonNote:
 			"FEMA's own National Flood Hazard Layer answered with no polygon. No digital FEMA designation was available at this point.",
+		// A second caveat stood between these two until 2026-09-17 and is gone.
+		// It said no response from this layer had been recorded yet and that
+		// the parse was unverified against real bytes. One has now been
+		// recorded: `hazards.fema.gov` resets the connection from this machine
+		// and from `asia-southeast1`, and answered HTTP 200 in 0.26 s from
+		// `us-central1`, so the refusal is on egress and not on the request.
+		// `tests/fixtures/fema/nfhl-minimal-hazard.json` and
+		// `nfhl-zone-ae-pasadena.json` are what it sent.
+		//
+		// Printing the hedge on every card is what made the trip worth taking,
+		// and unlike the air sources this bet came in: `FloodAreaAttrs` parses
+		// both real rows unchanged, where the same exercise against AQS on
+		// 2026-09-16 falsified three of thirteen column names. Leaving the
+		// caveat in place now would tell a reader that bytes nobody had seen
+		// stood behind their flood zone, and two of them have been seen.
+		//
+		// What is still true is that this deployment may be unable to reach the
+		// layer at all, and that is said where it belongs: `floodZoneOutcome`
+		// falls back to Esri's copy and the card carries the failed attempt.
 		caveats: [
 			"Read from FEMA's National Flood Hazard Layer, the authoritative source.",
-			"No response from this layer has been recorded yet. The parse follows FEMA's published field names and is unverified against real bytes.",
 			POINT_CAVEAT,
 		],
 	},

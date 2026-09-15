@@ -1,0 +1,13 @@
+# The build needs source and lockfile. Everything below either cannot enter a
+# production image or would invalidate the layer cache on every run.
+.git
+.next
+node_modules
+test-results
+playwright-report
+.dev
+docs
+tests
+.env
+.env.local
+*.log

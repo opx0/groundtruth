@@ -148,10 +148,10 @@ function registryIdOf(url: URL): string {
 }
 
 /**
- * NFHL's host refuses connections from outside the US and no response from it
- * has ever been recorded, so the default plan refuses it and Esri's recorded
- * copy answers. That is also the case that leaves a non-null prior attempt on
- * the flood card.
+ * NFHL's host refuses connections from outside the US, which is what this
+ * machine gets, so the default plan refuses it and Esri's recorded copy
+ * answers. That is also the case that leaves a non-null prior attempt on the
+ * flood card. `NFHL_ANSWERS` below is the other deployment.
  */
 const NFHL_REFUSED = new SourceFailure("refused");
 
@@ -169,6 +169,34 @@ const DEMO: Plan = {
 	aqs: { fixture: "aqs/annual-summary-houston.json" },
 	airnow: { fixture: "airnow/current-observations-houston.json" },
 };
+
+/**
+ * The same demonstration point, answered by the layer `DEMO` refuses.
+ *
+ * `hazards.fema.gov` answered this project for the first time on 2026-09-17,
+ * from a Compute Engine instance in `us-central1`, and
+ * `fema/nfhl-minimal-hazard.json` is what it sent for the A6 point. Until then
+ * no test in this file had driven the route through a successful NFHL
+ * response, because there was none to drive it with: every flood assertion
+ * here is about the fallback, the refusal that causes it, or an empty NFHL
+ * answer that had to be derived.
+ *
+ * `DEMO` keeps the refusal, because that is what a non-US host gets and the
+ * whole reason the fallback exists. This plan is the deployed US server, and
+ * only the flood source differs between the two, so a test that swaps them
+ * changes one answer and nothing else.
+ */
+const NFHL_ANSWERS: Plan = { ...DEMO, nfhl: { fixture: "fema/nfhl-minimal-hazard.json" } };
+
+/**
+ * The one request an answering NFHL produces, written out rather than rebuilt
+ * from `floodZoneQueryUrl`: a test that composed the URL the way the adapter
+ * does would agree with the adapter about a wrong one.
+ */
+const NFHL_QUERY_URL =
+	"https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query" +
+	"?geometry=-95.261995884462%2C29.720658823001&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects" +
+	"&outFields=FLD_ZONE%2CZONE_SUBTY%2CSFHA_TF%2CDFIRM_ID%2CFLD_AR_ID%2CSTATIC_BFE%2CSOURCE_CIT&returnGeometry=false&f=json";
 
 function planned(plan: Plan): Requested {
 	let echoCalls = 0;
@@ -774,6 +802,59 @@ describe("the flood card names the dataset that answered", () => {
 				" No digital FEMA designation was available at this point.",
 		);
 		expect(esriNote).not.toEqual(nfhlNote);
+	});
+
+	/**
+	 * The point docs/BRIEF.md A6 puts on screen, answered by the layer that
+	 * holds it. Esri's copy carries no unshaded zone X, so it returns nothing
+	 * here and the card can only say it cannot tell minimal hazard from an area
+	 * that was never mapped. This is the first test in this file that drives the
+	 * route over an NFHL answer with a polygon in it: every other flood
+	 * assertion here is about the fallback, the refusal that causes it, a
+	 * timeout, or an empty NFHL answer that had to be derived.
+	 *
+	 * The record is asserted as the one string the card puts on screen, not as a
+	 * set of fragments looked for inside it. Every clause of
+	 * `lib/templates/fema.ts` reads one column of the recorded row, a clause
+	 * dies whole when its column is null, and a substring match would pass over
+	 * a missing one. Nothing in it says anything about safety: the card states
+	 * the designation FEMA recorded and stops, which is what docs/BRIEF.md C2
+	 * requires of it.
+	 */
+	it("states FEMA's own zone X at the demo point, where the copy could only say it could not tell", async () => {
+		const { events } = await report(NFHL_ANSWERS);
+		const fema = cardFor(events, "fema");
+
+		expect(fema.agency).toBe("FEMA's National Flood Hazard Layer");
+		expect(fema.priorAttempts).toEqual([]);
+		const record = at(at(fema.listings, 0, "flood listing").shown, 0, "flood record");
+		expect(record.sentences.map(textOf)).toEqual([
+			"The mapped point, a street-segment interpolation rather than a parcel boundary, is in zone X," +
+				" outside the Special Flood Hazard Area." +
+				" The zone subtype recorded for this area is AREA OF MINIMAL FLOOD HAZARD." +
+				" FEMA's FIRM study identifier for this area is 48201C." +
+				" The flood area ID recorded for this area is 48201C_8882." +
+				" The source-citation lookup key recorded for this area is 48201C_FIRM1." +
+				" Read from FEMA's National Flood Hazard Layer.",
+		]);
+		// The sentence this answer replaces, which `DEMO` still produces.
+		expect(textsOf(fema)).not.toContain(
+			"No 1% or 0.2% flood hazard polygon intersects this point in the Esri copy of FEMA's layer, dated 2026-03-11." +
+				" This copy omits minimal-hazard areas, so it cannot tell minimal hazard from an unmapped area.",
+		);
+	});
+
+	/**
+	 * `floodZoneOutcome` falls back only when NFHL is unavailable, never when it
+	 * answers, and a fallback that ran here would put Esri's reduced set behind
+	 * a card labelled FEMA's own. The request list is where that is visible.
+	 */
+	it("never asks Esri's copy when the authoritative layer answers with a polygon", async () => {
+		const { urls, io } = planned(NFHL_ANSWERS);
+		await drive(io);
+
+		expect(urls.filter((url) => url.startsWith("https://hazards.fema.gov/"))).toEqual([NFHL_QUERY_URL]);
+		expect(urls.filter((url) => url.includes("USA_Flood_Hazard_Reduced_Set"))).toEqual([]);
 	});
 });
 

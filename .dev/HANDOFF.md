@@ -11,11 +11,17 @@ pushed** — deliberate, the operator asked for local commits only.
 ## Where it stands
 
 ```
-pnpm verify                        exit 0   734 tests across 35 files
+pnpm verify                        exit 0   742 tests across 36 files
 pnpm e2e                           exit 0   9 passed
 bash .dev/census/mutation-check.sh          8 of 8
-pnpm build                         compiles
+pnpm build                         compiles standalone
 ```
+
+It also runs, which it did not before. `2026-09-17`: the build is deployed on a
+Compute Engine instance in `us-central1`, served by
+`ground-truth.service` on port 8300, and answers a live report across all six
+locus sources in about fourteen seconds. The full predicate passes there too,
+in a clean shell and in one holding the operator's real keys.
 
 That is `.dev/PLAN.md`'s exit predicate, and it passes. Every unit on the board
 is done. `docs/BRIEF.md` is still the source of truth for scope and wording.
@@ -53,6 +59,22 @@ gratuitous, the reason is in its own comment.
 ## What is still open, and who can close it
 
 **Only the operator can clear these.** `scripts/setup.sh` walks all of them.
+
+0. ~~**FEMA's NFHL host.**~~ **Cleared 2026-09-17, and it was never about the
+   host.** `hazards.fema.gov` resets the TLS handshake from India in 0.59 s and
+   from `asia-southeast1` in 0.46 s, and answers HTTP 200 from `us-central1` in
+   0.26 s. The block is on egress. That had been inferred for days and was
+   proven by running the same request from three places.
+   `scripts/capture-us-fixtures.sh` then did what it was written for, and three
+   NFHL fixtures are committed. The live test at the foot of
+   `tests/unit/adapters/fema.test.ts`, gated behind `FEMA_LIVE=1` and never once
+   run, passes from there in 224 ms. So do the live ECHO and SEMS suites.
+
+   The consequence is bigger than a fixture. The deployment reaches the
+   authoritative layer, so the flood card states FEMA's own zone X and its
+   `AREA OF MINIMAL FLOOD HAZARD` subtype where the Esri copy returns no
+   features and could only say it was unable to tell minimal hazard from
+   unmapped. That path had never been exercised by any test; two now cover it.
 
 1. ~~**AQS and AirNow keys**, both free.~~ **Cleared 2026-09-16.** The operator
    registered both. The keys live in the gitignored `.env.local` at the repo
@@ -104,6 +126,15 @@ earned its keep more than the rest.
   opposite of what a record said, a count that disagreed with the records
   beneath it, a credential reaching the screen through a source's own error
   text, a headline number silently becoming zero.
+- **Run the suite somewhere other than your laptop.** Doing it on the
+  deployment host, in a shell holding the operator's real keys, failed eight
+  tests across four files that pass here. Four files assume this deployment
+  holds no air credential, `tests/unit/app/report-route.test.ts` states that as
+  a rule, and nothing enforced it: it held only because vitest does not read
+  `.env.local` the way next does. None of the eight messages mentioned a
+  credential, so the reader hunts the renderer for a defect that is in their
+  shell. `tests/setup/no-ambient-credentials.ts` now makes the rule true and
+  `tests/unit/hermetic.test.ts` guards it.
 - **Ask an agent to prove its new test fails** against the old behaviour. Three
   committed tests turned out to be unable to fail, including both tests of an
   ordering that could be deleted entirely with the suite still green.

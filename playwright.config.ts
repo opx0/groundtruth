@@ -13,7 +13,25 @@ export default defineConfig({
 	},
 	projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 	webServer: {
-		command: "pnpm build && pnpm start",
+		/**
+		 * The standalone server, not `next start`.
+		 *
+		 * `next.config.ts` sets `output: "standalone"` so the Docker image carries
+		 * only reachable modules, and Next then warns that `next start` "does not
+		 * work" with it. It did still serve, and all nine paths passed against it,
+		 * which is the worse failure: a suite green against a server the deployment
+		 * does not use. `.next/standalone/server.js` is the exact artifact the
+		 * Dockerfile runs. The two `cp` calls are what that Dockerfile's final stage
+		 * does, because Next emits `public` and `.next/static` outside the bundle
+		 * and the standalone server does not copy them itself.
+		 *
+		 * The copy removes its targets first. Without that, a second run copies
+		 * `public` inside the `public` the first run made, and the server starts
+		 * against a tree that is wrong in a way the first run cannot reproduce.
+		 * That failed here once, and the error Next prints for it blames a build
+		 * that did not exit cleanly, which is not what happened.
+		 */
+		command: "pnpm build && pnpm start:standalone",
 		url: "http://127.0.0.1:3000",
 		/**
 		 * Never reuse, not even locally.

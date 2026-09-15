@@ -22,6 +22,11 @@ pnpm e2e      exit 0   9 passed
 bash .dev/census/mutation-check.sh   8 of 8
 ```
 
+**Updated 2026-09-17.** `pnpm verify` now runs 739 tests across the same 35
+files — six more than the 733 recorded the day before — typecheck and lint
+still clean. `pnpm e2e` is still 9 passed and the mutation check is still 8 of
+8.
+
 Every source in `docs/BRIEF.md` B2 has an adapter and all seven B12 fixture
 cases, or a written reason a case does not exist for it — the Census geocoder
 has no status vocabulary, and AirNow's modelled success shape has no status
@@ -58,6 +63,13 @@ three: FEMA's authoritative NFHL host. The two air keys were registered on
 2026-09-16 and both sources are recorded. Nothing in the exit predicate depended
 on either, because `not-configured` is a card the report states honestly and
 `docs/BRIEF.md` A6 beat 6 is exactly that state.
+
+**Corrected 2026-09-17.** FEMA's authoritative NFHL host answered for the
+first time in this project's history, from us-central1 (Iowa) egress, in
+0.26s — see Known blockers below for the full measurement and the three
+fixtures it produced. The block was on egress, not on the request. Nothing is
+left blocked on the operator: the air keys were cleared 2026-09-16 and FEMA's
+host is cleared today.
 
 ## Model routing
 
@@ -137,6 +149,23 @@ Work is assigned by how much judgment it needs, not by size.
   against no recorded response, and clearing it needs one of: a US-region
   deploy, one curl from a US host, or a git remote so a CI runner can record
   the fixtures. `scripts/capture-us-fixtures.sh` captures it.
+
+  **Corrected 2026-09-17.** The paragraph above says "`hazards.fema.gov`
+  resets the TLS handshake before any HTTP exchange, from every route tried."
+  That is no longer true, and it was possible to prove it wrong for the first
+  time: measured from three egress points on the same NFHL endpoint, this
+  machine (India) got a connection reset in 0.59s, asia-southeast1 got a
+  connection reset in 0.46s, and us-central1 (Iowa) got HTTP 200 in 0.26s. The
+  block was always on egress, not on the request — inferred for days and never
+  proven until this measurement. Three NFHL fixtures are committed from that
+  capture: `tests/fixtures/fema/nfhl-minimal-hazard.json`,
+  `nfhl-zone-ae-pasadena.json` and `nfhl-layer-28.json`, taken by
+  `scripts/capture-us-fixtures.sh`, which is what it was written for. A live
+  NFHL test existed all along at `tests/unit/adapters/fema.test.ts`, gated
+  behind `FEMA_LIVE=1`, and had never run before now; it passes from
+  us-central1 in 224ms, and the live ECHO and SEMS suites pass from there too.
+  Clearing the blocker turned out to be exactly the "US-region deploy" or "one
+  curl from a US host" the paragraph above named as the way out.
 - ~~AQS and AirNow need free keys the operator must register.~~ **Cleared
   2026-09-16.** The operator registered a key for each, both are in the
   gitignored `.env.local` at the repo root, and both sources now have recorded
@@ -263,10 +292,24 @@ nothing to do with their work, so they wait.
    the budget and the reader would get nothing instead of the fallback. Give the
    first leg a shorter deadline than the source as a whole.
 
-10. **`FLD_AR_ID` is required by the schema.** It is the layer's primary key and
+   **Still open, but the reason it was parked is spent. Noted 2026-09-17.** It
+   was parked because the authoritative host was unreachable, so a shorter
+   deadline for a leg that never answered had nothing to measure against. It
+   is reachable now — measured HTTP 200 from us-central1 in 0.26s on the same
+   endpoint that resets from this machine and from asia-southeast1 — so the
+   reason for parking it is spent. The timeout still covers the whole flood
+   source and the first leg still has no deadline of its own; that part of
+   the item is unchanged.
+
+10. [DONE 2026-09-17] **`FLD_AR_ID` is required by the schema.** It is the layer's primary key and
     the adapter needs it for a record id, but no authoritative row has ever been
     seen, so a null there would read as malformed. Worth re-checking against the
     first real capture.
+
+    Closed. The first real capture answered it: two authoritative rows,
+    `48201C_8882` and `48201C_9306`, both carry a non-null `FLD_AR_ID`. The
+    schema's requirement holds against real bytes, not just the published
+    field list.
 
 ## Queue status after U1.8
 
@@ -295,6 +338,17 @@ was written. 8 was a gap in the adapter contract — an adapter could not supply
 its own no-data note — and no response from FEMA would have closed it. It is
 closed above instead, by `lib/evidence/source.ts` reading `adapter.noDataNote`.
 Only 9 and 10 ever needed the host.
+
+**Corrected again 2026-09-17.** The line above, "Only 9 and 10 ever needed the
+host," is now half-stale: the host answered. Measured from three egress
+points on the same NFHL endpoint, this machine (India) and asia-southeast1
+both got a connection reset, and us-central1 (Iowa) got HTTP 200 in 0.26s —
+the block was on egress, not on the request. **10 is closed**: two real
+authoritative rows, `48201C_8882` and `48201C_9306`, both carry a non-null
+`FLD_AR_ID`, closed under its own entry above with the 2026-09-17 date. **9 is
+unblocked but still open**: the reason it was parked — an unreachable host —
+is spent, but nobody has yet given the first leg its own shorter deadline
+than the source as a whole; see the note under item 9 itself.
 
 
 ## Queue raised by the record templates, U2.0
@@ -328,6 +382,13 @@ the selection policy.
     from derived rows, each altering exactly one field. A real row with an
     unmapped flag would close it. Worth asking for in
     `scripts/capture-us-fixtures.sh`.
+
+    **Still blocked. Checked 2026-09-17.** `scripts/capture-us-fixtures.sh` did
+    exactly that: three NFHL fixtures are now committed —
+    `tests/fixtures/fema/nfhl-minimal-hazard.json`, `nfhl-zone-ae-pasadena.json`
+    and `nfhl-layer-28.json`. Every `SFHA_TF` in them still reads `"T"` or
+    `"F"`. No unmapped letter came back, so this is still open on the same
+    derived rows it started with.
 
 13. **`sems-site` never prints `archived`.** `tests/fixtures/sems/envirofacts-archived.json`
     carries `archived_ind: "Y"` with `archived_date: 1996-01-25` beside a
@@ -390,10 +451,20 @@ Closed in `be212c7` and the round after it. What is left:
 
 19. **A final-NPL site prints its distance and its NPL status twice**, once from
     `sems-site/summary@1` in the main listing and once from `sems-site/npl@1`
-    in the NPL listing. B7 asks for both sentences, and A2's own example has no
-    overlap only because its two NPL sites fall outside the nearest five. The
-    answer is probably a layout one: A2 puts the NPL sentence in its own block
-    under the list, which is U4.2's decision, not the policy's.
+    in the NPL listing. B7 asks for both sentences, ~~and A2's own example has
+    no overlap only because its two NPL sites fall outside the nearest five~~.
+    The answer is probably a layout one: A2 puts the NPL sentence in its own
+    block under the list, which is U4.2's decision, not the policy's.
+
+    **Corrected 2026-09-17.** The struck sentence is a factual error, checked
+    against the real renderer. The SEMS listing is ordered by distance, and
+    the final-NPL site `TXN000607093` (US OIL RECOVERY) ranks fifth at 3.92 km
+    — inside the shown five — so it appears in both the shown five and the NPL
+    listing. Its distance and its NPL status each print twice on the Houston
+    demo card. The defect IS visible on the demo address, which the struck
+    sentence denied. The other NPL site, `TXD980748453`, ranks twelfth at
+    6.84 km and is genuinely outside the shown five — that half of the
+    reasoning was right, it just did not hold for both sites.
 
 20. **`SectionSubject` has no pollutant slot**, so an AQS pollutant with no
     qualifying monitor is named in the section's note rather than in a sentence

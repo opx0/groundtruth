@@ -119,7 +119,7 @@ function registryIdOf(url: URL): string {
 	return /REGISTRY_ID='([^']*)'/.exec(url.searchParams.get("where") ?? "")?.[1] ?? "";
 }
 
-/** NFHL's host refuses non-US traffic and nothing from it has ever been recorded, so Esri's recorded copy answers. */
+/** NFHL's host refuses non-US traffic, which is what this machine gets, so Esri's recorded copy answers instead. */
 const NFHL_REFUSED = new SourceFailure("refused");
 
 export const DEMO: Plan = {

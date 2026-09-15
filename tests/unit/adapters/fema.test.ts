@@ -1,11 +1,17 @@
 /**
  * The FEMA flood-zone adapter against the committed Esri fixtures.
  *
- * The authoritative NFHL host has never answered this machine, so there is no
- * NFHL fixture. Where a test needs the NFHL host to answer, it serves real
- * recorded Esri bytes at the NFHL address. The field names are identical, and
- * what those tests prove is that the dataset label and the no-polygon wording
- * follow the host that answered, not the bytes. They are named accordingly.
+ * The authoritative NFHL host answered for the first time on 2026-09-17, from a
+ * Compute Engine instance in `us-central1`. It resets the TLS handshake from
+ * this machine and from `asia-southeast1`, and returns HTTP 200 in 0.26 s from
+ * Iowa, so the block is on egress and not on the request. Three NFHL fixtures
+ * are committed and the last describe block reads them.
+ *
+ * Every other test here still serves real recorded Esri bytes at the NFHL
+ * address where it needs that host to answer. Those tests predate the capture
+ * and are left alone on purpose: the field names are identical, and what they
+ * prove is that the dataset label and the no-polygon wording follow the host
+ * that answered rather than the bytes. They are named accordingly.
  *
  * B12's seven cases, and where each one sits:
  *
@@ -305,7 +311,7 @@ describe("no polygon: the two datasets must not be confused", () => {
 });
 
 describe("NFHL answers with a polygon", () => {
-	it("labels the record NFHL from the host that answered and carries the unrecorded-layer caveat", async () => {
+	it("labels the record NFHL from the host that answered and carries that layer's two caveats", async () => {
 		// Real recorded Esri bytes served at the NFHL host; same field names. Proves the label follows the host.
 		const { io, calls } = stubIo({
 			[NFHL_HOST]: { fixture: "esri-zone-ae-pasadena.json" },
@@ -330,9 +336,12 @@ describe("NFHL answers with a polygon", () => {
 		]);
 		expect(record.zoneCode.provenance[0]).toMatchObject({ dataset: "nfhl_s_fld_haz_ar", sourceField: "FLD_ZONE" });
 		expect(record.sourceUrl.value).toBe(`${NFHL_LAYER}/query?where=FLD_AR_ID%3D%2748201C_8563%27&outFields=*&f=html`);
+		// Two caveats, where this list pinned three until 2026-09-17. The one
+		// that said no response from this layer had ever been recorded is gone
+		// from `lib/adapters/fema.ts`, because one has been, and the comment
+		// above that array is where the deleted sentence is kept.
 		expect(record.caveats).toEqual([
 			"Read from FEMA's National Flood Hazard Layer, the authoritative source.",
-			"No response from this layer has been recorded yet. The parse follows FEMA's published field names and is unverified against real bytes.",
 			"The mapped point is a street-segment interpolation, not the parcel boundary.",
 		]);
 	});
@@ -673,5 +682,98 @@ describe("live NFHL", () => {
 		const result = await floodZoneOutcome(locus(), io);
 		expect(result.dataset).toBe("NFHL");
 		expect(result.nfhl).toBeNull();
+	});
+});
+
+/* -------------------------------------------------------------------------- */
+/* The authoritative layer, captured 2026-09-17 from us-central1              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `FloodAreaAttrs` was written from FEMA's published field names for
+ * S_Fld_Haz_Ar and carried a caveat saying no response had ever been checked
+ * against it. These are that check. The schema parses both real rows with no
+ * change, which is the outcome the caveat was hedging against and not a given:
+ * the same exercise against AQS on 2026-09-16 falsified three of thirteen
+ * column names.
+ */
+describe("the authoritative NFHL layer, against a schema written before it ever answered", () => {
+	const nfhlBody = (name: string): unknown => JSON.parse(readFileSync(`${fixturesDir}${name}`, "utf8"));
+
+	const rowsOf = (name: string): readonly FloodAreaAttrs[] => {
+		const parsed = ArcgisQueryBody.parse(nfhlBody(name));
+		if ("error" in parsed) throw new Error(`${name} is an ArcGIS error body`);
+		return parsed.features.map((feature) => feature.attributes);
+	};
+
+	it("parses both recorded point responses with no schema change", () => {
+		for (const name of ["nfhl-minimal-hazard.json", "nfhl-zone-ae-pasadena.json"]) {
+			const parsed = ArcgisQueryBody.safeParse(nfhlBody(name));
+
+			expect(parsed.success, `${name} did not parse`).toBe(true);
+		}
+	});
+
+	/**
+	 * Queue item 10 in `.dev/PLAN.md` asked this and could not answer it.
+	 * `FLD_AR_ID` is the layer's primary key and the record id is built from it,
+	 * so a null would have read as `malformed` and cost the whole card.
+	 */
+	it("carries a non-null FLD_AR_ID in every real row", () => {
+		const rows = [...rowsOf("nfhl-minimal-hazard.json"), ...rowsOf("nfhl-zone-ae-pasadena.json")];
+
+		expect(rows).toHaveLength(2);
+		expect(rows.map((row) => row.FLD_AR_ID)).toEqual(["48201C_8882", "48201C_9306"]);
+	});
+
+	/**
+	 * The point the whole fallback argument was about. `docs/BRIEF.md` A6 puts
+	 * this address on screen, and the Esri copy drops unshaded X entirely, so
+	 * the card could only say it was unable to tell minimal hazard from
+	 * unmapped. The authoritative layer says which one it is.
+	 */
+	it("names minimal hazard at the demo point, where the Esri copy returns nothing at all", () => {
+		const [authoritative] = rowsOf("nfhl-minimal-hazard.json");
+		const copy = ArcgisQueryBody.parse(nfhlBody("esri-no-polygon-houston.json"));
+		if (authoritative === undefined) throw new Error("the NFHL fixture has no row");
+		if ("error" in copy) throw new Error("the Esri fixture is an error body");
+
+		expect(copy.features).toHaveLength(0);
+		expect(authoritative.FLD_ZONE).toBe("X");
+		expect(authoritative.ZONE_SUBTY).toBe("AREA OF MINIMAL FLOOD HAZARD");
+		expect(authoritative.SFHA_TF).toBe("F");
+	});
+
+	/**
+	 * Both datasets describe the same point and disagree about its identifier,
+	 * which is why `SourcePlacement.agency` exists and why every record says
+	 * which layer answered. A reader comparing two reports of one address would
+	 * otherwise see two different flood areas and no way to tell why.
+	 */
+	it("agrees with the Esri copy about the zone and disagrees about the flood-area id", () => {
+		const [authoritative] = rowsOf("nfhl-zone-ae-pasadena.json");
+		const [copy] = rowsOf("esri-zone-ae-pasadena.json");
+		if (authoritative === undefined || copy === undefined) throw new Error("a Pasadena fixture has no row");
+
+		expect(authoritative.FLD_ZONE).toBe(copy.FLD_ZONE);
+		expect(authoritative.SFHA_TF).toBe(copy.SFHA_TF);
+		expect(authoritative.DFIRM_ID).toBe(copy.DFIRM_ID);
+		expect(authoritative.FLD_AR_ID).toBe("48201C_9306");
+		expect(copy.FLD_AR_ID).toBe("48201C_8563");
+	});
+
+	/**
+	 * `STATIC_BFE` is requested and validated and reaches no record field. The
+	 * authoritative layer sends -9999 where the copy sends null, and -9999 is an
+	 * ArcGIS no-data sentinel rather than an elevation. A record field for it
+	 * would have printed a base flood elevation of minus nine thousand feet.
+	 */
+	it("sends a no-data sentinel for STATIC_BFE that no record field can carry", () => {
+		const [authoritative] = rowsOf("nfhl-zone-ae-pasadena.json");
+		const [copy] = rowsOf("esri-zone-ae-pasadena.json");
+		if (authoritative === undefined || copy === undefined) throw new Error("a Pasadena fixture has no row");
+
+		expect(authoritative.STATIC_BFE).toBe(-9999);
+		expect(copy.STATIC_BFE).toBeNull();
 	});
 });

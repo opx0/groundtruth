@@ -8,6 +8,12 @@ export default defineConfig({
 	test: {
 		environment: "node",
 		include: ["tests/unit/**/*.test.ts"],
+		/**
+		 * Strips the three air credentials from `process.env` before any test
+		 * runs, so the suite is hermetic with respect to the shell it was
+		 * started from. The file itself argues why.
+		 */
+		setupFiles: ["tests/setup/no-ambient-credentials.ts"],
 		globals: false,
 		/**
 		 * Vitest's default is five seconds, and several tests here legitimately

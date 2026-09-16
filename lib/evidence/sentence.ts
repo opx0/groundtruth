@@ -494,6 +494,24 @@ export function sectionOrdering(store: EvidenceStore, section: SectionSpec): rea
 /* Subject construction                                                       */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The field and the value a section's filter selects on, when it selects by a
+ * string equality. Null for every other filter and for no filter at all: a
+ * threshold and a presence test keep records by a rule no single value states,
+ * and a slot that named one would be naming something the ordering was not
+ * selected by.
+ *
+ * Read off the filter rather than written down beside it, so the two cannot
+ * drift apart: a section could otherwise carry a value its ordering was never
+ * selected by, which is the mistake `notShown` avoids by being recomputed from
+ * the store instead of recorded.
+ */
+function equalsString(filter: SectionFilter | null): { readonly field: string; readonly value: string } | null {
+	if (filter === null || !("equals" in filter)) return null;
+	const value = filter.equals;
+	return typeof value === "string" ? { field: filter.field, value } : null;
+}
+
 function sectionSubject(store: EvidenceStore, section: SectionSpec): SectionSubject {
 	const ordering = sectionOrdering(store, section);
 	const query: readonly Provenance[] = section.query === null ? [] : [section.query];
@@ -502,6 +520,10 @@ function sectionSubject(store: EvidenceStore, section: SectionSpec): SectionSubj
 	// ordering, and null when nothing was left out, so the sentence cannot
 	// render "0 not shown" over a section that showed everything.
 	const left = section.carried === null ? 0 : Math.max(0, ordering.length - section.carried);
+	// Read off the filter on every render, like the count: a sentence naming
+	// the value a section was selected by cannot name a different one, and a
+	// section selected by no single value has no pair to name at all.
+	const selects = equalsString(section.filter);
 	return {
 		scope: "section",
 		count: reported(ordering.length, query),
@@ -510,6 +532,8 @@ function sectionSubject(store: EvidenceStore, section: SectionSpec): SectionSubj
 		// Only an empty section has a note, so the no-data wording cannot render over a section that holds records.
 		note: ordering.length === 0 ? reported(section.note, query) : null,
 		notShown: left === 0 ? null : reported(left, query),
+		filterField: selects === null ? null : reported(selects.field, query),
+		filterValue: selects === null ? null : reported(selects.value, query),
 	};
 }
 

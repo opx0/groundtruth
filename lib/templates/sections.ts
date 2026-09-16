@@ -22,7 +22,10 @@
  * ordering, and the three fields the last three templates in this file exist
  * to print -- `retrievedAt` for `retrieved-at@1`, `note` for `no-records@1`,
  * and `carried`, which `sectionSubject` subtracts from the ordering's length
- * to get the `notShown` that `not-shown@1` reads.
+ * to get the `notShown` that `not-shown@1` reads. `filter` is the fourth:
+ * `aqs-no-pollutant-monitor@1` prints the value the ordering was selected by,
+ * read off that filter, which is how a sentence about one pollutant is a
+ * sentence about a slot rather than a string a policy composed.
  *
  * docs/BRIEF.md A2 screen 3 and B7.
  */
@@ -79,6 +82,41 @@ export const sectionNoRecords = defineTemplate("section", "section/no-records@1"
 ]);
 
 /**
+ * docs/BRIEF.md B2 asks for the nearest qualified monitor *per pollutant*, so a
+ * pollutant AQS returned no monitor for is a failure about that pollutant, and
+ * a report that says it only per source has not answered B2.
+ *
+ * It used to be said by `no-records@1` over a note `lib/report/selection.ts`
+ * composed with the pollutant's name interpolated into it. The words were the
+ * same words; what was missing was everything behind them. A string built in
+ * the selection policy has no template, no slot and no trace, so the one value
+ * in that sentence that varies -- the pollutant -- opened nothing when a reader
+ * clicked it. It is `filterValue` now, read off the section's own filter, so it
+ * is traced like every other value on the report and cannot name a pollutant
+ * the ordering was not selected by.
+ *
+ * Two requirements, and each stops a different wrong sentence. `filterField`
+ * must be `pollutant`, because the SEMS final-NPL section is selected by a
+ * string too and this template would otherwise render "listed no Currently on
+ * the Final NPL monitor" over it -- the wrong template over a right subject,
+ * which is what `Requirement` exists for. `count` must be nought, because
+ * nothing else here falls away over a section that holds monitors: `filterValue`
+ * and `boundary` are as present on a full section as on an empty one, where
+ * `no-records@1` is kept off one by `note` being null there.
+ */
+export const aqsNoPollutantMonitor = defineTemplate(
+	"section",
+	"section/aqs-no-pollutant-monitor@1",
+	(field) => [
+		sentence`EPA's Air Quality System listed no ${field("filterValue")} monitor within ${field("boundary")} of the mapped point.`,
+	],
+	[
+		{ slot: "filterField", equals: "pollutant" },
+		{ slot: "count", equals: 0 },
+	],
+);
+
+/**
  * B7 offers "View all" for the records beyond the first five, and B2 says the
  * same. Neither anticipated that ECHO answers 1,686 facilities within five
  * miles of the demo point, which is more sentences and traces than a page can
@@ -112,6 +150,7 @@ export const sectionTemplates = [
 	echoFormalActionCount,
 	echoNoncomplianceCount,
 	sectionNoRecords,
+	aqsNoPollutantMonitor,
 	sectionNotShown,
 	sectionRetrievedAt,
 ];

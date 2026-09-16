@@ -178,7 +178,7 @@ describe("Esri fallback, zone AE, Pasadena", () => {
 		expect(record.zoneCode.value).toBe("AE");
 		expect(record.zoneSubtype.value).toBeNull();
 		expect(record.specialFloodHazardArea.value).toBe(true);
-		expect(record.firmPanelId.value).toBe("48201C");
+		expect(record.firmStudyId.value).toBe("48201C");
 		expect(record.floodAreaId.value).toBe("48201C_8563");
 		expect(record.sourceCitation.value).toBe("48201C_FIRM1");
 		expect(record.location).toBeNull();
@@ -267,7 +267,7 @@ describe("Esri fallback, shaded X behind a levee, New Orleans", () => {
 		expect(record.zoneSubtype.value).toBe("Area With Reduced Flood Risk Due To Levee");
 		expect(record.specialFloodHazardArea.value).toBe(false);
 		expect(record.specialFloodHazardArea.provenance[0]).toMatchObject({ sourceField: "SFHA_TF", rawValue: "F" });
-		expect(record.firmPanelId.value).toBe("22071C");
+		expect(record.firmStudyId.value).toBe("22071C");
 		expect(record.floodAreaId.value).toBe("22071C_10770");
 		expect(record.sourceCitation.value).toBe("22071C_STUDY13");
 		expect(record.payloads[0].sha256).toBe(SHA.neworleans);
@@ -480,7 +480,7 @@ describe("B12 case 3, missing optional fields", () => {
 		expect(record.subject.value).toBe("A");
 		expect(record.zoneCode.value).toBe("A");
 		expect(record.zoneSubtype.value).toBeNull();
-		expect(record.firmPanelId.value).toBeNull();
+		expect(record.firmStudyId.value).toBeNull();
 		expect(record.sourceCitation.value).toBeNull();
 		// One null column read three ways, and all three stay null rather than
 		// guessing a side of the SFHA boundary.

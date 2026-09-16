@@ -224,7 +224,7 @@ export function floodZoneBuilt(
 		}),
 		// And a third read, verbatim: B10 shows an unknown status as sent.
 		sfhaFlag: fields.text("SFHA_TF"),
-		firmPanelId: fields.text("DFIRM_ID"),
+		firmStudyId: fields.text("DFIRM_ID"),
 		floodAreaId: fields.text("FLD_AR_ID"),
 		sourceCitation: fields.text("SOURCE_CIT"),
 	};

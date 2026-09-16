@@ -110,6 +110,30 @@ export type SectionSubject = {
 	 * render over a section that showed everything.
 	 */
 	readonly notShown: Reported<number> | null;
+	/**
+	 * The rule that selected the ordering, when that rule is one field equalling
+	 * one string: `filterField` names the record slot and `filterValue` the
+	 * value it had to equal. Both are read off `SectionSpec.filter` on every
+	 * render, so a sentence cannot name a value the ordering was not selected
+	 * by, and both are null together -- a section with no filter, or one
+	 * selecting on a threshold or on presence, has no such pair to state.
+	 *
+	 * Neither is a value an agency sent. docs/BRIEF.md B2 asks for the nearest
+	 * qualified monitor *per pollutant*, so a pollutant with no monitor is a
+	 * failure about that pollutant and has to be sayable about it;
+	 * `lib/adapters/aqs.ts` is where "PM2.5" is argued to be our word and not
+	 * EPA's, whose vocabulary is `88101`, which is why a record's own
+	 * `pollutant` is `fromQuery` over the `param` we sent. The section-scoped
+	 * half of that fact is our own request in exactly the same way, so it is
+	 * `Reported` over the section's query, like the `boundary` beside it.
+	 *
+	 * `filterField` prints in no sentence. It is what lets a template declare
+	 * which filtered section it speaks about -- `Requirement`'s whole reason for
+	 * existing -- so a sentence that names a pollutant cannot render over a
+	 * section selected on some other field.
+	 */
+	readonly filterField: Reported<string> | null;
+	readonly filterValue: Reported<string> | null;
 };
 
 /**

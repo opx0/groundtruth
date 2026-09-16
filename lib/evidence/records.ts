@@ -177,7 +177,17 @@ type Kinds = {
 			readonly sfhaLabel: Sourced<string | null>;
 			/** The same column read verbatim, so B10's rule for an unknown status -- show it as sent, say the meaning is not mapped -- can be met when `sfhaLabel` is null. */
 			readonly sfhaFlag: Sourced<string | null>;
-			readonly firmPanelId: Sourced<string | null>;
+			/**
+			 * `DFIRM_ID`. FEMA's own field description calls it "Study Identifier"
+			 * — the state and county FIPS codes plus "C" — and says it is
+			 * identical for every polygon in a FIRM database. Named `firmStudyId`
+			 * rather than for a map panel: a panel is a different field,
+			 * `S_FIRM_Pan.FIRM_PAN`, shaped like `48201C0810L` and specific to one
+			 * polygon, where this value covers a whole county. `docs/BRIEF.md` A2
+			 * carries the dated correction that forced this rename; see
+			 * lib/templates/fema.ts.
+			 */
+			readonly firmStudyId: Sourced<string | null>;
 			readonly floodAreaId: Sourced<string | null>;
 			readonly sourceCitation: Sourced<string | null>;
 		};

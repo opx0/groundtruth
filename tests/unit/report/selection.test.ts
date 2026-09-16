@@ -104,7 +104,7 @@ import { femaTemplates } from "@/lib/templates/fema";
 import { frsTemplates } from "@/lib/templates/frs";
 import { groupTemplates } from "@/lib/templates/groups";
 import { originTemplates } from "@/lib/templates/origin";
-import { sectionNoRecords, sectionTemplates, semsNplSectionCount } from "@/lib/templates/sections";
+import { aqsNoPollutantMonitor, sectionTemplates, semsNplSectionCount } from "@/lib/templates/sections";
 import { semsSiteRegistryOnly, semsTemplates } from "@/lib/templates/sems";
 import { sourceTemplates } from "@/lib/templates/sources";
 import { houstonLocus } from "@/tests/unit/evidence/helpers/sems-fixtures";
@@ -615,6 +615,17 @@ function spanWithSlot(one: Sentence): number {
 	const index = one.spans.findIndex((span) => span.slot !== null);
 	if (index < 0) throw new Error(`${textOf(one)} has no span with a slot`);
 	return index;
+}
+
+/** The spans a reader can click, as `[field, text]`: what a sentence reads off its subject rather than holds itself. */
+function slottedOf(one: Sentence): readonly (readonly string[])[] {
+	return one.spans.flatMap((span) => (span.slot === null ? [] : [[span.slot.field, span.text]]));
+}
+
+function mustSentence(store: EvidenceStore, placement: Placement): Sentence {
+	const one = render(store, placement);
+	if (one === null) throw new Error(`the ${placement.scope} placement for ${placement.template.id} rendered nothing`);
+	return one;
 }
 
 function mustRender(store: EvidenceStore, placement: Placement): string {
@@ -1891,29 +1902,72 @@ describe("the air cards, built against their record kinds", () => {
 	 * with no monitor is a fact about that pollutant. Headlines read off the
 	 * unfiltered section and listings off the per-pollutant ones, so an answer
 	 * carrying ozone monitors only left PM2.5 with no count, no note and no
-	 * sentence anywhere on the card. No `section` subject carries a pollutant
-	 * and no section template names one, so the pollutant is named in the
-	 * section's own note, which is what `section/no-records@1` renders.
+	 * sentence anywhere on the card.
+	 *
+	 * The words are unchanged and everything behind them is not. They used to be
+	 * a note `lib/report/selection.ts` composed with the pollutant interpolated
+	 * into it -- the selection policy writing prose, which gave the one word in
+	 * the sentence that varies no template, no slot and no trace. So this
+	 * asserts the spans and not only the text: "PM2.5" is a slot span reading
+	 * `filterValue`, which a policy-composed string cannot be, and every other
+	 * word is connective text the template holds.
 	 */
-	it("gives each pollutant a sentence of its own for having no monitor", () => {
+	it("gives each pollutant a sentence of its own for having no monitor, with the pollutant a slot", () => {
 		const card = aqsCard(houston.store, NO_RECORDS, AIR);
 		const sections = card.listings.map((listing) => listing.section);
 		const empty = storeOf([]);
+		const sentences = sections.map((section) => {
+			if (section.kind !== "aqs-monitor-summary") throw new Error(`${section.kind} is not an AQS section`);
+
+			return mustSentence(empty, { scope: "section", section, template: aqsNoPollutantMonitor });
+		});
 
 		expect(sections.map((section) => section.filter)).toEqual([
 			{ field: "pollutant", equals: "PM2.5" },
 			{ field: "pollutant", equals: "Ozone" },
 		]);
-		expect(
-			sections.map((section) => {
-				if (section.kind !== "aqs-monitor-summary") throw new Error(`${section.kind} is not an AQS section`);
-
-				return mustRender(empty, { scope: "section", section, template: sectionNoRecords });
-			}),
-		).toEqual([
+		// The policy composes no sentence for this: both notes are the source's
+		// own, and neither names a pollutant. The words below are the template's.
+		expect(sections.map((section) => section.note)).toEqual([NO_DATA_NOTE, NO_DATA_NOTE]);
+		expect(sentences.map(textOf)).toEqual([
 			"EPA's Air Quality System listed no PM2.5 monitor within 50 km of the mapped point.",
 			"EPA's Air Quality System listed no Ozone monitor within 50 km of the mapped point.",
 		]);
+		expect(sentences.map(slottedOf)).toEqual([
+			[
+				["filterValue", "PM2.5"],
+				["boundary", "50 km"],
+			],
+			[
+				["filterValue", "Ozone"],
+				["boundary", "50 km"],
+			],
+		]);
+	});
+
+	/**
+	 * The other half of the same claim: the pollutant's name is not this
+	 * template's wording either. Nothing in the template holds "PM2.5" -- the
+	 * word arrives from the section's own filter, so the section that selects on
+	 * `Ozone` renders the same template with the other word in the same slot,
+	 * and neither card can print a pollutant its ordering was not selected by.
+	 */
+	it("holds no pollutant of its own, and refuses a section selected on another field", () => {
+		const npl = cardOf(answered.plan, "sems").headlines.find((one) => one.template.id === semsNplSectionCount.id);
+		if (npl === undefined || npl.scope !== "section") throw new Error("no section-scoped final-NPL headline");
+		const nplSection: SectionSpec = npl.section;
+
+		expect(JSON.stringify(aqsNoPollutantMonitor.clauses)).not.toContain("PM2.5");
+		expect(aqsNoPollutantMonitor.requires).toEqual([
+			{ slot: "filterField", equals: "pollutant" },
+			{ slot: "count", equals: 0 },
+		]);
+		// The final-NPL section is selected by a string too, and its value is a
+		// status rather than a pollutant. The kind gate passes it -- every
+		// section template renders over every section -- and the requirement is
+		// what refuses "listed no Currently on the Final NPL monitor".
+		expect(nplSection.filter).toEqual({ field: "semsNplStatus", equals: FINAL_NPL_STATUS });
+		expect(render(storeOf([]), { scope: "section", section: nplSection, template: aqsNoPollutantMonitor })).toBeNull();
 	});
 });
 
@@ -2026,6 +2080,73 @@ describe("the air cards over air records", () => {
 		expect(carriedCount(withAir.store, pm25.section)).toBe(12);
 		expect(sectionOrdering(withAir.store, ozone.section)).toHaveLength(17);
 		expect(carriedCount(withAir.store, ozone.section)).toBe(17);
+	});
+
+	/**
+	 * The placement the per-pollutant sentence exists for, which nothing reached
+	 * until now: an AQS answer that carries monitors for one pollutant and none
+	 * for the other. Every earlier assertion rendered the template by hand, so
+	 * the card could have stopped placing it and the suite would have stayed
+	 * green.
+	 *
+	 * The store is the recorded AQS answer with its twelve PM2.5 monitors
+	 * removed, one `without` at a time -- a state the recording cannot reach,
+	 * built from the recording rather than authored, the way the derived answers
+	 * at the head of this file are.
+	 *
+	 * The trace is the point. The pollutant is a `filterValue` slot whose
+	 * section trace lists what the count counted, so a reader clicking "PM2.5"
+	 * opens the query behind an empty ordering instead of a word this policy
+	 * typed into a string.
+	 */
+	it("says which pollutant AQS listed no monitor for, from a slot the trace panel can open", () => {
+		const pm25s = withAir.store.ofKind("aqs-monitor-summary").filter((one) => one.pollutant.value === "PM2.5");
+		const ozoneOnly = pm25s.reduce((store, one) => store.without(one.id), withAir.store);
+		const card = aqsCard(ozoneOnly, aqsAnswered, AIR);
+		// The card places the template, not a note: the sentence is chosen here
+		// and worded in `lib/templates/sections.ts`.
+		expect(card.headlines.map((one) => one.template.id)).toEqual([
+			"section/retrieved-at@1",
+			"section/aqs-no-pollutant-monitor@1",
+		]);
+		const placed = card.headlines.filter((one) => one.template.id === aqsNoPollutantMonitor.id);
+		const sentence = mustSentence(ozoneOnly, at(placed, 0, "the no-monitor headline"));
+		const pollutant = sentence.spans.findIndex((span) => span.slot?.field === "filterValue");
+		const explained = trace(ozoneOnly, sentence, pollutant);
+
+		expect(pm25s).toHaveLength(12);
+		expect(ozoneOnly.ofKind("aqs-monitor-summary")).toHaveLength(17);
+		// One sentence, for the pollutant with nothing, on a card whose source
+		// answered: ozone has seventeen monitors and gets none of this.
+		expect(placed).toHaveLength(1);
+		expect(textOf(sentence)).toBe(
+			"EPA's Air Quality System listed no PM2.5 monitor within 50 km of the mapped point.",
+		);
+		expect(slottedOf(sentence)).toEqual([
+			["filterValue", "PM2.5"],
+			["boundary", "50 km"],
+		]);
+		if (explained === null || explained.scope !== "section") throw new Error("expected a section trace");
+		expect(explained.clicked.field).toBe("filterValue");
+		expect(explained.clicked.displayed).toBe("PM2.5");
+		expect(explained.clicked.normalized).toBe("PM2.5");
+		expect(explained.section.agency).toBe("EPA Air Quality System");
+		expect(explained.section.kind).toBe("aqs-monitor-summary");
+		expect(explained.section.counted).toEqual([]);
+		// The field the ordering was selected on is beside it, unprinted: it is
+		// what the template's requirement reads, and it is in the trace for the
+		// reader who asks what "PM2.5" was matched against.
+		expect(explained.values.map((value) => [value.field, value.normalized])).toContainEqual([
+			"filterField",
+			"pollutant",
+		]);
+		expect(verify(ozoneOnly, sentence, ALL_TEMPLATES)).toBe(true);
+		// And the other requirement, over the pollutant that has monitors: a
+		// count of nought is what this sentence asserts, so the kernel refuses
+		// it over the ozone section's seventeen rather than trusting the policy.
+		const ozone: SectionSpec = at(card.listings, 1, "the ozone listing").section;
+		expect(sectionOrdering(ozoneOnly, ozone)).toHaveLength(17);
+		expect(render(ozoneOnly, { scope: "section", section: ozone, template: aqsNoPollutantMonitor })).toBeNull();
 	});
 
 	it("renders the monitor, its distance and the unverified-shape clause on the card", () => {

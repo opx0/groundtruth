@@ -227,16 +227,27 @@ describe("a match with no block range", () => {
 				expect(match.tigerLine.tigerLineId, `${name} tigerLineId`).not.toBe("");
 			}
 		}
-		// One matched fixture plus seven candidates in the ambiguous one.
-		expect(matchesSeen).toBe(8);
+		// Three matched fixtures plus seven candidates in the ambiguous one. It
+		// was eight until 2026-09-17, when the two curated addresses that had no
+		// recorded match got one. This number is a census of the directory, so it
+		// moves whenever a fixture carrying a match is added, and that is the
+		// point: a new Census recording is checked by this loop the moment it
+		// lands, without anyone remembering to add it anywhere.
+		expect(matchesSeen).toBe(10);
 	});
 
 	it("so every match the fixtures hold renders the block-not-parcel clause, not just the demo one", async () => {
+		// Named fixtures rather than the directory scan above, because each needs
+		// the address it was recorded for. The two added on 2026-09-17 are here
+		// because without them this test's own name was no longer true: it had
+		// gone from covering every match to covering eight of ten.
 		const all = [
 			await matchFrom("census/match-9311-e-ave-p.json", HOUSTON),
+			await matchFrom("census/match-1300-perdido-st.json", "1300 Perdido St, New Orleans, LA 70112"),
+			await matchFrom("census/match-400-n-richey-st.json", "400 N Richey St, Pasadena, TX 77506"),
 			...(await candidatesFrom("census/ambiguous-100-main-st.json", "100 Main St, Springfield")),
 		];
-		expect(all).toHaveLength(8);
+		expect(all).toHaveLength(10);
 		for (const match of all) {
 			expect(textOf(sentenceWith(match, "origin/match@1"))).toContain("It marks the block, not the parcel.");
 		}

@@ -34,8 +34,10 @@
  * could not be built for this claim. The framing survives where it is true:
  * `lib/report/selection.ts` shows one record per pollutant, ordered by
  * distance, under `section/retrieved-at@1`'s "Searched within 50 km of the
- * mapped point" and a per-pollutant no-data note. The card still reads as the
- * nearest monitor; the sentence just stops asserting it.
+ * mapped point" and, for a pollutant AQS returned nothing for,
+ * `section/aqs-no-pollutant-monitor@1`, which names that pollutant from the
+ * section's own filter. The card still reads as the nearest monitor; the
+ * sentence just stops asserting it.
  *
  * THE DISTANCE CLAUSE CARRIES A2's SPATIAL CAVEAT. "The monitor measures its
  * own location, not this address" qualifies exactly one claim on this card, the

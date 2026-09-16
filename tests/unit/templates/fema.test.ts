@@ -121,7 +121,7 @@ const unmappedFlag = recordOf(derivedRow("esri-zone-ae-pasadena.json", { SFHA_TF
 // `map` also reads as null. The verbatim clause has to be true for this too.
 const emptyFlag = recordOf(derivedRow("esri-zone-ae-pasadena.json", { SFHA_TF: "" }));
 // Derived: both recorded rows carry a DFIRM_ID, and ArcGIS declares it nullable.
-const noPanel = recordOf(derivedRow("esri-zone-ae-pasadena.json", { DFIRM_ID: null }));
+const noStudyId = recordOf(derivedRow("esri-zone-ae-pasadena.json", { DFIRM_ID: null }));
 // No NFHL response has ever been recorded — the host refuses connections from
 // here, docs/BRIEF.md B14 — and both layers carry the same field names. This
 // pairs the recorded Esri row with the NFHL dataset choice, and fixes which
@@ -180,7 +180,7 @@ const cases: readonly Case[] = [
 		summary: null,
 		unmappedFlag: `${LEAD} AE.` + unmapped("") + PASADENA_IDS + ESRI_TAIL,
 	}),
-	caseOf("no DFIRM_ID: the study-identifier clause drops and the zone stands", noPanel, {
+	caseOf("no DFIRM_ID: the study-identifier clause drops and the zone stands", noStudyId, {
 		summary:
 			`${LEAD} AE, inside the Special Flood Hazard Area.` +
 			" The flood area ID recorded for this area is 48201C_8563." +
@@ -286,7 +286,7 @@ describe("a null optional field drops its own clause and nothing else", () => {
 		expect(spans.flatMap((s) => (s.slot === null ? [] : [s.slot.field]))).toEqual([
 			"zoneCode",
 			"sfhaLabel",
-			"firmPanelId",
+			"firmStudyId",
 			"floodAreaId",
 			"sourceCitation",
 			"datasetLabel",
@@ -346,7 +346,7 @@ describe("the trace behind a rendered span", () => {
 	});
 
 	it("takes the study identifier to DFIRM_ID, the value FEMA's own description calls a study identifier", () => {
-		const t = mustTraceRecord(pasadenaStore, inside, "firmPanelId");
+		const t = mustTraceRecord(pasadenaStore, inside, "firmStudyId");
 		expect(t.clicked.displayed).toBe("48201C");
 		expect(t.clicked.provenance[0]).toMatchObject({
 			kind: "field",

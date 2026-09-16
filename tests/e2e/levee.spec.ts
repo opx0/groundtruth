@@ -31,7 +31,7 @@
 
 import { expect, test } from "@playwright/test";
 import { DEMO, reportBody, type Plan } from "./helpers/bodies";
-import { openReport } from "./helpers/drive";
+import { AT_PERDIDO, openReport, search } from "./helpers/drive";
 
 /** `DEMO`, with Esri's copy answering from the recorded New Orleans polygon instead of the recorded empty Houston answer. */
 const LEVEE: Plan = { ...DEMO, esri: { fixture: "fema/esri-zone-x-levee-neworleans.json" } };
@@ -57,7 +57,7 @@ const ZONE_X_SENTENCE =
 	" Read from Esri's reduced-set copy of FEMA's National Flood Hazard Layer.";
 
 test("the zone X levee subtype, verbatim on the flood card", async ({ page }) => {
-	await openReport(page, await reportBody(LEVEE));
+	await openReport(page, await reportBody(LEVEE), AT_PERDIDO);
 
 	const flood = page.locator("[data-source='fema']");
 	await expect(flood).toHaveAttribute("data-card-state", "records");
@@ -77,7 +77,7 @@ test("the zone X levee subtype, verbatim on the flood card", async ({ page }) =>
 });
 
 test("the levee subtype opens on the column FEMA sent it in", async ({ page }) => {
-	await openReport(page, await reportBody(LEVEE));
+	await openReport(page, await reportBody(LEVEE), AT_PERDIDO);
 
 	const polygon = page.locator(`[data-source='fema'] [data-record='${FLOOD_AREA}']`);
 	await polygon.locator("[data-field='zoneSubtype']").click();
@@ -98,4 +98,28 @@ test("the levee subtype opens on the column FEMA sent it in", async ({ page }) =
 	await expect(clicked).toContainText("ZONE_SUBTY");
 	await expect(clicked).toContainText(SUBTYPE);
 	await expect(clicked).toContainText("identity");
+});
+
+/**
+ * The address itself, not the point behind it.
+ *
+ * Until `tests/fixtures/census/` gained this match on 2026-09-17 this path
+ * drove the Houston coordinate and said so in its header, because A6 row 3's
+ * address could not reach the confirm screen at all. It can now, so the seam
+ * this file is about starts where a reader starts.
+ */
+test("A6 row 3's address reaches the confirm screen as the reader typed it", async ({ page }) => {
+	await search(page, AT_PERDIDO.fixture, AT_PERDIDO.address);
+
+	await expect(page.getByRole("heading", { name: "Match confirmed" })).toBeVisible();
+	await expect(page.locator("[data-field='matchedAddress']")).toHaveText("1300 PERDIDO ST, NEW ORLEANS, LA, 70112");
+	await expect(page.locator("[data-field='blockFrom']")).toHaveText("1200");
+	await expect(page.locator("[data-field='blockTo']")).toHaveText("1416");
+	await expect(page.locator("[data-field='streetSide']")).toHaveText("L");
+	await expect(page.locator("[data-field='tigerLineId']")).toHaveText("637842040");
+
+	// The point the report is then asked with, stated on the screen that asks
+	// the reader to confirm it.
+	await expect(page.locator("[data-field='latitude']")).toHaveText("29.952439235888");
+	await expect(page.locator("[data-field='longitude']")).toHaveText("-90.076572135869");
 });

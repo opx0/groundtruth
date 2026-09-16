@@ -45,7 +45,7 @@ test("a FEMA polygon and a FEMA no-polygon state, each naming its dataset", asyn
 			"inside the Special Flood Hazard Area.",
 	);
 	await expect(polygon.locator("[data-field='zoneCode']")).toHaveText("AE");
-	await expect(polygon.locator("[data-field='firmPanelId']")).toHaveText("48201C");
+	await expect(polygon.locator("[data-field='firmStudyId']")).toHaveText("48201C");
 	// The dataset is a span of the sentence, not a footnote: it names itself
 	// where the claim is made.
 	await expect(polygon.locator("[data-field='datasetLabel']")).toHaveText(ESRI);

@@ -183,6 +183,7 @@ import { frsFacilityCrossReference, frsFacilityIdentity } from "@/lib/templates/
 import { groupMemberCount, groupSharedIdentifier } from "@/lib/templates/groups";
 import { originMatch, originPoint } from "@/lib/templates/origin";
 import {
+	aqsNoPollutantMonitor,
 	echoFormalActionCount,
 	echoNoncomplianceCount,
 	echoSectionCount,
@@ -582,18 +583,6 @@ function noteOf(outcome: SourceOutcome): string {
 }
 
 /**
- * B2 asks for the nearest qualified monitor per pollutant, so a pollutant with
- * no monitor is a failure about that pollutant and has to be sayable about that
- * pollutant. No `section` subject carries a pollutant and no section template
- * names one, so the pollutant is named in the section's own note — which is
- * the technique `lib/adapters/fema.ts` already uses to make an empty answer say
- * which of its two datasets answered it.
- */
-function pollutantNote(pollutant: Pollutant): string {
-	return `EPA's Air Quality System listed no ${pollutant} monitor within ${BOUNDARY.aqs} of the mapped point.`;
-}
-
-/**
  * What an empty registry answer is, which is not `NO_DATA_NOTE`'s "No matching
  * records within the stated boundary".
  *
@@ -602,8 +591,14 @@ function pollutantNote(pollutant: Pollutant): string {
  * carrying no programme-interest row — never an area holding no facility, which
  * is the one claim docs/BRIEF.md B14's 6,915 rows within five miles of this
  * point make false. `askFrs` has no wording of its own for that and gives the
- * outcome `NO_DATA_NOTE`, so the section says it instead: the same technique
- * `pollutantNote` uses for a fact no section template can carry.
+ * outcome `NO_DATA_NOTE`, so the section says it instead.
+ *
+ * A note is the last resort, not the first. The AQS per-pollutant sections used
+ * this same technique until `section/aqs-no-pollutant-monitor@1` gave that fact
+ * a template, and the pollutant's name a slot the trace panel can open. This one
+ * stays a note because it holds no value to hang a slot on: it is a sentence
+ * about the shape of the request the report made, and every word of it would be
+ * connective text.
  */
 const FRS_NO_ROWS_NOTE =
 	"EPA's facility registry holds no programme-interest row for the registry IDs this report looked up.";
@@ -870,6 +865,14 @@ function notShownHeadline(store: EvidenceStore, listing: AnyListing): readonly S
  * and listings off the per-pollutant ones, so an answer carrying ozone monitors
  * only left PM2.5 with no count, no note and no sentence anywhere on the card.
  *
+ * The template is `section/aqs-no-pollutant-monitor@1` and not `no-records@1`,
+ * and the pollutant's name is `filterValue` read off this section's own filter.
+ * It used to be this function's section note, composed here with the pollutant
+ * interpolated into it -- the selection policy writing a sentence, which left
+ * the one word in it that varies with no slot and nothing for a reader clicking
+ * it to open. Both of that template's requirements are about this exact
+ * placement, so a wrong choice here is silence rather than a false sentence.
+ *
  * When the source returned nothing at all, the unfiltered section says so once
  * in the source's own words and this says nothing: the same fact printed three
  * times is the duplication `7f2ac98` was written to remove.
@@ -881,7 +884,7 @@ function pollutantHeadline(
 ): readonly SectionPlacement[] {
 	if (sectionOrdering(store, all).length === 0) return [];
 	if (sectionOrdering(store, section).length > 0) return [];
-	return [{ scope: "section", section, template: sectionNoRecords }];
+	return [{ scope: "section", section, template: aqsNoPollutantMonitor }];
 }
 
 /**
@@ -1245,10 +1248,14 @@ function aqsPollutantSection(
 		query: null,
 		retrievedAt: retrievedAtOf(outcome),
 		filter: { field: "pollutant", equals: pollutant },
-		// Named here rather than left to `noteOf`, because this section's
-		// emptiness is a fact about one pollutant and no section template can
-		// name one.
-		note: pollutantNote(pollutant),
+		// The source's own note, and nothing places a template over it here:
+		// `pollutantHeadline` speaks for this section with
+		// `section/aqs-no-pollutant-monitor@1`, which names the pollutant from
+		// the filter above, and `noRecordsHeadline` reads the unfiltered
+		// section. This used to be a sentence composed in this file with the
+		// pollutant interpolated into it, which is the defect that template was
+		// written to close.
+		note: noteOf(outcome),
 		carried: carriedBound(bounds),
 	});
 }

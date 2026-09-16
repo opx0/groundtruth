@@ -33,7 +33,7 @@
 
 import { expect, test } from "@playwright/test";
 import { DEMO, reportBody, type Plan } from "./helpers/bodies";
-import { openReport } from "./helpers/drive";
+import { AT_RICHEY, openReport, search } from "./helpers/drive";
 
 /** `DEMO`, with FEMA's own layer answering instead of refusing the connection. Esri is then never asked. */
 const AUTHORITATIVE: Plan = { ...DEMO, nfhl: { fixture: "fema/nfhl-zone-ae-pasadena.json" } };
@@ -54,7 +54,7 @@ const ZONE_AE_SENTENCE =
 	` Read from ${NFHL}.`;
 
 test("zone AE inside the SFHA, named to FEMA's own layer and not to Esri's copy", async ({ page }) => {
-	await openReport(page, await reportBody(AUTHORITATIVE));
+	await openReport(page, await reportBody(AUTHORITATIVE), AT_RICHEY);
 
 	const flood = page.locator("[data-source='fema']");
 	await expect(flood).toHaveAttribute("data-card-state", "records");
@@ -72,4 +72,28 @@ test("zone AE inside the SFHA, named to FEMA's own layer and not to Esri's copy"
 	// failure: the layer that answered is the one that was asked first.
 	await expect(flood).not.toContainText(ESRI);
 	await expect(flood).not.toContainText("could not be reached");
+});
+
+/**
+ * The address itself, not the point behind it.
+ *
+ * Until `tests/fixtures/census/` gained this match on 2026-09-17 this path
+ * drove the Houston coordinate and said so in its header, because A6 row 2's
+ * address could not reach the confirm screen at all. It can now, so the seam
+ * this file is about starts where a reader starts.
+ */
+test("A6 row 2's address reaches the confirm screen as the reader typed it", async ({ page }) => {
+	await search(page, AT_RICHEY.fixture, AT_RICHEY.address);
+
+	await expect(page.getByRole("heading", { name: "Match confirmed" })).toBeVisible();
+	await expect(page.locator("[data-field='matchedAddress']")).toHaveText("400 N RICHEY ST, PASADENA, TX, 77506");
+	await expect(page.locator("[data-field='blockFrom']")).toHaveText("400");
+	await expect(page.locator("[data-field='blockTo']")).toHaveText("498");
+	await expect(page.locator("[data-field='streetSide']")).toHaveText("R");
+	await expect(page.locator("[data-field='tigerLineId']")).toHaveText("657372840");
+
+	// The point the report is then asked with, stated on the screen that asks
+	// the reader to confirm it.
+	await expect(page.locator("[data-field='latitude']")).toHaveText("29.717476102334");
+	await expect(page.locator("[data-field='longitude']")).toHaveText("-95.219949564692");
 });

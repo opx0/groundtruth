@@ -71,10 +71,14 @@
  * DFIRM_ID value will be identical." It is not a panel — panels are
  * `S_FIRM_Pan.FIRM_PAN` and look like `48201C0810L` — and being identical for
  * every polygon in the county it cannot "cover the mapped point" either. The
- * clause names the field and stops. The record field is still called
- * `firmPanelId` in `lib/evidence/records.ts`, so the trace panel shows that
- * name beside this clause; renaming it is an adapter and kernel change this
- * file may not make.
+ * clause names the field and stops. The record field is `firmStudyId` in
+ * `lib/evidence/records.ts`. `.dev/PLAN.md` item 15 named this file's own
+ * defect: the clause already refused to call `DFIRM_ID` a panel, but the
+ * field it traced to was still named for one, so a reader who opened it saw
+ * the very thing the sentence had just denied. The new name says what the
+ * field is instead of what it is not, and matches `floodAreaId` and
+ * `sourceCitation` beside it, both named for what FEMA's own description
+ * calls the value rather than for the column.
  *
  * On attribution. When `dataset` is ESRI_REDUCED_SET the values came from
  * Esri's redistribution, not FEMA's service — the adapter's own caveat says
@@ -121,7 +125,7 @@ import { defineTemplate, fallback, sentence } from "@/lib/evidence/templates";
 function areaClauses(field: FieldRef<"fema-flood-zone">): Clause<"fema-flood-zone">[] {
 	return [
 		sentence`The zone subtype recorded for this area is ${field("zoneSubtype")}.`,
-		sentence`FEMA's FIRM study identifier for this area is ${field("firmPanelId")}.`,
+		sentence`FEMA's FIRM study identifier for this area is ${field("firmStudyId")}.`,
 		sentence`The flood area ID recorded for this area is ${field("floodAreaId")}.`,
 		sentence`The source-citation lookup key recorded for this area is ${field("sourceCitation")}.`,
 		sentence`Read from ${field("datasetLabel")}.`,

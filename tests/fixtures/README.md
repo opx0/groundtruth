@@ -60,6 +60,26 @@ record. Treat a missing row as rare, and treat a failed request for a row as a
 different thing entirely: one means the inventory has nothing, the other means
 we did not get to ask.
 
+## Census, the two curated addresses that had none
+
+Recorded 2026-09-17. `census/` held three files -- the Houston match, an
+ambiguous list and a no-match -- so of the five curated addresses in
+`docs/BRIEF.md` A6 only three could reach the confirm screen, and the other two
+could be driven for their flood half alone.
+
+`census/match-1300-perdido-st.json` and `census/match-400-n-richey-st.json`
+close that. Both are single matches, unedited, captured from
+`geocoding.geo.census.gov` with `benchmark=Public_AR_Current`, which is
+reachable from anywhere and always was. Nobody had asked it for these two
+addresses.
+
+**Richey's coordinate is the Pasadena flood point.** The match returns
+-95.219950, 29.717476, which is exactly the geometry
+`scripts/capture-us-fixtures.sh` uses for `nfhl-zone-ae-pasadena.json` and
+`esri-zone-ae-pasadena.json`. The curated address and the flood recordings were
+captured months apart and describe the same spot, so A6 row 2 can now be driven
+end to end from the address rather than from a coordinate typed into a test.
+
 ## Not recorded
 
 The authoritative FEMA NFHL endpoint refuses connections from the machine this

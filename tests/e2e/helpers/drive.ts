@@ -26,6 +26,25 @@ import { geocodeBody, CENSUS, type Body } from "./bodies";
 /** `docs/BRIEF.md` A6 row 1, and the address the match fixture was recorded for. */
 export const HOUSTON = "9311 E Ave P, Houston, TX 77012";
 
+/** A6 row 3. Its match returns a New Orleans point, and the flood answer there is the zone X levee subtype. */
+export const PERDIDO = "1300 Perdido St, New Orleans, LA 70112";
+
+/**
+ * A6 row 2. Its match returns -95.219949564692, 29.717476102334, which is
+ * exactly the geometry `scripts/capture-us-fixtures.sh` uses for both Pasadena
+ * flood fixtures. The address and those recordings were captured months apart
+ * and describe the same spot, so this row is drivable from what a reader types
+ * rather than from a coordinate written into a test.
+ */
+export const RICHEY = "400 N Richey St, Pasadena, TX 77506";
+
+/** Which recorded match a path confirms, so a path is not stuck with the demo address. */
+export type Typed = { readonly fixture: string; readonly address: string };
+
+export const AT_HOUSTON: Typed = { fixture: CENSUS.match, address: HOUSTON };
+export const AT_PERDIDO: Typed = { fixture: CENSUS.perdido, address: PERDIDO };
+export const AT_RICHEY: Typed = { fixture: CENSUS.richey, address: RICHEY };
+
 /** How many times the fixture body was served. A route that stopped matching would otherwise leave the real route to answer, over the real network. */
 type Served = () => number;
 
@@ -73,13 +92,18 @@ export async function search(page: Page, fixture: string, address: string): Prom
 }
 
 /**
- * Screens 1 to 3 for the Houston demo point: search, confirm the match, ask for
- * the report. The confirmation is a click and not a render, which is why this
- * helper has to make it -- `docs/BRIEF.md` B9 step 5.
+ * Screens 1 to 3: search, confirm the match, ask for the report. The
+ * confirmation is a click and not a render, which is why this helper has to
+ * make it -- `docs/BRIEF.md` B9 step 5.
+ *
+ * `typed` defaults to the Houston demo point, so every path written before
+ * 2026-09-17 reads as it did. A path that passes something else drives its own
+ * curated address from the search box, which is what a reader does and what
+ * `tests/fixtures/census/` could not support until both matches were recorded.
  */
-export async function openReport(page: Page, report: Body): Promise<void> {
+export async function openReport(page: Page, report: Body, typed: Typed = AT_HOUSTON): Promise<void> {
 	const stream = await serveReport(page, report);
-	await search(page, CENSUS.match, HOUSTON);
+	await search(page, typed.fixture, typed.address);
 	await page.getByRole("button", { name: "See the report" }).click();
 	await served(stream, "report");
 }

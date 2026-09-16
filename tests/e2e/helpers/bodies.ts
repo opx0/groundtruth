@@ -130,6 +130,11 @@ export const CENSUS = {
 	match: "census/match-9311-e-ave-p.json",
 	ambiguous: "census/ambiguous-100-main-st.json",
 	noMatch: "census/no-match-9400-clinton.json",
+	// Recorded 2026-09-17, and the reason A6 rows 2 and 3 could only be driven
+	// for their flood half before that. The endpoint needs no key and answers
+	// from anywhere; nobody had asked it for these two addresses.
+	perdido: "census/match-1300-perdido-st.json",
+	richey: "census/match-400-n-richey-st.json",
 };
 
 /**

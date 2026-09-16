@@ -61,43 +61,50 @@
  * status sentence. The stream ends only when every source has settled or the
  * client disconnects.
  *
- * A DISCONNECT STOPS THE EVENTS AND NOT THE REQUESTS, AND THAT IS A DEBT.
+ * A DISCONNECT STOPS THE REQUESTS AS WELL AS THE EVENTS, SINCE 2026-09-17.
  * `cancel` sets `open` false, which stops this file building or sending
- * anything further. It does not stop what is already running. Measured against
- * the committed fixtures with every source answering 30 ms late, cancelling the
+ * anything further, and fires `abandoned`, which stops the work itself.
+ *
+ * It did not, and the debt was measured rather than estimated. Against the
+ * committed fixtures with every source answering 30 ms late, cancelling the
  * reader after the first card:
  *
  *     requests issued when the client cancelled: 3
  *     requests issued 2s later                 : 25
  *
- * Twenty-two of twenty-five requests to EPA hosts are issued after the reader
- * is gone -- the fifteen Envirofacts status lookups, ECHO's second page, the
- * registry lookups. An abandoned tab then runs until its slowest source spends
- * its whole budget: 45 s for ECHO (`ECHO_POLICY`), 8 s for the rest
- * (`DEFAULT_POLICY`), plus the FRS lookups the SEMS handoff starts afterwards.
- * That is the wrong way round for government infrastructure and it is not
- * being defended here.
+ * Twenty-two requests to EPA hosts after the reader had gone -- the fifteen
+ * Envirofacts status lookups, ECHO's second page, the registry lookups -- and an
+ * abandoned tab ran until its slowest source spent its whole budget.
+ * `tests/unit/app/cancellation.test.ts` reproduces exactly those numbers against
+ * the old behaviour and asserts the count stops growing under the new one.
  *
- * It is not fixed here because the fix is not in this file. Cancelling in
- * flight needs an `AbortSignal` to reach `fetch`, and the only route to it is
- * `SourceIo.get(url, schema)`, which has no third parameter: the signal would
- * have to be added to the kernel's `SourceIo` in `lib/evidence/sourced.ts`,
- * honoured in `lib/io/fetch-source-io.ts` beside the timeout controller it
- * already builds, passed through `lib/io/cache-source-io.ts`, and threaded by
- * every adapter that loops -- SEMS over fifteen sites, ECHO over its pages,
- * FRS over its registry IDs. Anything cheaper is theatre: a check on `open`
- * between sources can only stop the SEMS-to-FRS handoff, because `runSource`
- * runs an adapter to completion and the fifteen status lookups are inside one.
+ * THE FIX WAS A TENTH OF WHAT THIS COMMENT PREDICTED, and the prediction is
+ * kept because the reasoning was the expensive part. It said the signal would
+ * have to reach `SourceIo.get`, be honoured in `lib/io/fetch-source-io.ts`,
+ * pass through `lib/io/cache-source-io.ts`, "and be threaded by every adapter
+ * that loops -- SEMS over fifteen sites, ECHO over its pages, FRS over its
+ * registry IDs". The first three were right. The last was not.
  *
- * Two smaller things worth knowing before someone picks it up. `withTimeout`
- * in `lib/evidence/source.ts` rejects the race without cancelling the loser, so
- * an adapter whose budget expired keeps looping and keeps issuing requests
- * after the card that gave up on it was sent; only the one request in flight is
- * bounded, by `createFetchSourceIo`'s own 8 s `AbortController`. Same debt, one
- * level down, and the same signal closes both. And
- * `tests/unit/app/report-route.test.ts` currently asserts this behaviour as
- * intended ("the report does not drop the requests it has already made"); that
- * assertion is the thing to rewrite first, not to route around.
+ * An adapter calls `get` on whatever io it was handed and has no opinion about
+ * cancellation, so `runSource` binds the signal into the io instead and every
+ * loop inside every adapter becomes cancellable without changing a line of any
+ * of them. The signal is per report, not per call, which is what made a
+ * decorator enough where a parameter looked necessary. Not one adapter was
+ * touched.
+ *
+ * `runSource` owning the controller closed the second half too. `withTimeout`
+ * in `lib/evidence/source.ts` rejected its race without cancelling the loser,
+ * so an adapter whose budget expired kept looping and kept issuing requests
+ * after the card that gave up on it was sent. It now aborts whatever it
+ * abandons.
+ *
+ * ONE REQUEST STILL ESCAPED, AND MEASURING IS THE ONLY REASON IT WAS FOUND.
+ * With all of the above in place the count went from twenty-two to one, every
+ * run, and it was always Esri's flood layer. `floodZoneOutcome` falls back to
+ * the copy whenever the authoritative leg is unavailable, and it never asked
+ * why: a cancelled first leg looked exactly like a refused one, so it opened a
+ * second connection for a reader who had already gone. A fallback that does not
+ * ask why it is falling back will do that wherever it appears.
  *
  * AND A CARD THAT CANNOT BE BUILT COSTS THAT CARD AND NO OTHER. A source
  * failing is an answer; a card failing to build is a defect -- a render with no
@@ -611,6 +618,12 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 
 		const encoder = new TextEncoder();
 		let open = true;
+		// One controller for this report. `cancel` fires it, `runSource` binds it
+		// into the io it hands each adapter, and every request in flight is
+		// abandoned. Per request and never shared: the io is a module-level
+		// singleton built once in `route.ts`, so a signal on the io itself would
+		// have one reader's disconnect cancel every other reader's report.
+		const abandoned = new AbortController();
 
 		const stream = new ReadableStream<Uint8Array>({
 			start(controller) {
@@ -703,6 +716,7 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 							adapter,
 							io,
 							policyFor(registered.source),
+							abandoned.signal,
 						);
 						const build = emitCard(() => buildCard(recordsOf(outcome), (store) => registered.card(store, outcome)));
 						if (registered.source !== "sems") return;
@@ -723,7 +737,7 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 
 					tasks.push(
 						(async (): Promise<void> => {
-							const result = await floodZoneOutcome(locusFor(point, "fema"), io, policyFor("fema"));
+							const result = await floodZoneOutcome(locusFor(point, "fema"), io, policyFor("fema"), abandoned.signal);
 							emitCard(() => buildCard(recordsOf(result.outcome), (store) => floodCard(store, result)));
 						})(),
 					);
@@ -784,15 +798,20 @@ export function createReportHandler(io: SourceIo, policies: Partial<Record<Repor
 					});
 			},
 			/**
-			 * The whole disconnect path, and it stops events rather than requests:
-			 * twenty-two of a report's twenty-five upstream requests are issued
-			 * after this runs. Measured, argued and left as a debt under "A
-			 * DISCONNECT STOPS THE EVENTS AND NOT THE REQUESTS" at the top of this
-			 * file, which also says what closing it takes -- an `AbortSignal` on
-			 * `SourceIo.get`, not another line here.
+			 * The disconnect path, and it now stops the requests as well as the
+			 * events. `open` ends the stream; the abort reaches every adapter
+			 * mid-flight, because `runSource` bound this signal into the io each
+			 * one was handed.
+			 *
+			 * The comment this replaced said closing it would take an `AbortSignal`
+			 * threaded through every adapter that loops. It did not. `runSource`
+			 * hands each adapter an io, and an adapter calls `get` on whatever it
+			 * was given, so binding the signal to the io reaches all of them at
+			 * once. The loops never needed an opinion about cancellation.
 			 */
 			cancel() {
 				open = false;
+				abandoned.abort();
 			},
 		});
 

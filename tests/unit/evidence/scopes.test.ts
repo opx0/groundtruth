@@ -175,7 +175,7 @@ describe("section: a count is the length of an ordering, never a number anyone w
 			template: semsSiteNpl,
 		});
 		expect(text(named.spans)).toBe(
-			"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL. 3.92 km from the mapped point.",
+			"US OIL RECOVERY is listed by SEMS. 3.92 km from the mapped point.",
 		);
 
 		// The NPL count is an ordering too, so it falls the same way.

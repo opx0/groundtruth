@@ -35,6 +35,7 @@
  */
 
 import { z } from "zod";
+import { DISPLAY_FORMATS } from "@/lib/evidence";
 import type { JsonValue } from "@/lib/evidence";
 
 /* -------------------------------------------------------------------------- */
@@ -162,7 +163,11 @@ export const ValueTraceSchema = z.object({
 /** A rendered span. `slot` is null for the template's own connective text, which has no field behind it. */
 export const SpanSchema = z.object({
 	text: z.string(),
-	slot: z.object({ field: z.string(), display: z.enum(["text", "distance-km", "date"]) }).nullable(),
+	// `DISPLAY_FORMATS` rather than the three members spelled out again. This
+	// line held its own copy of the union until 2026-09-17, and adding a
+	// fourth format to `lib/evidence/templates.ts` broke the typecheck here,
+	// three modules from the change.
+	slot: z.object({ field: z.string(), display: z.enum(DISPLAY_FORMATS) }).nullable(),
 });
 
 /**

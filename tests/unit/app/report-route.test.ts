@@ -449,6 +449,57 @@ describe("the Houston demo point, every source, one stream", () => {
 		expect(listing.shown.length + listing.rest.length).toBe(listing.carried);
 		expect(textsOf(sems)).toContain("Superfund sites EPA's inventory lists within 5 miles of the mapped point: 15.");
 	});
+
+	/**
+	 * The defect `.dev/PLAN.md` item 19 records, measured where it was visible:
+	 * the whole SEMS card, both listings, nothing stubbed between the store and
+	 * the sentences. The main listing is ordered by distance and US OIL RECOVERY
+	 * ranks fifth of fifteen at 3.92 km, so it is shown there *and* in the
+	 * final-NPL listing under it, and its NPL status used to print in both —
+	 * "NPL status: Currently on the Final NPL." from `summary@1`, then "is listed
+	 * by SEMS as Currently on the Final NPL" from `npl@1`, back to back.
+	 *
+	 * The overlap is asserted first, because it is the condition that makes the
+	 * repeat possible: a later pass that dropped the site from one of the two
+	 * listings would make the status assertion below pass for a reason that is
+	 * not the fix. docs/BRIEF.md A2 keeps the site in both and gives the
+	 * final-NPL line name and distance only.
+	 *
+	 * Only what a reader has on screen counts here — the headlines and each
+	 * listing's shown entries — because that is where "twice, back to back" was
+	 * read. GENEVA INDUSTRIES/FUHRMANN ENERGY ranks twelfth, so its `summary@1`
+	 * sentence sits in `rest`, behind "View all", and the final-NPL line is the
+	 * only place its distance is on screen at all.
+	 */
+	it("states a final-NPL site's status once on screen, and its distance in the line A2 gives it", async () => {
+		const { events } = await report(DEMO);
+		const sems = cardFor(events, "sems");
+		const main = at(sems.listings, 0, "the SEMS listing");
+		const npl = at(sems.listings, 1, "the final-NPL listing");
+		const idsIn = (listing: CardView["listings"][number]): readonly string[] =>
+			listing.shown.map((entry) => entry.recordId.sourceRecordId);
+
+		expect(idsIn(main)).toContain("TXN000607093");
+		expect(idsIn(npl)).toEqual(["TXN000607093", "TXD980748453"]);
+
+		const onScreen = [
+			...sems.headlines.map(textOf),
+			...sems.listings.flatMap((listing) => listing.shown.flatMap((entry) => entry.sentences.map(textOf))),
+		];
+
+		expect(onScreen.filter((text) => text.includes("Currently on the Final NPL"))).toEqual([
+			"US OIL RECOVERY, EPA ID TXN000607093. 3.92 km from the mapped point." +
+				" NPL status: Currently on the Final NPL. Non-NPL status date: 2010-07-05.",
+		]);
+		expect(onScreen.filter((text) => text.includes("is listed by SEMS"))).toEqual([
+			"US OIL RECOVERY is listed by SEMS. 3.92 km from the mapped point.",
+			"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS. 6.84 km from the mapped point.",
+		]);
+		// The status still reaches the reader once, above both listings.
+		expect(sems.headlines.map(textOf)).toContain(
+			"Sites on the final National Priorities List within 5 miles of the mapped point: 2.",
+		);
+	});
 });
 
 /* -------------------------------------------------------------------------- */

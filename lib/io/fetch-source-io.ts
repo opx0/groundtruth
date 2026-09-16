@@ -54,9 +54,28 @@ export function createFetchSourceIo(options: FetchSourceIoOptions = {}): SourceI
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 	const clock = options.clock ?? ((): string => new Date().toISOString());
 
-	async function get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> {
+	async function get<Raw extends JsonValue>(
+		url: URL,
+		schema: z.ZodType<Raw>,
+		signal?: AbortSignal,
+	): Promise<Fetched<Raw>> {
+		// Two reasons this request can stop early and they are opposite claims
+		// about whose fault it was, so the caller's is checked before the timer's.
+		// Merging them would have a trace say a source timed out when in fact
+		// nobody was waiting for it any more.
+		//
+		// Read through a function rather than inline, because `aborted` flips
+		// asynchronously and narrowing it once tells the compiler it cannot
+		// change. Checked inline, the second read below is `false | undefined`
+		// and TypeScript rejects the comparison as unreachable. It is not: that
+		// is the exact interval this whole change exists to notice.
+		const cancelled = (): boolean => signal?.aborted === true;
+		if (cancelled()) throw new SourceFailure("cancelled");
+
 		const controller = new AbortController();
 		const timer = setTimeout(() => controller.abort(), timeoutMs);
+		const abandon = (): void => controller.abort();
+		signal?.addEventListener("abort", abandon, { once: true });
 
 		let response: Response;
 		try {
@@ -69,9 +88,11 @@ export function createFetchSourceIo(options: FetchSourceIoOptions = {}): SourceI
 			// The caught error is never inspected or forwarded: some runtimes'
 			// own network errors repeat the request URL in their message, and
 			// that URL may carry an address.
+			if (cancelled()) throw new SourceFailure("cancelled");
 			throw controller.signal.aborted ? new SourceFailure("timeout") : new SourceFailure("refused");
 		} finally {
 			clearTimeout(timer);
+			signal?.removeEventListener("abort", abandon);
 		}
 
 		const bytes = new Uint8Array(await response.arrayBuffer());

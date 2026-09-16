@@ -790,15 +790,18 @@ describe("echo templates: the trace behind a span", () => {
 		expect(t.record.sourceRecordId).toBe(PORT_TERMINAL);
 	});
 
-	it("keeps ECHO's dollar sign and grouping in the trace behind the penalty span", () => {
-		// formatValue prints the parsed number, so a real amount would render
-		// $20254146 and lose ECHO's grouping. A currency display format belongs
-		// in the kernel beside km and day; the raw string is what the trace shows.
+	it("prints ECHO's dollar sign on screen and keeps the raw string in the trace", () => {
+		// formatValue's currency-dollar format restores the $ that ECHO's own
+		// column carries and that parse-currency strips to make the number; the
+		// raw string in the trace is unaffected by how the span is displayed.
+		// See the "a real penalty amount" block below for the grouping this
+		// format adds once the amount is not zero.
 		const sentence = mustRender(SOUTH_COAST, echoFacilityFormalAction);
 		const index = sentence.spans.findIndex((span) => span.slot?.field === "lastPenaltyAmountUsd");
-		expect(sentence.spans[index]?.text).toBe("0");
+		expect(sentence.spans[index]?.text).toBe("$0");
 
 		const t = mustTrace(sentence, index);
+		expect(t.clicked.displayed).toBe("$0");
 		expect(rawOf(t.clicked)).toEqual({
 			dataset: "echo_get_qid",
 			sourceField: "FacLastPenaltyAmt",
@@ -929,5 +932,71 @@ describe("echo templates: a facility ECHO sent no coordinate for", () => {
 				"NAICS codes ECHO lists for CARGILL INCORPORATED: 311119." +
 				" SIC codes ECHO lists for CARGILL INCORPORATED: 2048 5171.",
 		});
+	});
+});
+
+/* -------------------------------------------------------------------------- */
+/* A real penalty amount                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The committed page bytes with `FacLastPenaltyAmt` replaced on one row.
+ * `FacLastPenaltyAmt` is `"$0"` on all seven recorded facilities, so no
+ * committed row can prove the currency display groups a non-zero amount --
+ * this is that claim about the template, never a claim about what ECHO
+ * sends, which is why it is one field of the real bytes altered here rather
+ * than a new fixture (the same reasoning `tests/fixtures/README.md` gives for
+ * every `derived-` file, and the same technique `withoutObservationCount` in
+ * `tests/unit/templates/aqs.test.ts` uses for its own single-column claim).
+ */
+function pageBytesWithPenaltyAmount(registryId: string, amount: string): Buffer {
+	const parsed: unknown = JSON.parse(bytesOf("echo/facilities-page-quarter-mi.json").toString("utf8"));
+	if (!isBag(parsed)) throw new Error("page fixture is not an object");
+	const results = parsed["Results"];
+	if (!isBag(results)) throw new Error("page fixture carries no Results");
+	const facilities = results["Facilities"];
+	if (!isList(facilities)) throw new Error("page fixture carries no Facilities");
+	const rows = facilities.map((row: unknown) => {
+		if (!isBag(row)) throw new Error("page fixture row is not an object");
+		const id = row["RegistryID"];
+		if (typeof id !== "string" || id !== registryId) return row;
+		return { ...row, FacLastPenaltyAmt: amount };
+	});
+	return Buffer.from(JSON.stringify({ ...parsed, Results: { ...results, Facilities: rows } }), "utf8");
+}
+
+async function storeWithPenaltyAmount(registryId: string, amount: string): Promise<EvidenceStore> {
+	const io = stubIoOver([bytesOf("echo/facilities-quarter-mi.json"), pageBytesWithPenaltyAmount(registryId, amount)]);
+	const built = await createEchoAdapter({ retryDelayMs: 0 }).run(locus, io);
+	return storeOf(built.map((b) => complete(locus, b)));
+}
+
+describe("echo templates: a real penalty amount, not the recorded zero", () => {
+	it("renders with ECHO's thousands grouping restored, a claim about the template rather than ECHO's bytes", async () => {
+		// SOUTH COAST TERMINALS PTF is the one row with a formal-action date, so
+		// it is the one row echoFacilityFormalAction renders over. Its own
+		// FacLastPenaltyAmt is "$0"; "20254146" here is the module comment's own
+		// example of what the un-grouped defect looked like, restated as the
+		// fix's target: $20,254,146.
+		const withAmount = await storeWithPenaltyAmount(SOUTH_COAST, "$20254146");
+		expect(withAmount.get(echoId(SOUTH_COAST))?.lastPenaltyAmountUsd.value).toBe(20254146);
+		expect(cell(SOUTH_COAST, echoFacilityFormalAction, withAmount)).toBe(
+			"Most recent formal enforcement action in ECHO's facility summary for SOUTH COAST TERMINALS PTF: 2024-08-12." +
+				" Penalties counted in ECHO's facility summary: 1." +
+				" Most recent penalty date in ECHO's facility summary: 2024-08-12." +
+				" Amount of the most recent penalty in ECHO's facility summary: $20,254,146.",
+		);
+	});
+
+	it("still renders the recorded $0 literally, unchanged", () => {
+		// The same clause, over the real committed bytes rather than the altered
+		// ones above: no decimal is invented for a whole-dollar value, so the
+		// zero every recorded row carries still prints as "$0", not "$0.00".
+		expect(rendered(SOUTH_COAST, echoFacilityFormalAction)).toBe(
+			"Most recent formal enforcement action in ECHO's facility summary for SOUTH COAST TERMINALS PTF: 2024-08-12." +
+				" Penalties counted in ECHO's facility summary: 1." +
+				" Most recent penalty date in ECHO's facility summary: 2024-08-12." +
+				" Amount of the most recent penalty in ECHO's facility summary: $0.",
+		);
 	});
 });

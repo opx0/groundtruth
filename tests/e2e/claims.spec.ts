@@ -28,7 +28,7 @@ test("every card claims what was asked for, and no more", async ({ page }) => {
 	// that this report is that one.
 	const sems = page.locator("[data-source='sems']");
 	await expect(sems).toContainText("Sites on the final National Priorities List within 5 miles of the mapped point: 2.");
-	await expect(sems).toContainText("US OIL RECOVERY is listed by SEMS as Currently on the Final NPL. 3.92 km");
+	await expect(sems).toContainText("US OIL RECOVERY is listed by SEMS. 3.92 km");
 
 	// The registry is asked `where=REGISTRY_ID='...'`, one request per
 	// identifier. docs/BRIEF.md B14 records 6,915 FRS interest rows within five

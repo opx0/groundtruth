@@ -231,9 +231,20 @@ export function createCacheSourceIo(inner: SourceIo, options: CacheSourceIoOptio
 		while (entries.size > maxEntries) evictOldest();
 	}
 
-	async function get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> {
+	/**
+	 * `signal` is forwarded and never consulted here. A cache hit answers from
+	 * memory and issues no request, so there is nothing to cancel; a miss is the
+	 * inner io's request and the signal is that request's to honour. Dropping it
+	 * at this layer would make every cached source quietly uncancellable, which
+	 * is the kind of gap that only shows up as traffic nobody asked for.
+	 */
+	async function get<Raw extends JsonValue>(
+		url: URL,
+		schema: z.ZodType<Raw>,
+		signal?: AbortSignal,
+	): Promise<Fetched<Raw>> {
 		const ttlMs = cacheTtlMs(url);
-		if (ttlMs === null) return inner.get(url, schema);
+		if (ttlMs === null) return inner.get(url, schema, signal);
 
 		const key = cacheKey(url);
 		const atMs = nowMs();
@@ -258,7 +269,7 @@ export function createCacheSourceIo(inner: SourceIo, options: CacheSourceIoOptio
 		}
 
 		// A throw from here propagates and is not remembered.
-		const fetched = await inner.get(url, schema);
+		const fetched = await inner.get(url, schema, signal);
 		remember(key, fetched, ttlMs);
 		return fetched;
 	}

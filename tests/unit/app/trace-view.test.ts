@@ -506,7 +506,7 @@ describe("every slotted span of the demo report opens something", () => {
 			}
 		}
 		// docs/BRIEF.md A2 screen 3 over the Houston demo point: 48 sentences,
-		// 173 of whose spans carry a slot. Pinned, so a template that loses a
+		// 171 of whose spans carry a slot. Pinned, so a template that loses a
 		// slot is a failure here.
 		//
 		// The audit counted 48 and 172, when AQS and AirNow arrived as
@@ -516,12 +516,17 @@ describe("every slotted span of the demo report opens something", () => {
 		// way: the registry card's "Searched within 5 miles of the mapped
 		// point", over a lookup by registry ID that searched no area, and the
 		// group sentence naming the registry's own record of an identifier as a
-		// record sharing it.
+		// record sharing it. That left 173, and two more went the same way on
+		// 2026-09-17: `sems-site/npl@1` stopped printing `semsNplStatus`, one
+		// span on each of the two final-NPL sites, because the site that is in
+		// both SEMS listings had its status printed twice. The value is still on
+		// the card under `summary@1`'s own clause and in the section headline,
+		// and still in the trace behind every SEMS sentence.
 		const air = sentences.filter((sentence) => textOf(sentence).includes("holds no credential for it"));
 		expect(air.length).toBe(2);
 		expect(air.flatMap((sentence) => [...openableSpans(sentence)]).length).toBe(6);
 		expect(sentences.length).toBe(48);
-		expect(opened).toBe(173);
+		expect(opened).toBe(171);
 	});
 
 	it("leaves 31 spans whose value has no provenance of its own, and gives every one of them a header", async () => {

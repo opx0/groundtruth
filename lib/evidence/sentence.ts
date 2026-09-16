@@ -335,6 +335,22 @@ function slotAt(subject: Bag, field: string): Slot | null {
 	return null;
 }
 
+/**
+ * `20254146` -> `"$20,254,146"`; `0` -> `"$0"`. Comma-grouping and a leading
+ * `$`, nothing else: no rounding and no forced decimal places, so a
+ * whole-dollar value -- every recorded `FacLastPenaltyAmt` is one -- prints
+ * exactly `$0` rather than `$0.00`. `parse-currency`
+ * (`lib/evidence/sourced.ts`) is what turned ECHO's own `"$0"` into this
+ * number; this only reverses that one step, so the sign it prints is a sign
+ * the source sent, not one this codebase adds.
+ */
+function formatDollars(value: number): string {
+	const sign = value < 0 ? "-" : "";
+	const [whole, fraction] = Math.abs(value).toString().split(".");
+	const grouped = (whole ?? "0").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+	return `${sign}$${fraction === undefined ? grouped : `${grouped}.${fraction}`}`;
+}
+
 export function formatValue(value: unknown, display: DisplayFormat): string | null {
 	if (value === null || value === undefined) return null;
 	switch (display) {
@@ -347,6 +363,10 @@ export function formatValue(value: unknown, display: DisplayFormat): string | nu
 			// narrows what is shown, it never reinterprets what was read.
 			if (typeof value !== "string") return null;
 			return /^(\d{4}-\d{2}-\d{2})(?:[T ]|$)/.exec(value)?.[1] ?? value;
+		}
+		case "currency-dollar": {
+			if (typeof value !== "number") return null;
+			return formatDollars(value);
 		}
 		case "text": {
 			if (typeof value === "string") return value;
@@ -514,6 +534,9 @@ const STATUS_WORDS: { readonly [S in SourceOutcome["status"]]: string } = {
 };
 
 const CAUSE_WORDS: { readonly [C in FailureCause]: string } = {
+	// Worded for completeness rather than for a reader. A cancelled source's
+	// card is never sent, because cancellation is the reader having gone.
+	cancelled: "the reader closed the report before it finished",
 	timeout: "the request timed out",
 	refused: "the host refused the connection",
 	"rate-limited": "the source rate-limited the request",

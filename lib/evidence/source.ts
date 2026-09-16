@@ -49,8 +49,16 @@ export type Locus = {
  * reason was not known when it was the one thing that was. It is a failure
  * rather than a fourth outcome because the reader's question is the same:
  * this source is not on the report, and here is why.
+ *
+ * `cancelled` is the other one that is not about the source at all. The reader
+ * closed the tab, so the work was abandoned mid-flight. It is separated from
+ * `timeout` because the two are opposite claims about whose fault it was, and
+ * a trace that said a source timed out when in fact nobody was waiting for it
+ * any more would be this codebase's own kind of lie. A card carrying it is
+ * built but never sent, because by definition nobody is there to read it.
  */
 export type FailureCause =
+	| "cancelled"
 	| "timeout"
 	| "refused"
 	| "rate-limited"
@@ -92,8 +100,19 @@ export type SourceOutcome<K extends Kind = Kind> =
 	| SourceUnavailable;
 
 export type SourceIo = {
-	/** Fetch, hash, stamp, parse. Throws SourceFailure on timeout, http, or malformed. `Raw` may be a bare array: Envirofacts sends one. */
-	get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>>;
+	/**
+	 * Fetch, hash, stamp, parse. Throws SourceFailure on timeout, http, or
+	 * malformed. `Raw` may be a bare array: Envirofacts sends one.
+	 *
+	 * `signal` is optional because almost nobody is the caller. No adapter ever
+	 * passes one. It belongs to whoever owns the reason the work should stop,
+	 * which is `runSource` for a source that has spent its budget and the report
+	 * route for a reader who has gone. Both bind it to the whole io for one run
+	 * rather than threading it down, so an adapter that loops over fifteen sites
+	 * needs no change to become cancellable. An implementation that ignores it is
+	 * still correct, only uncancellable, which every test double here is.
+	 */
+	get<Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>, signal?: AbortSignal): Promise<Fetched<Raw>>;
 	query(parameter: string, value: string | number, adapterVersion: AdapterVersion, payload: PayloadRef): QueryProvenance;
 	now(): string;
 };
@@ -205,14 +224,61 @@ function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
 	});
 }
 
+/**
+ * The same io, with one signal bound into every request it makes.
+ *
+ * This is what makes a looping adapter cancellable without changing a line of
+ * it. SEMS asks Envirofacts fifteen times, ECHO walks its pages, FRS walks its
+ * registry IDs, and not one of them knows a signal exists: they call `get` on
+ * whatever io they were handed, and this decides what that means. The
+ * alternative on the table was threading an `AbortSignal` parameter through
+ * every adapter, which is a change to every loop in the codebase to express
+ * something none of those loops has an opinion about.
+ *
+ * `query` and `now` are wrapped rather than passed by reference, so an
+ * implementation that uses `this` is not quietly unbound on the way through.
+ */
+function boundTo(io: SourceIo, signal: AbortSignal): SourceIo {
+	return {
+		get: <Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> =>
+			io.get(url, schema, signal),
+		query: (parameter, value, adapterVersion, payload) => io.query(parameter, value, adapterVersion, payload),
+		now: () => io.now(),
+	};
+}
+
+/**
+ * `signal` is the caller's reason to stop, and the report route's is the reader
+ * having closed the tab.
+ *
+ * Two things end an adapter's work here and until 2026-09-17 neither stopped
+ * it. `withTimeout` below rejects the race and walks away, so an adapter whose
+ * budget expired kept looping and kept issuing requests after the card that
+ * gave up on it had already been sent. And a disconnected reader stopped events
+ * without stopping requests: twenty-two of a report's twenty-five upstream
+ * requests were issued after the reader had gone, measured and recorded in
+ * `app/api/report/handler.ts`.
+ *
+ * Both are the same missing thing, so both get the same one. This function owns
+ * a controller, binds it into the io, and fires it the moment the run is over
+ * by any route other than success. The caller's signal chains into it.
+ */
 export async function runSource<K extends Kind>(
 	locus: Locus,
 	adapter: Adapter<K>,
 	io: SourceIo,
 	policy: SourcePolicy,
+	signal?: AbortSignal,
 ): Promise<SourceOutcome<K>> {
+	const controller = new AbortController();
+	const stop = (): void => controller.abort();
+	// `addEventListener` never fires for a signal that has already aborted, so
+	// the standing state is read as well as the future event.
+	if (signal?.aborted === true) controller.abort();
+	else signal?.addEventListener("abort", stop, { once: true });
+
 	try {
-		const built = await withTimeout(adapter.run(locus, io), policy.timeoutMs);
+		const built = await withTimeout(adapter.run(locus, boundTo(io, controller.signal)), policy.timeoutMs);
 		const retrievedAt = io.now();
 		const [first, ...rest] = built.map((b) => complete(locus, b));
 		if (first === undefined) {
@@ -220,7 +286,12 @@ export async function runSource<K extends Kind>(
 		}
 		return { status: "ok", records: [first, ...rest], retrievedAt };
 	} catch (error) {
+		// The abort is the point. Whatever ended this run, the adapter behind it
+		// may still be mid-loop, and this is the only thing that reaches it.
+		controller.abort();
 		return unavailableOf(error);
+	} finally {
+		signal?.removeEventListener("abort", stop);
 	}
 }
 
@@ -232,9 +303,10 @@ export async function runSources(
 	adapters: { readonly [S in Exclude<SourceId, "census">]: Adapter<Kind> },
 	io: SourceIo,
 	policies: Partial<Record<SourceId, SourcePolicy>> = {},
+	signal?: AbortSignal,
 ): Promise<SourceMap> {
 	const run = (s: Exclude<SourceId, "census">): Promise<SourceOutcome> =>
-		runSource(locus, adapters[s], io, policies[s] ?? DEFAULT_POLICY);
+		runSource(locus, adapters[s], io, policies[s] ?? DEFAULT_POLICY, signal);
 	const [echo, frs, sems, aqs, airnow, fema] = await Promise.all([
 		run("echo"),
 		run("frs"),

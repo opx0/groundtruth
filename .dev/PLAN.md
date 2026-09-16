@@ -287,7 +287,7 @@ nothing to do with their work, so they wait.
    which is the source placement `floodCard` adds. That is now a choice rather
    than a workaround.
 
-9. **One timeout covers the whole flood source.** The fallback only runs after
+9. [DONE 2026-09-17] **One timeout covers the whole flood source.** The fallback only runs after
    the authoritative layer fails, so a hang rather than a fast reset would eat
    the budget and the reader would get nothing instead of the fallback. Give the
    first leg a shorter deadline than the source as a whole.
@@ -300,6 +300,14 @@ nothing to do with their work, so they wait.
    reason for parking it is spent. The timeout still covers the whole flood
    source and the first leg still has no deadline of its own; that part of
    the item is unchanged.
+
+   **Closed in `7af72b5`.** The authoritative leg now takes two fifths of the
+   budget and the copy keeps the whole of it. Not half, because the legs are not
+   equal: Esri's copy is the one that answers when the authoritative layer does
+   not. The test that covered this asserted the defect -- it was named "each
+   dataset is given the whole budget in turn" and required two policies' worth
+   of elapsed time -- and its old name and reasoning are kept in the comment
+   above its replacement.
 
 10. [DONE 2026-09-17] **`FLD_AR_ID` is required by the schema.** It is the layer's primary key and
     the adapter needs it for a record id, but no authoritative row has ever been
@@ -390,17 +398,44 @@ the selection policy.
     `"F"`. No unmapped letter came back, so this is still open on the same
     derived rows it started with.
 
-13. **`sems-site` never prints `archived`.** `tests/fixtures/sems/envirofacts-archived.json`
+13. [DONE 2026-09-17] **`sems-site` never prints `archived`.** `tests/fixtures/sems/envirofacts-archived.json`
     carries `archived_ind: "Y"` with `archived_date: 1996-01-25` beside a
     `non_npl_status_date` of 1984-09-01, so `summary@1` would show a 1984
     status with no sign that EPA archived the site twelve years later. It is a
     boolean and cannot be printed, which is exactly what `sfhaLabel` solved for
     `SFHA_TF`: the same `map` treatment applies.
 
-14. **ECHO's penalty amount loses its grouping.** `FacLastPenaltyAmt` arrives
+   **Closed in `ca61d50`.** `archivedLabel` reads `archived_ind` a second time
+   through `map`, exactly as `sfhaLabel` does for `SFHA_TF`, with the boolean
+   left behind it. The clause says "Superfund inventory record: archived", not
+   "Site: archived", because what EPA archived is its record and C2's forbidden
+   inference is the one a reader draws from an archived *site*. `N` is not
+   mapped, so both clauses drop for an unarchived site and the Houston demo card
+   is byte-identical, which was diffed rather than assumed.
+
+   This item's premise that a sometimes-absent clause needs its own template was
+   wrong. `assemble` drops a clause whose ref has nothing to show and keeps the
+   rest, which is how `Non-NPL status:` already vanishes from US OIL RECOVERY's
+   sentence. A second template is for when the absent state needs different
+   words.
+
+14. [DONE 2026-09-17] **ECHO's penalty amount loses its grouping.** `FacLastPenaltyAmt` arrives
     as `"$0"` and is read to the number 0, so a real amount would render
     `$20254146`. A currency `DisplayFormat` beside `distance-km` and `date`
     would fix it. Not urgent: every recorded row is zero.
+
+   **Closed in `6212b31`.** `currency-dollar` joins `distance-km` and `date`,
+   with a `dollars()` helper beside `km()`. It is `currency-dollar` and not
+   `currency-usd` deliberately: the `$` glyph is what ECHO sends and what
+   `currency()` strips, no ISO code is read or traced, and the "Usd" in
+   `lastPenaltyAmountUsd` was always an assumption this format declines to
+   repeat.
+
+   Adding the fourth format broke the typecheck three modules away, because
+   `app/lib/geocode-contract.ts` kept its own copy of the union in a `z.enum`.
+   `DISPLAY_FORMATS` is now the one runtime spelling, as a mapped object rather
+   than a list, because a list needs `as const` and `eslint.config.mjs` bans
+   every `as` under `lib/evidence`.
 
 15. **The record field behind FEMA's study-identifier clause is still named
     `firmPanelId`.** The clause correctly refuses to call `DFIRM_ID` a panel;
@@ -449,7 +484,7 @@ Closed in `be212c7` and the round after it. What is left:
     ECHO sentence carries both with their provenance. Nothing is hidden, one
     sentence is gone, and three names remain rather than four.
 
-19. **A final-NPL site prints its distance and its NPL status twice**, once from
+19. [DONE 2026-09-17] **A final-NPL site prints its distance and its NPL status twice**, once from
     `sems-site/summary@1` in the main listing and once from `sems-site/npl@1`
     in the NPL listing. B7 asks for both sentences, ~~and A2's own example has
     no overlap only because its two NPL sites fall outside the nearest five~~.
@@ -465,6 +500,17 @@ Closed in `be212c7` and the round after it. What is left:
     sentence denied. The other NPL site, `TXD980748453`, ranks twelfth at
     6.84 km and is genuinely outside the shown five — that half of the
     reasoning was right, it just did not hold for both sites.
+
+   **Closed in `6212b31`.** `sems-site/npl@1` is now `{subject} is listed by
+   SEMS.` and its distance. The status clause is gone: the headline above the
+   listing already names the final-NPL sites and counts them, and the section
+   filter is `semsNplStatus equals` that status, so every record in it carries
+   it by construction. The distance stays, because A2 asks for it and it is the
+   only place `GENEVA INDUSTRIES/FUHRMANN ENERGY` gets one.
+
+   The suggested fix in this item -- "probably a layout one" -- was spent. The
+   NPL block already is its own section under the list, and that is what put the
+   same site in both.
 
 20. **`SectionSubject` has no pollutant slot**, so an AQS pollutant with no
     qualifying monitor is named in the section's note rather than in a sentence

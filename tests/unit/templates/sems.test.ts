@@ -217,7 +217,7 @@ const EXPECTED: Readonly<Record<string, string | null>> = {
 	"sems-site/registry-only@1 | TXN000607093 (joined)": null,
 	"sems-site/status-unavailable@1 | TXN000607093 (joined)": null,
 	"sems-site/npl@1 | TXN000607093 (joined)":
-		"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL. 3.92 km from the mapped point.",
+		"US OIL RECOVERY is listed by SEMS. 3.92 km from the mapped point.",
 
 	"sems-site/summary@1 | TXN000622432 (joined)":
 		"KELLOGG TIRE FIRE, EPA ID TXN000622432. 2.37 km from the mapped point. NPL status: Not on the NPL." +
@@ -302,7 +302,7 @@ const EXPECTED: Readonly<Record<string, string | null>> = {
 	"sems-site/registry-only@1 | TXD980748453 (joined)": null,
 	"sems-site/status-unavailable@1 | TXD980748453 (joined)": null,
 	"sems-site/npl@1 | TXD980748453 (joined)":
-		"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS as Currently on the Final NPL. 6.84 km from the mapped point.",
+		"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS. 6.84 km from the mapped point.",
 
 	"sems-site/summary@1 | TXN000607155 (joined)":
 		"MCC RECYCLING, EPA ID TXN000607155. 5.50 km from the mapped point. NPL status: Site is Part of NPL Site." +
@@ -456,15 +456,24 @@ describe("the final-NPL sentence names only the sites on the final NPL", () => {
 		expect(named.map(({ record }) => record.id.sourceRecordId)).toEqual(["TXN000607093", "TXD980748453"]);
 	});
 
-	/** The wording that `present: true` used to allow, on the site the recheck quoted. */
-	it("no longer says a site not on the NPL is listed by SEMS in the final-NPL sentence", () => {
+	/**
+	 * What `present: true` would let into the final-NPL listing, on the site the
+	 * recheck quoted. `equals` refuses VALERO PLUME and that is the whole of the
+	 * defence now: since 2026-09-17 the sentence no longer prints the status, so
+	 * the wording a loosened requirement produces is not a false sentence any
+	 * more — it is a true one about a site that is not on the final NPL, sitting
+	 * under a headline that counts only sites that are. Nothing on screen would
+	 * give it away, which is why the requirement below is asserted rather than
+	 * assumed.
+	 */
+	it("keeps a site not on the final NPL out of the final-NPL sentence by requirement alone", () => {
 		const valero = joinedRecords.find((record) => record.id.sourceRecordId === "TXN000622182");
 		if (valero === undefined) throw new Error("VALERO PLUME is not in the outcome");
 
 		expect(valero.semsNplStatus?.value).toBe("Not on the NPL");
 		expect(rendered(valero, semsSiteNpl)).toBeNull();
 		expect(rendered(valero, { ...semsSiteNpl, requires: [{ slot: "semsNplStatus", present: true }] })).toBe(
-			"VALERO PLUME is listed by SEMS as Not on the NPL. 0.76 km from the mapped point.",
+			"VALERO PLUME is listed by SEMS. 0.76 km from the mapped point.",
 		);
 	});
 
@@ -654,13 +663,14 @@ describe("what the requirements are holding back", () => {
 	 * All forty-nine null cells are now a requirement refusing to render, and
 	 * that is the shape of the split, not a detail of the table. Two of them used
 	 * to be clause deaths: `npl@1` was one clause naming the status, so over the
-	 * two records with no inventory row it went silent by itself. With the
-	 * distance split off, the same two records leave `npl@1`'s second clause
-	 * standing — a bare `5.50 km from the mapped point.` with no site and no
-	 * listing named — and only `equals` keeps it off the screen. That is the
-	 * requirement carrying weight the clause used to carry, which is where this
-	 * codebase wants it: a visible declaration rather than an accident of which
-	 * ref happened to be null.
+	 * two records with no inventory row it went silent by itself. Splitting the
+	 * distance off left the second clause standing on its own, and taking the
+	 * status out of the first one (2026-09-17) leaves both standing: `subject`
+	 * cannot be null, so `npl@1` unrequired now renders a whole, true, wrongly
+	 * placed sentence over all fifteen records, and `equals` is the only thing
+	 * keeping it off the screen. That is the requirement carrying weight the
+	 * clause used to carry, which is where this codebase wants it: a visible
+	 * declaration rather than an accident of which ref happened to be null.
 	 */
 	it("accounts for every null cell in the table", () => {
 		const stopped: string[] = [];
@@ -678,9 +688,22 @@ describe("what the requirements are holding back", () => {
 		expect(alreadySilent).toEqual([]);
 	});
 
-	/** The bare clause the requirement is now the only thing holding back, written out. */
-	it("would print a distance under no subject over a record with no inventory row", () => {
-		expect(rendered(rowlessRecord, unrequired(semsSiteNpl))).toBe("5.50 km from the mapped point.");
+	/**
+	 * The sentence the requirement is now the only thing holding back, written
+	 * out. Both clauses survive over a record the Superfund inventory returned no
+	 * row for — the site is named, SEMS does list it, and it is 5.50 km away, so
+	 * every word of it is true — and it would still be false to put it in the
+	 * final-NPL listing, whose headline counts sites SEMS put on the final list
+	 * and whose filter is that status. Until 2026-09-17 the missing status took
+	 * the naming clause with it and left a subject-less distance, which at least
+	 * looked wrong on the card; now nothing in the sentence shows the defect, and
+	 * `equals` is the whole of the defence.
+	 */
+	it("would render a whole true sentence in the final-NPL listing over a record with no inventory row", () => {
+		expect(rendered(rowlessRecord, unrequired(semsSiteNpl))).toBe(
+			"MCC RECYCLING is listed by SEMS. 5.50 km from the mapped point.",
+		);
+		expect(rowlessRecord.semsNplStatus).toBeNull();
 		expect(rendered(rowlessRecord, semsSiteNpl)).toBeNull();
 	});
 });
@@ -984,17 +1007,19 @@ describe("a row the layer sent with no coordinate", () => {
 	 * here as deferred; this one splits the clause, and the assertion is the
 	 * opposite of what it was.
 	 *
-	 * The requirement is what makes the surviving clause safe. `equals` pins
-	 * `semsNplStatus`, `subject` is a coalesce that cannot be null, so the clause
-	 * that names the site and states the listing renders wherever this template
-	 * renders at all, and only the distance is at the mercy of the coordinate.
+	 * `subject` is a coalesce that cannot be null and it is the surviving
+	 * clause's only reference, so the clause that names the site renders wherever
+	 * this template renders at all, and only the distance is at the mercy of the
+	 * coordinate. The status it used to state alongside the name came out of the
+	 * sentence on 2026-09-17 — the section headline above the listing says it
+	 * once — so what a null coordinate leaves is the name and nothing else.
 	 */
 	it("keeps the final-NPL sentence, and loses only the distance, with no coordinate", () => {
 		const usOil = uncoordinated("TXN000607093", joinedAnswer("TXN000607093"));
 
 		expect(usOil.distanceMeters).toBeNull();
 		expect(usOil.semsNplStatus?.value).toBe(FINAL_NPL);
-		expect(rendered(usOil, semsSiteNpl)).toBe("US OIL RECOVERY is listed by SEMS as Currently on the Final NPL.");
+		expect(rendered(usOil, semsSiteNpl)).toBe("US OIL RECOVERY is listed by SEMS.");
 		expect(rendered(usOil, semsSiteSummary)).toBe(
 			"US OIL RECOVERY, EPA ID TXN000607093. NPL status: Currently on the Final NPL." +
 				" Non-NPL status date: 2010-07-05.",
@@ -1016,8 +1041,8 @@ describe("a row the layer sent with no coordinate", () => {
 		expect(onFinalNpl).toHaveLength(2);
 		expect(uncoordinatedToo.filter((record) => rendered(record, semsSiteNpl) !== null)).toHaveLength(2);
 		expect(uncoordinatedToo.map((record) => rendered(record, semsSiteNpl))).toEqual([
-			"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL.",
-			"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS as Currently on the Final NPL.",
+			"US OIL RECOVERY is listed by SEMS.",
+			"GENEVA INDUSTRIES/FUHRMANN ENERGY is listed by SEMS.",
 		]);
 	});
 
@@ -1043,5 +1068,114 @@ describe("a row the layer sent with no coordinate", () => {
 		for (const { record, template } of states.slice(1)) {
 			expect(rendered(record, template)).toContain("MCC RECYCLING");
 		}
+	});
+});
+
+/**
+ * The archived site, which is `.dev/PLAN.md` item 13 and the one state no
+ * recorded Houston row is in.
+ *
+ * `tests/fixtures/sems/envirofacts-archived.json` is a recording of two real
+ * Connecticut rows. The first carries `archived_ind: "Y"` and an
+ * `archived_date` of 1996-01-25 beside a `non_npl_status_date` of 1984-09-01,
+ * and until this pass `summary@1` printed the 1984 status and stopped, so the
+ * card showed a live-looking status for a site whose record EPA closed twelve
+ * years later. The whole sentence is asserted below and the two clauses it
+ * gained are the last two.
+ *
+ * It is served for `TXN000607155`, the same layer row the no-row and
+ * unavailable states above are built from, in the same way: the layer holds no
+ * archived site, so a real FRS row is joined to the recorded archived inventory
+ * row rather than any site being claimed to be archived. The name in the
+ * sentence is the inventory's, through `subject`.
+ *
+ * The other half of the item is the silence. All fifteen recorded Houston rows
+ * are `archived_ind: "N"` with a null `archived_date`, `map` holds no entry for
+ * `N`, and both clauses drop -- so the demo card is unchanged by this pass, and
+ * that is asserted here rather than assumed.
+ */
+const archivedRecord = await siteFrom(serving({ ...JOINED, [SITE]: "sems/envirofacts-archived.json" }));
+
+describe("a site EPA archived, twelve years after the status the card was printing", () => {
+	function summaryOf(record: SemsRecord): Sentence {
+		return mustRender(storeWith(record), { scope: "record", recordId: record.id, template: semsSiteSummary });
+	}
+
+	it("is the fixture's own bytes: a Y flag, a 1996 archive, and a 1984 status", () => {
+		expect(archivedRecord.archived?.value).toBe(true);
+		expect(archivedRecord.archivedLabel?.value).toBe("archived");
+		expect(archivedRecord.archivedDate?.value).toBe("1996-01-25");
+		expect(archivedRecord.statusDate?.value).toBe("1984-09-01");
+	});
+
+	it("prints the archived state and its date at the end of the summary sentence", () => {
+		expect(rendered(archivedRecord, semsSiteSummary)).toBe(
+			"CT RESOURCE RECOVERY AUTHORITY, EPA ID TXN000607155. 5.50 km from the mapped point." +
+				" NPL status: Not on the NPL. Non-NPL status: Deferred to RCRA (Subtitle C)." +
+				" Non-NPL status date: 1984-09-01. Superfund inventory record: archived." +
+				" Archived date: 1996-01-25.",
+		);
+	});
+
+	/** The point of the item: the archive comes after the status, and a reader can open both dates. */
+	it("puts the 1996 archive date after the 1984 status date, both openable", () => {
+		const sentence = summaryOf(archivedRecord);
+		const at = (field: string): number => sentence.spans.findIndex((span) => span.slot?.field === field);
+
+		expect(sentence.spans[at("statusDate")]?.text).toBe("1984-09-01");
+		expect(sentence.spans[at("archivedDate")]?.text).toBe("1996-01-25");
+		expect(at("statusDate")).toBeLessThan(at("archivedLabel"));
+		expect(at("archivedLabel")).toBeLessThan(at("archivedDate"));
+	});
+
+	/** EPA's own word on screen as a value, with the indicator behind it: `sfhaLabel`'s treatment of `SFHA_TF`. */
+	it("traces the word back to the Y in archived_ind, through map-code", () => {
+		const store = storeWith(archivedRecord);
+		const sentence = summaryOf(archivedRecord);
+		const index = sentence.spans.findIndex((span) => span.slot?.field === "archivedLabel");
+		const t = trace(store, sentence, index);
+		if (t === null || t.scope !== "record") throw new Error("expected a record-scoped trace");
+
+		expect(t.clicked.displayed).toBe("archived");
+		expect(t.clicked.provenance[0]).toMatchObject({
+			dataset: "envirofacts_site",
+			sourceField: "archived_ind",
+			rawValue: "Y",
+			transform: "map-code",
+		});
+	});
+
+	/** C2: the clause states what EPA did to the record and never what it means for the place. */
+	it("says nothing about the site being safe, clean, closed or finished", () => {
+		const sentence = rendered(archivedRecord, semsSiteSummary) ?? "";
+
+		for (const word of ["safe", "clean", "closed", "no further", "complete", "delisted"]) {
+			expect(sentence.toLowerCase()).not.toContain(word);
+		}
+		expect(sentence).toContain("Superfund inventory record: archived.");
+	});
+
+	it("says nothing at all on the fifteen recorded sites, which are all N", () => {
+		for (const record of joinedRecords) {
+			expect(record.archived?.value).toBe(false);
+			expect(record.archivedLabel?.value).toBeNull();
+			expect(record.archivedDate?.value).toBeNull();
+
+			const sentence = rendered(record, semsSiteSummary) ?? "";
+			expect(sentence).not.toContain("Superfund inventory record");
+			expect(sentence).not.toContain("Archived date");
+			expect(sentence).not.toContain("archived");
+		}
+	});
+
+	/** The demo card's nearest site, unchanged by this pass, so the report it prints is provably untouched. */
+	it("leaves the nearest site's sentence exactly as it was", () => {
+		const nearest = joinedRecords.find((record) => record.id.sourceRecordId === "TXN000622182");
+		if (nearest === undefined) throw new Error("TXN000622182 is not in the outcome");
+
+		expect(rendered(nearest, semsSiteSummary)).toBe(
+			"VALERO PLUME, EPA ID TXN000622182. 0.76 km from the mapped point. NPL status: Not on the NPL." +
+				" Non-NPL status: Removal Only Site (No Site Assessment Work Needed). Non-NPL status date: 2022-02-08.",
+		);
 	});
 });

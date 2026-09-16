@@ -368,10 +368,17 @@ describe("clicking any slotted span of any sentence in any card", () => {
 		// The spans of the two cards this deployment holds no credential for,
 		// counted apart: they are the whole of the difference between the 172 the
 		// brief's audit took, when those two were `not-asked` and carried no
-		// sentence, and the 173 below -- which is five short of 178 for the two
+		// sentence, and the 173 it was -- which is five short of 178 for the two
 		// claims the report withdrew: the registry card's boundary and retrieval
 		// time over a lookup that searched no area, and a group sentence naming
 		// the registry's own record of an identifier as a sharer of it.
+		//
+		// Two more came off on 2026-09-17, leaving the 171 below:
+		// `sems-site/npl@1` stopped printing `semsNplStatus`, one span on each
+		// of the two final-NPL sites, because the site that is in both SEMS
+		// listings had its status printed twice. The value is still on the card
+		// under `summary@1`'s own clause and in the section headline, and still
+		// in the trace behind every SEMS sentence.
 		let onNotConfigured = 0;
 
 		for (const card of state.cards) {
@@ -417,10 +424,10 @@ describe("clicking any slotted span of any sentence in any card", () => {
 			}
 		}
 
-		// The same 173 the state machine walks, through the rendered card this
+		// The same 171 the state machine walks, through the rendered card this
 		// time.
 		expect(onNotConfigured).toBe(6);
-		expect(clicked).toBe(173);
+		expect(clicked).toBe(171);
 	});
 
 	it("gives a slotted span its field name and leaves connective text alone", () => {

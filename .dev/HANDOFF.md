@@ -94,18 +94,36 @@ gratuitous, the reason is in its own comment.
 
 **Open in the code**, all in `.dev/PLAN.md`'s queue with numbers:
 
-- A disconnected client cancels nothing: twenty-two of twenty-five upstream
-  requests are issued after the reader has gone. `app/api/report/handler.ts`
-  carries the measurement and the shape of the fix — an `AbortSignal` through
-  `SourceIo`, which is a kernel change every looping adapter has to honour.
+- ~~A disconnected client cancels nothing.~~ **Closed 2026-09-17 in `d596566`.**
+  It was twenty-two of twenty-five upstream requests issued after the reader had
+  gone. The shape of the fix described here was wrong in its most expensive
+  part: it said the signal would have to be "threaded by every adapter that
+  loops", and no adapter was touched. An adapter calls `get` on whatever io it
+  was handed, so `runSource` binds the signal into the io and every loop becomes
+  cancellable at once. The signal is per report, not per call, which is what
+  makes a decorator enough where a parameter looked necessary.
+
+  The same controller closed the half nobody had listed: `withTimeout` rejected
+  its race without cancelling the loser, so an adapter whose budget expired kept
+  issuing requests after its card was sent.
+
+  And one request still escaped after all of that, every run, found only by
+  measuring. `floodZoneOutcome` fell back to Esri whenever the authoritative leg
+  was unavailable and never asked why, so a cancelled leg looked identical to a
+  refused one and it opened a connection for a reader who had already gone.
 - `TemplateRegistry` has still never been instantiated, and now nothing blocks
   it.
 - `SectionSpec.query` is null at every call site, so clicking a count or a
   boundary opens a trace with no payload behind it. Closing it needs a
   `SourceOutcome` that carries a query out.
-- No Playwright path drives 1300 Perdido St, so the zone X levee subtype — the
-  one verbatim agency string A6 shows for that address — is asserted only in
-  unit tests.
+- ~~No Playwright path drives 1300 Perdido St.~~ **Partly closed 2026-09-17.**
+  `tests/e2e/levee.spec.ts` now drives the zone X levee subtype end to end, and
+  `tests/e2e/authoritative-layer.spec.ts` drives zone AE from FEMA's own layer.
+  Both use the Houston point and say so in their headers, because what is still
+  missing is a Census match fixture for 1300 Perdido St and for Pasadena:
+  `tests/fixtures/census/` holds three files and neither curated address can
+  reach the confirm screen. Capturing those is cheap -- the Census geocoder is
+  reachable from anywhere -- and nobody has done it.
 
 ## How this session worked, and what to keep doing
 

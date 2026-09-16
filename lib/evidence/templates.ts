@@ -28,9 +28,43 @@ import type { Provenance, Sourced } from "./sourced";
  * How a slot's value is written on screen. The trace always carries the
  * normalized value and the raw one, so a display format narrows what is shown
  * without hiding anything: `distance-km` prints metres as kilometres, `date`
- * prints the date part of an instant.
+ * prints the date part of an instant, `currency-dollar` prints a number with
+ * a leading `$` and comma-grouped thousands.
+ *
+ * `currency-dollar`, not `currency-usd`. `lib/evidence/sourced.ts`'s
+ * `currency()` reader only ever strips a literal `$` glyph from the source
+ * string -- it reads no ISO currency code and traces none. ECHO's own bytes
+ * carry that glyph ("$0", "$1,250.50"), so printing it back is restating what
+ * the source sent; naming the format after a specific national currency would
+ * claim something no byte confirms. `lastPenaltyAmountUsd`'s "Usd" is the
+ * field-namer's assumption, made before this format existed, and is left as
+ * is -- this format is just careful not to repeat it.
+ *
  */
-export type DisplayFormat = "text" | "distance-km" | "date";
+export type DisplayFormat = "text" | "distance-km" | "date" | "currency-dollar";
+
+/**
+ * The same closed set as a value, because a wire schema needs its members at
+ * runtime and a type has none.
+ *
+ * `app/lib/geocode-contract.ts` used to spell the members out a second time
+ * inside a `z.enum`, so adding `currency-dollar` above broke that file's
+ * typecheck from three modules away. A second spelling of a closed set is a
+ * second place to forget.
+ *
+ * The shape is a mapped object rather than a list, and that is the whole point:
+ * `{ readonly [K in DisplayFormat]: K }` cannot omit a member. A list would
+ * need `as const` to keep its literal types, and `eslint.config.mjs` bans every
+ * `as` under `lib/evidence` -- the kernel's values are read through kernel
+ * readers, never asserted into shape. This gets exhaustiveness from the type
+ * system instead of from an assertion the lint would refuse.
+ */
+export const DISPLAY_FORMATS: { readonly [K in DisplayFormat]: K } = {
+	text: "text",
+	"distance-km": "distance-km",
+	date: "date",
+	"currency-dollar": "currency-dollar",
+};
 
 /**
  * A fact about our own retrieval rather than a value an agency returned: how
@@ -296,6 +330,21 @@ export function day<T extends SubjectKey, P extends TextKeys<T>>(
 	ref: SlotRef<T, P>,
 ): SlotRef<T, P> {
 	return Object.freeze({ ...ref, display: "date" });
+}
+
+/**
+ * Prints a number with a leading `$` and comma-grouped thousands, e.g.
+ * `20254146` -> `"$20,254,146"`. Named for the glyph, not the currency: the
+ * `$` is what `parse-currency` (`lib/evidence/sourced.ts`) stripped from
+ * ECHO's own string to make this number in the first place, so restoring it
+ * repeats a fact the source sent. No ISO code was ever read, so this helper
+ * does not claim one -- `NumericKeys<T>` constrains it exactly as `km` is
+ * constrained, over any slot that is a plain number.
+ */
+export function dollars<T extends SubjectKey, P extends NumericKeys<T>>(
+	ref: SlotRef<T, P>,
+): SlotRef<T, P> {
+	return Object.freeze({ ...ref, display: "currency-dollar" });
 }
 
 export function defineTemplate<T extends SubjectKey>(

@@ -75,6 +75,28 @@ type Kinds = {
 			readonly nonNplStatus: Sourced<string | null> | null;
 			readonly statusDate: Sourced<string | null> | null;
 			readonly archived: Sourced<boolean | null> | null;
+			/**
+			 * `archived_ind` read a second time, as the word EPA's own indicator
+			 * stands for. `archived` is a boolean and a boolean cannot be
+			 * printed, so the archived state was on the record and nowhere on the
+			 * card: `tests/fixtures/sems/envirofacts-archived.json` shows a 1984
+			 * non-NPL status with no sign that EPA archived the site twelve years
+			 * later. This is `sfhaLabel` on `fema-flood-zone`, for the same
+			 * reason and through the same `map` reader, with the indicator left
+			 * on `archived` behind it.
+			 *
+			 * Mapped for `Y` alone, so `N` reads as null and the clause printing
+			 * it drops. Both directions were considered, as `SFHA_TF` maps both
+			 * letters: there the letter is the claim the flood card exists to
+			 * make and neither state may be a silence, while here "not archived"
+			 * would put a sentence under every unarchived site to say that
+			 * nothing happened. An archive is an event with a date; its absence
+			 * is not. `lib/templates/sems.ts` has the whole argument, including
+			 * what the sentence may and may not say.
+			 */
+			readonly archivedLabel: Sourced<string | null> | null;
+			/** `archived_date`, which is the point of printing any of this: it can postdate `statusDate` by years. Null on every unarchived row. */
+			readonly archivedDate: Sourced<string | null> | null;
 			readonly semsCoordinate: GeoPoint | null;
 		};
 	};

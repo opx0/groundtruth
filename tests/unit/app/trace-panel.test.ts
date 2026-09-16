@@ -335,6 +335,14 @@ describe("every slotted span of every card opens a panel that names what is behi
 		// registry card's boundary and retrieval time, over a lookup by registry
 		// ID that searched no area, and the three spans of a group sentence
 		// naming the registry's own record of an identifier as a sharer of it.
+		//
+		// Two more came off on 2026-09-17, which is the difference between that
+		// 173 and the 171 below: `sems-site/npl@1` stopped printing
+		// `semsNplStatus`, one span on each of the two final-NPL sites, because
+		// the site that is in both SEMS listings had its status printed twice.
+		// The value is still on the card, under `summary@1`'s own clause and in
+		// the section headline, and still in the trace behind every SEMS
+		// sentence -- a slot with no span is listed there like any other.
 		let onNotConfigured = 0;
 		for (const sentence of sentences) {
 			const trace = sentence.trace;
@@ -384,7 +392,7 @@ describe("every slotted span of every card opens a panel that names what is behi
 			}
 		}
 		expect(onNotConfigured).toBe(6);
-		expect(opened).toBe(173);
+		expect(opened).toBe(171);
 	});
 });
 
@@ -419,7 +427,7 @@ describe("no rendered string outside a span was written by a component", () => {
 		}
 
 		expect(onNotConfigured).toBe(6);
-		expect(checked).toBe(173);
+		expect(checked).toBe(171);
 		expect([...unexpectedChrome]).toEqual([]);
 		expect([...unexpectedWire]).toEqual([]);
 	});

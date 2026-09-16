@@ -62,6 +62,7 @@ export const EnvirofactsSite = z.object({
 	non_npl_status_name: z.string().nullable(),
 	non_npl_status_date: z.string().nullable(),
 	archived_ind: z.string().nullable(),
+	archived_date: z.string().nullable(),
 });
 export type EnvirofactsSite = z.infer<typeof EnvirofactsSite>;
 export const EnvirofactsResponse = z.array(EnvirofactsSite);
@@ -163,6 +164,8 @@ export function semsBuilt(
 		nonNplStatus: site === null ? null : site.text("non_npl_status_name"),
 		statusDate: site === null ? null : site.date("non_npl_status_date"),
 		archived: site === null ? null : site.flag("archived_ind", { Y: true, N: false }),
+		archivedLabel: site === null ? null : site.map("archived_ind", { Y: "archived" }),
+		archivedDate: site === null ? null : site.date("archived_date"),
 		semsCoordinate:
 			site === null ? null : site.point("primary_latitude_decimal_val", "primary_longitude_decimal_val", {}),
 	};

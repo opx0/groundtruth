@@ -77,6 +77,78 @@
  * naming clause cannot drop, so the one clause there that can drop is the
  * distance and it takes only itself.
  *
+ * WHAT `npl@1` NO LONGER SAYS, 2026-09-17. Its naming clause used to print the
+ * status as well as the name — `${subject} is listed by SEMS as
+ * ${semsNplStatus}.` — and on the demo card a reader met one site's NPL status
+ * twice, back to back. The main SEMS listing is ordered by distance and US OIL
+ * RECOVERY ranks fifth of fifteen at 3.92 km, so it is inside the shown five as
+ * well as in the final-NPL listing under them:
+ *
+ *   US OIL RECOVERY, EPA ID TXN000607093. 3.92 km from the mapped point. NPL
+ *   status: Currently on the Final NPL. Non-NPL status date: 2010-07-05.
+ *   US OIL RECOVERY is listed by SEMS as Currently on the Final NPL. 3.92 km
+ *   from the mapped point.
+ *
+ * `.dev/PLAN.md` item 19 had filed that as impossible on the demo address,
+ * reasoning that both final-NPL sites fall outside the nearest five. That holds
+ * for `TXD980748453` (twelfth, 6.84 km) and not for `TXN000607093`, and the
+ * item now says so.
+ *
+ * docs/BRIEF.md A2 says what this block is for: "Two sites on the final
+ * National Priorities List within 5 miles: U.S. OIL RECOVERY, 3.92 km, and
+ * GENEVA INDUSTRIES/FUHRMANN ENERGY, 6.84 km." Name and distance, and no
+ * per-site status. Nothing is lost by taking the status out of the sentence:
+ * the section headline above the listing states it once for all of them, the
+ * section filter is `semsNplStatus equals` that same string so every record in
+ * the listing carries it by construction, `summary@1` prints the column for
+ * every site that reaches the shown five, and the trace behind this sentence
+ * still carries `semsNplStatus` and its provenance the way it carries every
+ * other slot of the record.
+ *
+ * The distance stays, and on the overlap it does print twice. That is A2's
+ * choice and not an oversight: this line is the only place GENEVA
+ * INDUSTRIES/FUHRMANN ENERGY gets a distance at all, because it ranks twelfth
+ * and never reaches the shown five. The same number twice costs a reader a
+ * glance; dropping it costs the second site the only number that locates it.
+ *
+ * The clause that survives has to name the site without the status, and it
+ * cannot be the bare name. `lib/templates/frs.ts` keeps names out of
+ * clause-final position because names end in their own period often enough that
+ * `${subject}.` renders "INC..", and this is not only a registry hazard: the
+ * SEMS layer fixture `tests/fixtures/sems/arcgis-5mi-houston.json` carries two
+ * rows named PASADENA REFINING SYSTEM, INC., and `subject` coalesces over
+ * exactly those names. So the clause keeps its verb and loses its object. "is
+ * listed by SEMS" is the kind gate's own guarantee restated — every record this
+ * template can render over is a SEMS site — and the section it sits in says
+ * what the listing is.
+ *
+ * `equals` now carries weight it did not carry before, which is the argument
+ * for keeping it exactly as it is. While the sentence printed the
+ * status, this template placed over the wrong record said something visibly
+ * false ("VALERO PLUME is listed by SEMS as Not on the NPL" inside a final-NPL
+ * block); now it would say something true about a site that does not belong in
+ * the listing, and nothing on screen would give it away. The requirement is the
+ * only thing standing there, and it is the same string `FINAL_NPL_STATUS` in
+ * `lib/report/selection.ts` filters the section on, so the count, the listing
+ * and this sentence still cannot describe different sets. The test that used to
+ * assert the false sentence now asserts the true-but-misplaced one, which is
+ * what it was always testing for.
+ *
+ * Nine test files moved with the sentence and none was loosened to a substring
+ * to make it pass. Four hold the sentence itself:
+ * `tests/unit/templates/sems.test.ts` (the cross-product table and four cases
+ * below it), `tests/unit/report/selection.test.ts` (B7's placement and the
+ * no-coordinate case), `tests/unit/evidence/scopes.test.ts` (the section and
+ * the record agreeing on one site) and `tests/e2e/claims.spec.ts` (the card as
+ * a browser reads it). Four pin the demo report's openable spans, which fell
+ * from 173 to 171 because the two final-NPL sentences each lost their
+ * `semsNplStatus` span: `report-flow`, `report-screen`, `trace-panel` and
+ * `trace-view` under `tests/unit/app/`. Those numbers are pinned exactly so
+ * that a template quietly losing a slot is a failure, which is what this was,
+ * deliberately. And `tests/unit/app/report-route.test.ts` gained the assertion
+ * this defect was measured by: the whole card, both listings, with nothing
+ * stubbed between the store and the rendered sentences.
+ *
  * THE DISTANCE IN `npl@1` IS NOW ITS OWN CLAUSE. It used to be one clause
  * carrying the NPL status and the distance together, and a clause dies whole
  * when any ref has nothing to show, so a final-NPL site with no FRS coordinate
@@ -87,10 +159,9 @@
  * deferred it; that reason is spent, because the claim is the count standing
  * beside the silence.
  *
- * Split, the naming clause cannot drop: `subject` is a coalesce over two names,
- * and this template's own requirement is that `semsNplStatus` equals the string
- * the clause prints, so both refs are guaranteed wherever it renders at all.
- * B7's sentence names the site and states the listing whatever the coordinate
+ * Split, the naming clause cannot drop: its one reference is `subject`, a
+ * coalesce over two names that is never null, so it renders wherever this
+ * template renders at all. B7's sentence names the site whatever the coordinate
  * does, and the distance drops alone. The second clause is byte-identical to
  * `echo-facility/summary@1`'s and `echo-facility/no-status@1`'s, which split
  * the same slot for the same reason, and `fallback` is the wrong instrument
@@ -129,18 +200,21 @@
  *   status-unavailable@1  statusRow unavailable                    the inventory could not be asked
  *   npl@1                 semsNplStatus = Currently on the Final NPL   SEMS put the site on the final NPL
  *
- * `npl@1` declares the value rather than the state because the status string
- * is the whole of what it asserts, and `present: true` was satisfied by any of
- * the three strings the recorded bytes hold: `Currently on the Final NPL` (2
- * sites), `Site is Part of NPL Site` (1), `Not on the NPL` (12). B7 gives the
- * final-NPL sites a sentence of their own beside a count of them, and thirteen
- * of the fifteen were getting the sentence while the count excluded them.
- * `equals` is the honest requirement: it names exactly what the sentence
- * asserts, and it is the same string the NPL section filter selects on, so the
- * count and the list cannot describe different sets. It is safe on a record
- * with no Envirofacts row because `semsNplStatus` is then plain null, and
- * `satisfies` in `lib/evidence/sentence.ts` fails an `equals` on a null slot
- * before it ever compares.
+ * `npl@1` declares the value rather than the state because the status string is
+ * the whole of what puts a site in this listing — it was the whole of what the
+ * sentence asserted too, until the status came out of it, and the paragraph
+ * above is why that makes the requirement matter more rather than less.
+ * `present: true` was satisfied by any of the three strings the recorded bytes
+ * hold: `Currently on the Final NPL` (2 sites), `Site is Part of NPL Site` (1),
+ * `Not on the NPL` (12). B7 gives the final-NPL sites a sentence of their own
+ * beside a count of them, and thirteen of the fifteen were getting the sentence
+ * while the count excluded them. `equals` is the honest requirement: it names
+ * exactly the condition the sentence is placed for, and it is the same string
+ * the NPL section filter selects on, so the count and the list cannot describe
+ * different sets. It is safe on a record with no Envirofacts row because
+ * `semsNplStatus` is then plain null, and `satisfies` in
+ * `lib/evidence/sentence.ts` fails an `equals` on a null slot before it ever
+ * compares.
  *
  * What `npl@1` cannot see: a site on the final NPL whose Envirofacts request
  * failed has a null Superfund status and gets no NPL sentence, while
@@ -176,6 +250,70 @@
  * as English. `non_npl_status_date` can outlive its status — US OIL RECOVERY
  * has a date and a null status name — so the date clause prints alone there.
  * That is the field stated and stopped, which is the rule.
+ *
+ * ON `archived`, WHICH NOTHING PRINTED UNTIL NOW. Envirofacts sends
+ * `archived_ind` and `archived_date` beside the two statuses, and
+ * `tests/fixtures/sems/envirofacts-archived.json` is what that costs: a
+ * `non_npl_status_date` of 1984-09-01, an `archived_ind` of `Y`, and an
+ * `archived_date` of 1996-01-25. `summary@1` printed the 1984 status and
+ * stopped, so the card showed a live-looking status for a site whose record EPA
+ * closed twelve years later. `archived` is a boolean and a boolean cannot be
+ * printed, which is the problem `lib/adapters/fema.ts` solved for `SFHA_TF` by
+ * reading the column a second time through `map`; `archivedLabel` is that, and
+ * `archived` stays on the record behind it.
+ *
+ * A CLAUSE, NOT A FIFTH TEMPLATE. A clause is not an all-or-nothing choice
+ * here: `assemble` in `lib/evidence/sentence.ts` drops a clause whose ref has
+ * nothing to show and keeps the rest, which is exactly how `Non-NPL status:`
+ * already disappears from US OIL RECOVERY's sentence while its date clause
+ * prints. A template is what an absent state needs when it needs *different
+ * words* — `lib/templates/fema.ts` has two because a missing `sfhaLabel` still
+ * has to print the letter FEMA sent — and an unarchived site has nothing to
+ * print. A second template would differ from `summary@1` by these two clauses,
+ * would need a fifth condition kept disjoint from the three `statusRow` states,
+ * and would put that choice in `lib/report/selection.ts`'s `semsPrimary`, for
+ * no sentence a reader would ever see.
+ *
+ * THE MAP READS `Y` AND NOTHING ELSE, so an unarchived site says nothing rather
+ * than "not archived". `SFHA_TF` maps both its letters because that phrase is
+ * the claim the flood card exists to make and neither state may be a silence.
+ * This is the other case: an archive is an event with a date, its absence is
+ * not an event, and mapping `N` would put a sentence under every unarchived
+ * site — all fifteen recorded Houston rows are `N` — to report that nothing
+ * happened. Nationally it is the other way round, and that is the reason to be
+ * careful rather than a reason to reconsider: docs/BRIEF.md's SEMS row counts
+ * 40,823 of 55,632 sites archived, so on most addresses these two clauses do
+ * print, and what they say is the paragraph below.
+ *
+ * The price is that an `archived_ind` this table does not hold reads
+ * on the card the same as `N`. B10's verbatim rule is about an unknown source
+ * *status*, and the three clauses above already pass every status string
+ * through unread; an indicator we cannot read costs the reader an addition to
+ * those, not the fact the card exists for. `archived` is what separates the two
+ * for anyone who looks: `flag` makes it false for `N` and null for a letter it
+ * does not hold.
+ *
+ * WHAT THE SENTENCE SAYS. `Superfund inventory record: archived.` The mapped
+ * word is EPA's own and the map does not explain it: what an archived record
+ * implies about the ground is EPA's business, and docs/BRIEF.md C2 forbids "No
+ * records means safe", which is the inference a reader makes here if this
+ * clause helps them. So the label names what was archived — the record in the
+ * inventory, not the site, not the soil — and the clause stops. It cannot take
+ * the column's own name the way the three clauses above take theirs, because
+ * `Archived: archived.` is not a sentence and `Archived: yes.` is the boolean
+ * again under another spelling.
+ *
+ * THE DATE IS ON SCREEN AND IS ITS OWN CLAUSE, for the reason the two Non-NPL
+ * clauses are two: a `Y` with a null `archived_date` still gets the archived
+ * sentence, and the date drops alone. It is the fact this item is about — 1996
+ * beside 1984 is what tells a reader the status they just read is not the last
+ * thing that happened. No `fallback` on it: `Date unavailable` is B10's wording
+ * for a date missing where one is expected, and under a site that was never
+ * archived there is no date to be missing.
+ *
+ * The other three templates gain nothing. `registry-only@1` and
+ * `status-unavailable@1` have no retrieved row, so `archivedLabel` is null on
+ * every record they can render over; `npl@1` is A2's name and distance.
  */
 
 import { defineTemplate, fallback, km, sentence } from "@/lib/evidence/templates";
@@ -195,6 +333,12 @@ export const semsSiteSummary = defineTemplate(
 		sentence`NPL status: ${field("semsNplStatus")}.`,
 		sentence`Non-NPL status: ${field("nonNplStatus")}.`,
 		sentence`Non-NPL status date: ${fallback(field("statusDate"), "Date unavailable")}.`,
+		// Both drop on a site EPA has not archived, which is every one of the
+		// fifteen recorded Houston rows and, nationally, 14,809 of 55,632. The
+		// module comment argues why that silence is the right one, why the
+		// wording is what it is, and why these are two clauses and not one.
+		sentence`Superfund inventory record: ${field("archivedLabel")}.`,
+		sentence`Archived date: ${field("archivedDate")}.`,
 	],
 	[{ state: "statusRow", is: "joined" }],
 );
@@ -259,22 +403,31 @@ export const semsSiteStatusUnavailable = defineTemplate(
  * B7: a site on the final National Priorities List is also named in its own
  * sentence.
  *
- * Two clauses, not one. The naming clause holds `subject`, which cannot be
- * null, and `semsNplStatus`, which this template's requirement pins to the
- * string it prints — so wherever this renders at all, the site is named and its
- * listing is stated. The distance is a clause of its own because
- * `distanceMeters` is the one slot here that a row the layer is allowed to send
- * can leave null, and while it shared the clause it took B7's whole sentence
- * with it, off a card whose final-NPL count still counted the site. The module
- * comment argues both.
+ * Name and distance, which is what A2 asks this block for. The status the site
+ * is here for is not restated per site: the section headline states it once and
+ * the section filter is that same string, so every record in this listing
+ * carries it by construction, and printing it again put one site's status on
+ * the demo card twice. The module comment has the card as it read and the
+ * whole argument.
+ *
+ * Two clauses, not one. The naming clause holds only `subject`, which cannot be
+ * null, so wherever this renders at all the site is named. The distance is a
+ * clause of its own because `distanceMeters` is the one slot here that a row the
+ * layer is allowed to send can leave null, and while it shared the clause it
+ * took B7's whole sentence with it, off a card whose final-NPL count still
+ * counted the site. The module comment argues both, and argues why the name
+ * does not stand at the end of its clause on its own.
  */
 export const semsSiteNpl = defineTemplate(
 	"sems-site",
 	"sems-site/npl@1",
 	(field) => [
-		sentence`${field("subject")} is listed by SEMS as ${field("semsNplStatus")}.`,
+		sentence`${field("subject")} is listed by SEMS.`,
 		sentence`${km(field("distanceMeters"))} from the mapped point.`,
 	],
+	// Kept exactly as it was, and it does more work than it did: the sentence no
+	// longer names the status, so this is the only thing keeping a site that is
+	// not on the final NPL out of the final-NPL listing.
 	[{ slot: "semsNplStatus", equals: "Currently on the Final NPL" }],
 );
 

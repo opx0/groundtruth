@@ -52,7 +52,7 @@ export type {
 	StatusRowOutcome,
 } from "./records";
 
-export { day, defineTemplate, fallback, isSlotRef, km, sentence } from "./templates";
+export { DISPLAY_FORMATS, day, defineTemplate, fallback, isSlotRef, km, sentence } from "./templates";
 export type {
 	AnyRef,
 	Clause,

@@ -269,15 +269,55 @@ export type FloodZoneResult = {
  * NFHL first. Esri only when NFHL is unavailable. An empty NFHL answer is an
  * answer, and is never retried against the copy that cannot distinguish it.
  */
+/**
+ * What fraction of the flood budget the authoritative leg may spend before the
+ * copy is asked.
+ *
+ * The two legs are sequential, so without this the first one can spend the
+ * whole budget and the reader gets nothing where a fallback was available. A
+ * refusal is instant and costs nothing, which is what this deployment sees from
+ * outside the US; a hang is the case that needs the cap, and it is the case
+ * nobody had seen when this was first written.
+ *
+ * Two fifths rather than half, because the legs are not equal. Esri's copy is
+ * the one that answers when the authoritative layer does not, so it should keep
+ * the larger share: the report would rather have a qualified answer late than
+ * no answer at all.
+ */
+const NFHL_BUDGET_SHARE = 0.4;
+
+/** The authoritative leg's own deadline, never longer than the source's whole budget. */
+export function nfhlPolicy(policy: SourcePolicy): SourcePolicy {
+	return { ...policy, timeoutMs: Math.round(policy.timeoutMs * NFHL_BUDGET_SHARE) };
+}
+
 export async function floodZoneOutcome(
 	locus: Locus,
 	io: SourceIo,
 	policy: SourcePolicy = DEFAULT_POLICY,
+	signal?: AbortSignal,
 ): Promise<FloodZoneResult> {
-	const nfhl = await runSource(locus, nfhlAdapter, io, policy);
+	// The authoritative leg gets a deadline of its own. `policy` stays the whole
+	// source's budget and the fallback below keeps it, so a fast refusal costs
+	// the copy nothing and a hang cannot eat the copy's chance to answer.
+	const nfhl = await runSource(locus, nfhlAdapter, io, nfhlPolicy(policy), signal);
 	if (nfhl.status !== "unavailable") {
 		return { dataset: "NFHL", outcome: nfhl, nfhl: null };
 	}
-	const esri = await runSource(locus, esriReducedSetAdapter, io, policy);
+	// Why the first leg failed decides whether there is a second one.
+	//
+	// Every other cause is a fact about NFHL, and the whole reason this fallback
+	// exists is to answer anyway. `cancelled` is not about NFHL at all: the
+	// reader closed the report. Falling back then asks Esri a question nobody is
+	// waiting for, and the card built from it is discarded unsent.
+	//
+	// This was found by measurement rather than by reading. With the disconnect
+	// abort in place, one request still escaped a cancelled report, every run,
+	// and it was this one. A fallback that does not ask why it is falling back
+	// will do this wherever it appears.
+	if (nfhl.cause === "cancelled") {
+		return { dataset: "NFHL", outcome: nfhl, nfhl: null };
+	}
+	const esri = await runSource(locus, esriReducedSetAdapter, io, policy, signal);
 	return { dataset: "ESRI_REDUCED_SET", outcome: esri, nfhl };
 }

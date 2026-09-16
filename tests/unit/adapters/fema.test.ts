@@ -55,6 +55,7 @@ import {
 	floodZoneOutcome,
 	floodZoneQueryUrl,
 	nfhlAdapter,
+	nfhlPolicy,
 } from "@/lib/adapters/fema";
 import { houstonLocus } from "../evidence/helpers/sems-fixtures";
 
@@ -631,7 +632,20 @@ describe("B12 case 7, timeout: two datasets, so two meanings", () => {
 		expect(result.outcome).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
 	});
 
-	it("both hosts hanging is unavailable twice over, and each dataset is given the whole budget in turn", async () => {
+	/**
+	 * Queue item 9, closed 2026-09-17. This test asserted the defect.
+	 *
+	 * It used to be named "each dataset is given the whole budget in turn" and
+	 * required `elapsed >= 2 * IMPATIENT.timeoutMs`, pinning as intended the very
+	 * thing item 9 called wrong: the two legs run in sequence, so a hanging
+	 * authoritative layer spent the whole budget and the copy -- the one that
+	 * actually answers for this deployment -- then spent another. The flood
+	 * section's worst case was two policies where every other source had one.
+	 *
+	 * The leg now has its own deadline. The worst case is one budget and two
+	 * fifths of another, and the copy keeps its full share.
+	 */
+	it("caps the authoritative leg so a hang cannot eat the copy's chance to answer", async () => {
 		const { io, calls } = stubIo({ [NFHL_HOST]: { hang: true }, [ESRI_HOST]: { hang: true } });
 		const started = Date.now();
 		const result = await floodZoneOutcome(locus(), io, IMPATIENT);
@@ -640,11 +654,34 @@ describe("B12 case 7, timeout: two datasets, so two meanings", () => {
 		expect(calls).toHaveLength(2);
 		expect(result.nfhl).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
 		expect(result.outcome).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
-		// The two runs are sequential and each starts its own timer, so the flood
-		// section's worst case is two whole policies rather than one.
-		// `app/api/report/handler.ts` hands it `DEFAULT_POLICY`, which makes that
-		// 16s here against 8s for every other source.
-		expect(elapsed).toBeGreaterThanOrEqual(2 * IMPATIENT.timeoutMs);
+		// The claim, and it is deterministic: the leg's deadline is shorter than
+		// the source's. Setting `NFHL_BUDGET_SHARE` back to 1 fails here.
+		expect(nfhlPolicy(IMPATIENT).timeoutMs).toBeLessThan(IMPATIENT.timeoutMs);
+		// Both legs still run and the copy still gets the whole budget, so the
+		// floor is one policy. There is deliberately no wall-clock ceiling beside
+		// it: the difference between capped and uncapped here is twelve
+		// milliseconds, and an assertion that thin measures the machine's load
+		// rather than this file's behaviour. The line above is the proof.
+		expect(elapsed).toBeGreaterThanOrEqual(IMPATIENT.timeoutMs);
+	});
+
+	/**
+	 * The case the cap exists for, and the one nobody had seen when item 9 was
+	 * written, because the authoritative host refused instantly from here rather
+	 * than hanging. A refusal costs the copy nothing. A hang used to cost it the
+	 * whole budget.
+	 */
+	it("still reaches the copy's answer when the authoritative layer hangs", async () => {
+		const { io, calls } = stubIo({
+			[NFHL_HOST]: { hang: true },
+			[ESRI_HOST]: { fixture: "esri-zone-ae-pasadena.json" },
+		});
+		const result = await floodZoneOutcome(locus(), io, IMPATIENT);
+
+		expect(calls).toHaveLength(2);
+		expect(result.dataset).toBe("ESRI_REDUCED_SET");
+		expect(result.nfhl).toEqual({ status: "unavailable", cause: "timeout", rawCode: null, retryAfter: null });
+		expect(result.outcome.status).toBe("ok");
 	});
 
 	it("is unavailable rather than zero rows when one dataset is run on its own", async () => {

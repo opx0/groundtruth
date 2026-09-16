@@ -904,7 +904,7 @@ describe("the four Superfund templates, one state each", () => {
 			expect(idsOf(houston.store, listing)).toContain(id);
 		}
 		expect(mustRender(houston.store, firstPlacementFor(houston.store, npl, "TXN000607093"))).toBe(
-			"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL. 3.92 km from the mapped point.",
+			"US OIL RECOVERY is listed by SEMS. 3.92 km from the mapped point.",
 		);
 	});
 
@@ -2397,7 +2397,7 @@ describe("a final-NPL site the layer sent no coordinate for", () => {
 			"Sites on the final National Priorities List within 5 miles of the mapped point: 2.",
 		);
 		expect(mustRender(derived.store, firstPlacementFor(derived.store, npl, FINAL_NPL_NO_POINT))).toBe(
-			"US OIL RECOVERY is listed by SEMS as Currently on the Final NPL.",
+			"US OIL RECOVERY is listed by SEMS.",
 		);
 		// Two counted, two spoken for.
 		expect(

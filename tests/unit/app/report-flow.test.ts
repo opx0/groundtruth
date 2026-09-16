@@ -222,10 +222,15 @@ describe("every slotted span of every sentence resolves to the value behind it",
 		// the five the report stopped claiming — the registry card's boundary and
 		// retrieval time, over a lookup by registry ID that searched no area, and
 		// the three of a group sentence naming the registry's own record of an
-		// identifier as a record sharing it.
+		// identifier as a record sharing it. Two more came off on 2026-09-17,
+		// leaving 171: `sems-site/npl@1` stopped printing `semsNplStatus`, one
+		// span on each of the two final-NPL sites, because the site that is in
+		// both SEMS listings had its status printed twice. The value is still on
+		// the card under `summary@1` and still in the trace behind every SEMS
+		// sentence.
 		expect(air.length).toBe(2);
 		expect(air.flatMap((sentence) => [...slottedSpans(sentence)]).length).toBe(6);
-		expect(walked).toBe(173);
+		expect(walked).toBe(171);
 	});
 
 	it("resolves nothing for the template's own connective text", () => {

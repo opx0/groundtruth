@@ -236,6 +236,11 @@ describe("success: a site that exists in both systems", () => {
 		expect(record.effectiveAt.value).toBe("2022-02-08");
 		expect(record.sourceUpdatedAt.value).toBe("2024-03-14T10:51:51Z");
 		expect(record.archived?.value).toBe(false);
+		// `map` holds no entry for `N`, so the words and the date are both null and
+		// `sems-site/summary@1`'s two archived clauses drop. That is the ordinary
+		// case: every recorded Houston row is `N` with a null `archived_date`.
+		expect(record.archivedLabel?.value).toBeNull();
+		expect(record.archivedDate?.value).toBeNull();
 		expect(record.statusRow).toEqual({ status: "joined" });
 		expect(record.payloads.map((p) => p.url)).toEqual([
 			"fixture:sems/arcgis-5mi-houston.json",
@@ -315,6 +320,8 @@ describe("a site the Superfund inventory has no row for", () => {
 		expect(record.nonNplStatus).toBeNull();
 		expect(record.statusDate).toBeNull();
 		expect(record.archived).toBeNull();
+		expect(record.archivedLabel).toBeNull();
+		expect(record.archivedDate).toBeNull();
 		expect(record.semsCoordinate).toBeNull();
 		expect(record.subject.value).toBe("MCC RECYCLING");
 		expect(record.sourceUrl.value).toBe(
@@ -416,13 +423,42 @@ describe("unknown status", () => {
 		expect(record.statusRow).toEqual({ status: "joined" });
 	});
 
-	it("passes an archived NFRAP-style status and its Y flag through unmapped", async () => {
+	it("passes an archived NFRAP-style status through unmapped, and reads the Y flag twice", async () => {
 		const served = serving(LAYER_5MI, { TXN000622182: "sems/envirofacts-archived.json" });
 		const record = sited(ok(await run(served)), NEAREST_EPA_ID);
 		expect(record.semsNplStatus?.value).toBe("Not on the NPL");
 		expect(record.nonNplStatus?.value).toBe("Deferred to RCRA (Subtitle C)");
+		// Twelve years before the archive date below, which is what item 13 was about.
 		expect(record.statusDate?.value).toBe("1984-09-01");
 		expect(record.archived?.value).toBe(true);
+		// The same column read a second time as the word EPA's indicator stands
+		// for, because a boolean cannot be printed and `summary@1` was showing the
+		// 1984 status of a site EPA archived in 1996. `map-code` keeps the Y in
+		// the trace behind the word, exactly as `sfhaLabel` keeps `SFHA_TF`.
+		expect(record.archivedLabel?.value).toBe("archived");
+		expect(record.archivedLabel?.provenance).toEqual([
+			{
+				kind: "field",
+				dataset: "envirofacts_site",
+				sourceField: "archived_ind",
+				rawValue: "Y",
+				transform: "map-code",
+				adapterVersion: "sems@1",
+				payload: fixturePayload("sems/envirofacts-archived.json"),
+			},
+		]);
+		expect(record.archivedDate?.value).toBe("1996-01-25");
+		expect(record.archivedDate?.provenance).toEqual([
+			{
+				kind: "field",
+				dataset: "envirofacts_site",
+				sourceField: "archived_date",
+				rawValue: "1996-01-25 00:00:00",
+				transform: "normalize-date",
+				adapterVersion: "sems@1",
+				payload: fixturePayload("sems/envirofacts-archived.json"),
+			},
+		]);
 		expect(record.semsName?.value).toBe("CT RESOURCE RECOVERY AUTHORITY");
 		expect(record.sourceUrl.value).toBe("https://cumulis.epa.gov/supercpad/cursites/csitinfo.cfm?id=0100001");
 		// That fixture holds a second row. The adapter takes `raw[0]` and drops the

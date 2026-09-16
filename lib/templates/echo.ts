@@ -178,10 +178,17 @@
  * clause says which penalty it is the amount of. The date stays a clause of
  * its own so that a null in one does not take the other off the screen.
  *
- * Note for a later unit: `formatValue` prints the parsed number, so a real
- * amount renders `$20254146` and loses ECHO's grouping. A currency display
- * format belongs beside `km` and `day` in the kernel, and is deliberately not
- * added here.
+ * The clause used to spell `$` itself and let `formatValue` print the parsed
+ * number after it, so a real amount rendered `$20254146` and lost ECHO's
+ * grouping. `dollars()`, beside `km` and `day` in the kernel
+ * (`lib/evidence/templates.ts`), now supplies both the sign and the grouping,
+ * so the same amount renders `$20,254,146` and the recorded `$0` still
+ * renders `$0`, not `$0.00` -- no decimal is invented for a whole-dollar
+ * value. The format is named `currency-dollar`, not `currency-usd`: ECHO's
+ * own string carries the glyph `$`, which `parse-currency` strips and this
+ * restores, but no byte anywhere names an ISO currency code, and
+ * `lastPenaltyAmountUsd`'s "Usd" is this codebase's own assumption about
+ * which dollar, made before this format existed and left as is.
  *
  * `FacSICCodes` is `"2048 5171"` on the Cargill row and `FacNAICSCodes` is
  * `"311119"`: both columns hold space-separated lists, so the clause says
@@ -258,7 +265,7 @@
  * and the two stated absences that matter have templates of their own above.
  */
 
-import { defineTemplate, km, sentence } from "@/lib/evidence/templates";
+import { defineTemplate, dollars, km, sentence } from "@/lib/evidence/templates";
 
 /**
  * PRIMARY. A2's facility sentence, minus the slot no field fills: the name,
@@ -306,7 +313,7 @@ export const echoFacilityFormalAction = defineTemplate(
 		sentence`Most recent formal enforcement action in ECHO's facility summary for ${field("subject")}: ${field("lastFormalActionDate")}.`,
 		sentence`Penalties counted in ECHO's facility summary: ${field("penaltyCount")}.`,
 		sentence`Most recent penalty date in ECHO's facility summary: ${field("lastPenaltyDate")}.`,
-		sentence`Amount of the most recent penalty in ECHO's facility summary: $${field("lastPenaltyAmountUsd")}.`,
+		sentence`Amount of the most recent penalty in ECHO's facility summary: ${dollars(field("lastPenaltyAmountUsd"))}.`,
 	],
 	[{ slot: "lastFormalActionDate", present: true }],
 );

@@ -129,6 +129,10 @@ const EnvirofactsSite = z.object({
 	non_npl_status_name: z.string().nullable(),
 	non_npl_status_date: z.string().nullable(),
 	archived_ind: z.string().nullable(),
+	// Read for the first time in this pass. Every recorded Envirofacts row
+	// carries the column, and on the archived fixture it is twelve years later
+	// than `non_npl_status_date`, which is the whole reason the card shows it.
+	archived_date: z.string().nullable(),
 });
 type EnvirofactsSite = z.infer<typeof EnvirofactsSite>;
 
@@ -215,6 +219,13 @@ export function semsSite(frsRow: Fetched<FrsAttrs>, answer: StatusAnswer): Built
 		nonNplStatus: site === null ? null : site.text("non_npl_status_name"),
 		statusDate: site === null ? null : site.date("non_npl_status_date"),
 		archived: site === null ? null : site.flag("archived_ind", { Y: true, N: false }),
+		// The same column read a second time, as words, because a boolean cannot
+		// be printed -- `lib/adapters/fema.ts` reads `SFHA_TF` twice for exactly
+		// this. `Y` alone is mapped: `N` and anything else leave this null, and
+		// `lib/templates/sems.ts` argues why an unarchived site says nothing
+		// rather than saying "not archived".
+		archivedLabel: site === null ? null : site.map("archived_ind", { Y: "archived" }),
+		archivedDate: site === null ? null : site.date("archived_date"),
 		// Kept beside the FRS one, never merged with it: the two systems place
 		// some sites kilometres apart and that disagreement is the fact.
 		semsCoordinate:

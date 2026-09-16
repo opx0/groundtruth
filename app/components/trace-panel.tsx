@@ -3,54 +3,6 @@ import type { WireComputationInput, WirePayloadRef, WireProvenance } from "@/app
 import type { TraceSelection } from "@/app/lib/report-flow";
 import { traceView, type IdentifierRelation, type TraceRow, type TraceValueRow } from "@/app/lib/trace-view";
 
-/**
- * Screen 4 of `docs/BRIEF.md` A2: what stands behind the span the reader
- * clicked. `app/lib/trace-view.ts` decides which of A3's rows this scope can
- * fill and what goes in each; this file is the rendering of that decision and
- * decides nothing else.
- *
- * TWO KINDS OF STRING ON THIS SCREEN, AND THE MARKUP KEEPS THEM APART. Every
- * `<dt>`, every `<h2>` and the one `<button>` is chrome: a label this component
- * wrote, none of which can become wrong because a government record changed.
- * Everything else -- every `<dd>`, every `<li>`, every span of the sentence --
- * is a string the server put on the wire: a rendered span, a field name, a raw
- * value, a dataset, an agency, a status enum as the kernel sent it. That split
- * is not a convention to be remembered, it is what
- * `tests/unit/app/trace-panel.test.ts` asserts: it collects the text of every
- * `<dt>` and checks the list against the enumerated chrome, and collects every
- * other text node and checks each one came off the wire.
- *
- * So there is no formatting here that composes a sentence. A3's rows read
- * "`non_npl_status_date` = `2022-02-08 00:00:00`, transform `normalize-date`",
- * and the temptation is to join those three wire strings into that one string.
- * This renders them as three labelled values instead. The reader gets the same
- * three facts; no component gets a template.
- *
- * WHAT A COUNT SENTENCE AND A STATUS SENTENCE OPEN. 27 of the report's 172
- * slotted spans resolve to a value with an empty `provenance` array -- every
- * `section` span and every `source` span. There is nothing wrong with them and
- * the panel is not empty for them: a count opens on the agency, the kind
- * counted, the boundary, and every record the count counted by kind and ID; a
- * status opens on the agency, the status enum, the retrieval time, and, when a
- * source could not be reached, the failure cause and the raw code it sent. The
- * grounding is the header, and the header is the first thing rendered.
- *
- * `docs/BRIEF.md` C2 is absent by construction: the only words this file writes
- * are the `CHROME` list below, and no colour here means a verdict -- one
- * palette, no severity, because ranking sources is the score this product
- * refuses to compute.
- */
-
-/* -------------------------------------------------------------------------- */
-/* Chrome                                                                     */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Every string this component writes. The test greps the rendered panel and
- * asserts nothing outside this list survived the subtraction of the wire's own
- * strings, so this constant is the reviewable surface of "no component writes a
- * factual sentence".
- */
 export const CHROME = {
 	panel: "Trace",
 	close: "Close",
@@ -95,16 +47,10 @@ const RELATION_LABEL: { readonly [R in IdentifierRelation]: string } = {
 	grouped: CHROME.grouped,
 };
 
-/* -------------------------------------------------------------------------- */
-/* Leaves                                                                     */
-/* -------------------------------------------------------------------------- */
-
-/** A raw value as the wire sent it. A string is shown as itself; anything else as its JSON, which is what it is. */
 function jsonText(value: JsonValue): string {
 	return typeof value === "string" ? value : JSON.stringify(value);
 }
 
-/** One labelled value: `dt` is chrome, `dd` is the wire. Nothing on this screen breaks that rule. */
 function Field({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
 	return (
 		<div className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1 py-0.5 max-sm:grid-cols-1">
@@ -142,12 +88,6 @@ function ComputationInput({ input }: { readonly input: WireComputationInput }) {
 	);
 }
 
-/**
- * One provenance entry. The arm's own discriminant is on `data-provenance`
- * rather than spelled out in a word of ours: `absent` is the wire saying the
- * dataset has no such field, and the row shows the dataset and the field with
- * no value line under it, which is that fact rendered rather than restated.
- */
 function Provenance({ provenance }: { readonly provenance: WireProvenance }) {
 	if (provenance.kind === "computation") {
 		return (
@@ -190,7 +130,6 @@ function Provenance({ provenance }: { readonly provenance: WireProvenance }) {
 	);
 }
 
-/** A3's rows 4 to 8: one displayed value, what it was read from, and how. */
 function Value({ value, label }: { readonly value: TraceValueRow; readonly label: string }) {
 	return (
 		<div
@@ -216,10 +155,6 @@ function Value({ value, label }: { readonly value: TraceValueRow; readonly label
 		</div>
 	);
 }
-
-/* -------------------------------------------------------------------------- */
-/* The rows                                                                   */
-/* -------------------------------------------------------------------------- */
 
 function Row({ row }: { readonly row: TraceRow }) {
 	switch (row.row) {
@@ -342,17 +277,7 @@ function Row({ row }: { readonly row: TraceRow }) {
 	}
 }
 
-/* -------------------------------------------------------------------------- */
-/* The panel                                                                  */
-/* -------------------------------------------------------------------------- */
-
 export type TracePanelProps = {
-	/**
-	 * What the reader clicked: the sentence as the report route sent it, and
-	 * which of its spans. `TraceSelection` is `app/lib/report-flow.ts`'s type,
-	 * the same one `OpenTrace` produces and `report-screen.tsx` holds, so the
-	 * seam has one definition and the panel does not restate it.
-	 */
 	readonly selection: TraceSelection;
 	readonly onClose: () => void;
 };
@@ -361,9 +286,6 @@ export function TracePanel({ selection, onClose }: TracePanelProps) {
 	const view = traceView(selection.sentence, selection.spanIndex);
 	if (view === null) return null;
 
-	// Where the values this sentence does not show begin, found before the map
-	// rather than tracked through it: a variable reassigned during render is a
-	// second source of truth for the same thing the rows already say.
 	const firstContext = view.rows.findIndex((row) => row.row === "value" && row.value.presence === "context");
 
 	return (
@@ -412,11 +334,6 @@ export function TracePanel({ selection, onClose }: TracePanelProps) {
 	);
 }
 
-/**
- * The panel as `app/components/report-screen.tsx`'s `renderTrace` wants it:
- * a selection and a close callback. Structural rather than an import of that
- * screen's own type, so neither file has to be edited when the other moves.
- */
 export function renderTracePanel(selection: TraceSelection, close: () => void) {
 	return <TracePanel selection={selection} onClose={close} />;
 }

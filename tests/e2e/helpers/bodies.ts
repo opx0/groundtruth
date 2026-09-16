@@ -125,7 +125,7 @@ function ioOf(answerFor: (url: URL) => Answer): SourceIo {
 /* The geocode route                                                          */
 /* -------------------------------------------------------------------------- */
 
-/** Every census fixture `docs/BRIEF.md` B10 names an outcome for. */
+/** Every census fixture `.dev/BRIEF.md` B10 names an outcome for. */
 export const CENSUS = {
 	match: "census/match-9311-e-ave-p.json",
 	ambiguous: "census/ambiguous-100-main-st.json",

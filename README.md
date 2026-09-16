@@ -40,7 +40,7 @@ returned nothing, which is not the same as nothing being there.
 | AirNow | Current preliminary air conditions |
 | FEMA NFHL | The flood designation at the mapped point |
 
-`docs/BRIEF.md` section B2 records what was verified against each endpoint on
+`.dev/BRIEF.md` section B2 records what was verified against each endpoint on
 2026-09-16, including which hosts refuse traffic from outside the US and what
 the fallbacks cost in accuracy.
 
@@ -71,23 +71,26 @@ pnpm e2e      # Playwright, the full address to trace path
 - `lib/` holds the evidence kernel, the source adapters, the selection policy,
   and the renderer. No React.
 - `app/` holds the routes and the interface.
-- `tests/fixtures/` holds unedited government API responses, except the nine
-  files named `derived-`, which were authored from published documentation
-  because those two sources have never answered successfully from here; each
-  carries a sibling `.source.md` saying so, and every record built from one
-  says on the card that its shape is unverified. Production code cannot import
-  any of it: a lint rule forbids the import and a test reads the built bundle.
-- `docs/BRIEF.md` is the source of truth for scope, wording, and verification.
-- `.dev/` holds the build's decision trail and unit clock.
+- `tests/fixtures/` holds unedited government API responses, except three files
+  named `derived-`, which were written by hand because they hold a state no
+  real response does: a null air-quality index, a failed AQS header, and an AQS
+  status EPA has never sent. Each carries a sibling `.source.md` saying so.
+  Production code cannot import any of it — a lint rule forbids it and a test
+  reads the built bundle.
+- `.dev/BRIEF.md` is the spec: scope, wording, and what was verified against
+  each endpoint. `.dev/BUILD.md` is the build log.
 
 ## Status
 
-`pnpm verify` and `pnpm e2e` both pass: 723 unit tests and the eight paths of
-`docs/BRIEF.md` B12, driven in a browser against a production build.
-`.dev/PLAN.md` tracks what each unit proved and what is still open.
+694 unit tests and 14 browser paths, both green, driven against a production
+build. `.dev/BUILD.md` has the detail.
 
-Two things are blocked on whoever runs this, not on the code. FEMA's
-authoritative flood layer refuses connections from outside the US, so the
-report answers from Esri's reduced-set copy and says on the card which layer
-answered and what the copy cannot distinguish. The two air sources need the
-free keys above.
+It runs. There's a deployment in `us-central1` answering live reports from all
+six sources, including FEMA's own flood layer.
+
+One thing is still about where you run it rather than about the code. FEMA's
+authoritative layer refuses traffic from outside the US — measured, it resets
+in half a second from India and Singapore and answers in a quarter of one from
+Iowa. Run this from outside the US and the flood card falls back to Esri's
+copy and says on the card which layer answered and what the copy can't tell
+apart. Run it from inside and you get FEMA's own answer.

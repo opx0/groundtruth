@@ -1,5 +1,5 @@
 /**
- * `docs/BRIEF.md` A6 row 2's flood half, read from the layer the demonstration
+ * `.dev/BRIEF.md` A6 row 2's flood half, read from the layer the demonstration
  * will actually be run against: zone AE, inside the Special Flood Hazard Area,
  * out of FEMA's own National Flood Hazard Layer rather than Esri's copy of it.
  *

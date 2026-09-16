@@ -752,7 +752,7 @@ describe("the authoritative NFHL layer, against a schema written before it ever 
 	});
 
 	/**
-	 * Queue item 10 in `.dev/PLAN.md` asked this and could not answer it.
+	 * Queue item 10 in `.dev/BUILD.md` asked this and could not answer it.
 	 * `FLD_AR_ID` is the layer's primary key and the record id is built from it,
 	 * so a null would have read as `malformed` and cost the whole card.
 	 */
@@ -764,7 +764,7 @@ describe("the authoritative NFHL layer, against a schema written before it ever 
 	});
 
 	/**
-	 * The point the whole fallback argument was about. `docs/BRIEF.md` A6 puts
+	 * The point the whole fallback argument was about. `.dev/BRIEF.md` A6 puts
 	 * this address on screen, and the Esri copy drops unshaded X entirely, so
 	 * the card could only say it was unable to tell minimal hazard from
 	 * unmapped. The authoritative layer says which one it is.

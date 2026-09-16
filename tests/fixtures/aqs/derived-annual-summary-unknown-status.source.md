@@ -10,7 +10,7 @@ A real row under a header status EPA has never sent this repository:
 `"Partial data returned during scheduled maintenance"`. `https://aqs.epa.gov/aqsweb/documents/data_api.html` (read
 2026-09-16) documents three statuses — the worked examples carry `"success"` and
 `"No data matched your selection"`, and the prose adds `"FAILED"` — and
-`docs/BRIEF.md` B2 says unknown source statuses are preserved verbatim and never
+`.dev/BRIEF.md` B2 says unknown source statuses are preserved verbatim and never
 guessed at.
 
 So `AqsHeaderEntry` types `status` as `z.string()` and nothing in

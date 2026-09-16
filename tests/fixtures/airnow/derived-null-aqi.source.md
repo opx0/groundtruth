@@ -6,7 +6,7 @@ had been captured. A response has since been captured — see
 because that response does not hold the state it pins.**
 
 One row in the shape AirNow really sends, with `AQI` set to `null`. It pins the
-missing-optional-field case of `docs/BRIEF.md` B12, and it is the only body that
+missing-optional-field case of `.dev/BRIEF.md` B12, and it is the only body that
 selects `airnow-observation/no-index@1` in `lib/templates/airnow.ts`: a row whose
 index is absent must not render the sentence that states one.
 

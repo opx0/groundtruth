@@ -1,5 +1,5 @@
 /**
- * `docs/BRIEF.md` B12, path 6: a FEMA polygon and a FEMA no-polygon state, each
+ * `.dev/BRIEF.md` B12, path 6: a FEMA polygon and a FEMA no-polygon state, each
  * naming the dataset that answered.
  *
  * Both halves are one test because the claim is a comparison: the same card,

@@ -35,7 +35,7 @@ const fixturesDir = fileURLToPath(new URL("../../../fixtures/", import.meta.url)
 
 export const RETRIEVED_AT = "2026-09-16T09:00:00Z";
 
-/** The demo point of docs/BRIEF.md A6 row 1, read out of the committed Census bytes rather than typed in. */
+/** The demo point of .dev/BRIEF.md A6 row 1, read out of the committed Census bytes rather than typed in. */
 const HOUSTON = censusOrigin();
 
 /* -------------------------------------------------------------------------- */
@@ -143,12 +143,12 @@ export const DEMO: Plan = {
  *   it.
  * - **unavailable** -- the flood card, with both layers refusing. The two air
  *   sources are unavailable too, for a cause of their own: this deployment
- *   holds no credential for either, which is docs/BRIEF.md A6 beat 6 and the
+ *   holds no credential for either, which is .dev/BRIEF.md A6 beat 6 and the
  *   state the demo shows until an operator registers a key.
  * - **not-asked** -- the registry. FRS takes a registry ID rather than a locus,
  *   and a Superfund layer with no rows in it names none, so nothing was asked
  *   of FRS at all. It is the one card that still reaches this state: every
- *   source in docs/BRIEF.md B2 now has an adapter, so a source with no key
+ *   source in .dev/BRIEF.md B2 now has an adapter, so a source with no key
  *   configured is one that was asked and could not be reached, not one nobody
  *   asked.
  *

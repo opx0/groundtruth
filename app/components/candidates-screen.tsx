@@ -6,18 +6,6 @@ type CandidatesScreenProps = {
 	readonly onStartOver: () => void;
 };
 
-/**
- * Screen for the ambiguous outcome. Every candidate is its own button; none
- * is preselected or auto-chosen, and the first one in the list gets no
- * special styling that would suggest otherwise.
- *
- * The label is `matchedAddress`, a Census field printed verbatim, not a
- * sentence -- which is why this screen needed nothing when the rendered
- * origin sentences arrived. Each candidate carries its own, and they are
- * shown once the reader has chosen, on the confirm screen. Seven candidates
- * each stating their block range and TIGER line would bury the one question
- * this screen asks.
- */
 export function CandidatesScreen({ candidates, onChoose, onStartOver }: CandidatesScreenProps) {
 	return (
 		<div className="mx-auto max-w-xl px-4 py-12 sm:py-16">

@@ -1,5 +1,5 @@
 /**
- * The five privacy properties of `docs/BRIEF.md` B12, one describe block each,
+ * The five privacy properties of `.dev/BRIEF.md` B12, one describe block each,
  * each naming the line of the brief it holds:
  *
  * > Privacy tests prove: environmental adapters never receive the raw address;
@@ -51,7 +51,7 @@ const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 const fixturesDir = `${repoRoot}tests/fixtures/`;
 const RETRIEVED_AT = "2026-09-16T09:00:00Z";
 
-/** The demo point of docs/BRIEF.md A6 row 1, read out of the committed Census bytes rather than typed in. */
+/** The demo point of .dev/BRIEF.md A6 row 1, read out of the committed Census bytes rather than typed in. */
 const HOUSTON = censusOrigin();
 const LATITUDE = HOUSTON.latitude.value;
 const LONGITUDE = HOUSTON.longitude.value;

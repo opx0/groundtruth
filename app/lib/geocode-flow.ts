@@ -1,31 +1,3 @@
-/**
- * The search flow's state machine, kept separate from any component so it is
- * testable without rendering anything.
- *
- * The privacy rule shows up in the shape of `FlowState`, not just in prose:
- * only the `search` and `no-match` screens carry the address the reader
- * typed, because those are the only two screens where it is still needed --
- * to send with the next request, or to let the reader extend it. `candidates`
- * and `confirm` have no `address` field at all, so a match or a candidate
- * list cannot carry the raw address forward even by accident; the compiler
- * rejects an attempt to read one, the same way `GeocodeOutcome` in
- * `lib/adapters/census.ts` rejects reading `.match` off an ambiguous outcome.
- *
- * A `GeocodeMatchView` now carries the origin sentences the server rendered
- * from that match, so nothing here changed shape when they were added: a
- * candidate carries its own sentences, and `choose-candidate` moves them to
- * the confirm screen along with the match they describe. They are rendered
- * from Census's reply -- the matched address, the block range, the street
- * side, the TIGER line -- and not from the string the reader typed, so the
- * rule above still holds with them on board.
- *
- * "Several candidates require a choice and must not auto-select" is also a
- * shape fact: the only action that produces a `confirm` state from a
- * `candidates` state is `choose-candidate`, and it takes the chosen match as
- * an argument. There is no code path from `submit-result` with an ambiguous
- * response to `confirm`.
- */
-
 import type { GeocodeApiResponse, GeocodeMatchView } from "./geocode-contract";
 
 export type SearchError = "invalid" | "unavailable";

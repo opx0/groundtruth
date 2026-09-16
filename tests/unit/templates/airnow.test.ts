@@ -215,7 +215,7 @@ describe("every template against every record", () => {
 				const rendered = textOf(sentence.spans);
 				expect(rendered, one.what).not.toMatch(/\b(true|false)\b/i);
 				expect(rendered, one.what).not.toContain(" km");
-				// docs/BRIEF.md C2: no verdict, no severity, no cumulative judgement.
+				// .dev/BRIEF.md C2: no verdict, no severity, no cumulative judgement.
 				expect(rendered, one.what).not.toMatch(/\b(safe|unsafe|risk|healthy|unhealthy|polluter)\b/i);
 				// A5 on the card, qualifying the value rather than sitting in a footer.
 				expect(rendered, one.what).toContain("not the mapped point");

@@ -111,7 +111,7 @@ describe("the origin sentences are rendered by lib/templates/origin.ts, from the
 		expect(match.origin.map((sentence) => sentence.templateId)).toEqual(["origin/match@1", "origin/point@1"]);
 	});
 
-	it("renders docs/BRIEF.md A2's precision sentence from the recorded Census fields", async () => {
+	it("renders .dev/BRIEF.md A2's precision sentence from the recorded Census fields", async () => {
 		const match = await matchFrom("census/match-9311-e-ave-p.json", HOUSTON);
 		expect(textOf(sentenceWith(match, "origin/match@1"))).toBe(
 			"Matched: 9311 E AVE P, HOUSTON, TX, 77012." +
@@ -391,7 +391,7 @@ describe("GeocodeApiResponseSchema", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("CURATED_EXAMPLES", () => {
-	it("is exactly the three curated addresses from docs/BRIEF.md A6, rows 1-3", () => {
+	it("is exactly the three curated addresses from .dev/BRIEF.md A6, rows 1-3", () => {
 		expect(CURATED_EXAMPLES).toHaveLength(3);
 		expect(CURATED_EXAMPLES.map((e) => e.address)).toEqual([
 			"9311 E Ave P, Houston, TX 77012",
@@ -400,7 +400,7 @@ describe("CURATED_EXAMPLES", () => {
 		]);
 	});
 
-	it("never uses the words the renderer is forbidden to use anywhere in the product (docs/BRIEF.md C2)", () => {
+	it("never uses the words the renderer is forbidden to use anywhere in the product (.dev/BRIEF.md C2)", () => {
 		for (const example of CURATED_EXAMPLES) {
 			expect(example.note.toLowerCase()).not.toMatch(/\bsafe\b/);
 			expect(example.note.toLowerCase()).not.toMatch(/\brisk\b/);

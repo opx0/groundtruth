@@ -13,7 +13,7 @@
  * adapter reads that shape the way it says it does*. It proves nothing at all
  * about what AirNow sends, and none of the names below claims otherwise.
  *
- * The `docs/BRIEF.md` B12 cases appear in this order: success, no records,
+ * The `.dev/BRIEF.md` B12 cases appear in this order: success, no records,
  * missing optional fields, unknown vocabulary, malformed response, rate limit,
  * timeout. Two of them are not what B12 names, and each says so where it sits:
  *
@@ -59,7 +59,7 @@ const NOW = "2026-09-16T02:00:00Z";
 const SENTINEL = "SENTINEL-AIRNOW-KEY-b3d1f0";
 
 /**
- * The host the adapter cites. `docs/BRIEF.md` B2 names `airnowapi.org`, and
+ * The host the adapter cites. `.dev/BRIEF.md` B2 names `airnowapi.org`, and
  * checked from this machine on 2026-09-16 that host answers `HTTP/2 301`,
  * `location: https://www.airnowapi.org:443/aq/observation/latLong/current?...`,
  * while `www.` answers the recorded 401 with the bytes
@@ -435,7 +435,7 @@ describe("B12 case 5, malformed response", () => {
 });
 
 describe("B12 case 6, rate limit: the kernel's failure, handed through unchanged", () => {
-	// AirNow's rate limits are documented behind a login (docs/BRIEF.md B2) and
+	// AirNow's rate limits are documented behind a login (.dev/BRIEF.md B2) and
 	// no 429 from it has been recorded, so the io raises this rather than bytes.
 	it("keeps the source's own code and retry time", async () => {
 		const { io } = stubIo({ fail: new SourceFailure("rate-limited", 429, "3600") });

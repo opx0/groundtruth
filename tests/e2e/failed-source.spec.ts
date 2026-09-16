@@ -1,5 +1,5 @@
 /**
- * `docs/BRIEF.md` B12, path 8, and A6 beat 6: one source failed and the report
+ * `.dev/BRIEF.md` B12, path 8, and A6 beat 6: one source failed and the report
  * is still worth reading.
  *
  * `FOUR_STATES` is the committed plan that puts every card state on one

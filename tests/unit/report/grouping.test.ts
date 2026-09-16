@@ -1,5 +1,5 @@
 /**
- * Facility grouping, against the committed fixtures — docs/BRIEF.md B6.
+ * Facility grouping, against the committed fixtures — .dev/BRIEF.md B6.
  *
  * Every record here is built the way the real adapters build it (`lookupFrsFacility`,
  * `createEchoAdapter`, `esriReducedSetAdapter`, and the shared SEMS test helper),

@@ -1,7 +1,7 @@
 /**
  * What the cards of the demo report claim, read off the screen.
  *
- * The three sentences here are the ones `.dev/briefs/U6-closing-review-fixes.md`
+ * The three sentences here are the ones `.dev/BUILD.md`
  * section A found claiming more than the requests behind them supported: a
  * count of the final National Priorities List taken over a field a partial
  * outage nulls, a five-mile search the registry lookup never made, and a
@@ -10,7 +10,7 @@
  * were on this page, and nothing between `lib/report/selection.ts` and the
  * rendered card is stubbed here.
  *
- * The report is `DEMO`, the committed bytes for the `docs/BRIEF.md` A6 row 1
+ * The report is `DEMO`, the committed bytes for the `.dev/BRIEF.md` A6 row 1
  * address, where all fifteen Envirofacts status requests answer — so the
  * final-NPL count is one the card may state, and does.
  */
@@ -31,7 +31,7 @@ test("every card claims what was asked for, and no more", async ({ page }) => {
 	await expect(sems).toContainText("US OIL RECOVERY is listed by SEMS. 3.92 km");
 
 	// The registry is asked `where=REGISTRY_ID='...'`, one request per
-	// identifier. docs/BRIEF.md B14 records 6,915 FRS interest rows within five
+	// identifier. .dev/BRIEF.md B14 records 6,915 FRS interest rows within five
 	// miles of this point, so a card claiming that search claims an area it
 	// never queried. The retrieval time is still on the card, in the one
 	// sentence that was never about an area.

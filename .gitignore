@@ -56,3 +56,6 @@ next-env.d.ts
 # pins pnpm and `pnpm-lock.yaml` is the committed one; a stray bun.lock only
 # confuses tooling.
 bun.lock
+
+# Scratch checkouts left by agents or tooling. Never this repo's source.
+.delta/

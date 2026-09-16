@@ -1,5 +1,5 @@
 /**
- * `docs/BRIEF.md` B12, path 7: a distant monitor, with its distance beside the
+ * `.dev/BRIEF.md` B12, path 7: a distant monitor, with its distance beside the
  * value it reports.
  *
  * WHY THIS ONE NEEDS A PLAN OF ITS OWN. AQS and AirNow are registered sources

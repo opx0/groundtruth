@@ -7,7 +7,7 @@
  * asserts the two agree record for record, provenance included. If the adapter
  * ever drifts from the shape the kernel's tests assume, these fail.
  *
- * `docs/BRIEF.md` B12's seven cases, for a source that is two endpoints joined:
+ * `.dev/BRIEF.md` B12's seven cases, for a source that is two endpoints joined:
  *
  *   success            | "a site that exists in both systems", "the whole layer"
  *   no records         | zero features is no-data; zero Envirofacts rows is `no-row`

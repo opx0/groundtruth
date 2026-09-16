@@ -11,7 +11,7 @@
  * payload URL and each reaching a state the recorded bytes cannot: an ECHO
  * summary whose `QueryRows` is zero, and an NFHL answer with no features, which
  * no recording exists for because FEMA's host refuses non-US traffic
- * (docs/BRIEF.md B14). That is the technique `tests/unit/report/selection.test.ts`
+ * (.dev/BRIEF.md B14). That is the technique `tests/unit/report/selection.test.ts`
  * already uses, for the same reason and with the same labelling.
  *
  * WHAT THE LEAK ASSERTIONS ARE MADE AGAINST. The response body is grepped as
@@ -34,7 +34,7 @@ import { censusOrigin } from "../evidence/helpers/sems-fixtures";
 const fixturesDir = fileURLToPath(new URL("../../fixtures/", import.meta.url));
 const RETRIEVED_AT = "2026-09-16T09:00:00Z";
 
-/** The demo point of docs/BRIEF.md A6 row 1, read out of the committed Census bytes rather than typed in. */
+/** The demo point of .dev/BRIEF.md A6 row 1, read out of the committed Census bytes rather than typed in. */
 const HOUSTON = censusOrigin();
 const LATITUDE = HOUSTON.latitude.value;
 const LONGITUDE = HOUSTON.longitude.value;
@@ -451,7 +451,7 @@ describe("the Houston demo point, every source, one stream", () => {
 	});
 
 	/**
-	 * The defect `.dev/PLAN.md` item 19 records, measured where it was visible:
+	 * The defect `.dev/BUILD.md` item 19 records, measured where it was visible:
 	 * the whole SEMS card, both listings, nothing stubbed between the store and
 	 * the sentences. The main listing is ordered by distance and US OIL RECOVERY
 	 * ranks fifth of fifteen at 3.92 km, so it is shown there *and* in the
@@ -462,7 +462,7 @@ describe("the Houston demo point, every source, one stream", () => {
 	 * The overlap is asserted first, because it is the condition that makes the
 	 * repeat possible: a later pass that dropped the site from one of the two
 	 * listings would make the status assertion below pass for a reason that is
-	 * not the fix. docs/BRIEF.md A2 keeps the site in both and gives the
+	 * not the fix. .dev/BRIEF.md A2 keeps the site in both and gives the
 	 * final-NPL line name and distance only.
 	 *
 	 * Only what a reader has on screen counts here — the headlines and each
@@ -520,7 +520,7 @@ const AIR_AGENCIES: readonly (readonly [string, string])[] = [
 
 describe("the two air sources, asked by a deployment holding no credential", () => {
 	/**
-	 * docs/BRIEF.md A6 beat 6, end to end, and the state the demo will show
+	 * .dev/BRIEF.md A6 beat 6, end to end, and the state the demo will show
 	 * until an operator registers a key.
 	 *
 	 * The distinction this pins is the one registering the adapters bought.
@@ -856,7 +856,7 @@ describe("the flood card names the dataset that answered", () => {
 	});
 
 	/**
-	 * The point docs/BRIEF.md A6 puts on screen, answered by the layer that
+	 * The point .dev/BRIEF.md A6 puts on screen, answered by the layer that
 	 * holds it. Esri's copy carries no unshaded zone X, so it returns nothing
 	 * here and the card can only say it cannot tell minimal hazard from an area
 	 * that was never mapped. This is the first test in this file that drives the
@@ -869,7 +869,7 @@ describe("the flood card names the dataset that answered", () => {
 	 * `lib/templates/fema.ts` reads one column of the recorded row, a clause
 	 * dies whole when its column is null, and a substring match would pass over
 	 * a missing one. Nothing in it says anything about safety: the card states
-	 * the designation FEMA recorded and stops, which is what docs/BRIEF.md C2
+	 * the designation FEMA recorded and stops, which is what .dev/BRIEF.md C2
 	 * requires of it.
 	 */
 	it("states FEMA's own zone X at the demo point, where the copy could only say it could not tell", async () => {
@@ -1150,7 +1150,7 @@ describe("a card that cannot be built", () => {
 
 	/**
 	 * The one card in the report that can still be `not-asked`. Every source in
-	 * docs/BRIEF.md B2 has an adapter now, so the state is no longer reached at
+	 * .dev/BRIEF.md B2 has an adapter now, so the state is no longer reached at
 	 * the top of the run: it is reached here, where the Superfund layer is
 	 * refused, nothing names a registry ID and the registry is therefore not
 	 * asked at all. A card carrying no sentences is still a card, and losing it

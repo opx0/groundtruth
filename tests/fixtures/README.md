@@ -32,7 +32,7 @@ ArcGIS layer and `VALERO PLUME` in Envirofacts. Both must reach the trace panel.
 
 **One registry ID, two EPA IDs.**
 `frs/arcgis-registry-110000462703-two-ids.json` holds two SEMS site IDs under
-one FRS registry ID. This is the grouping rule in `docs/BRIEF.md` B6 rule 1.
+one FRS registry ID. This is the grouping rule in `.dev/BRIEF.md` B6 rule 1.
 
 **One facility, thirty-eight program interest rows.**
 `frs/arcgis-registry-110000460885.json` spans fifteen programs. FRS is an
@@ -64,7 +64,7 @@ we did not get to ask.
 
 Recorded 2026-09-17. `census/` held three files -- the Houston match, an
 ambiguous list and a no-match -- so of the five curated addresses in
-`docs/BRIEF.md` A6 only three could reach the confirm screen, and the other two
+`.dev/BRIEF.md` A6 only three could reach the confirm screen, and the other two
 could be driven for their flood half alone.
 
 `census/match-1300-perdido-st.json` and `census/match-400-n-richey-st.json`
@@ -83,7 +83,7 @@ end to end from the address rather than from a coordinate typed into a test.
 ## Not recorded
 
 The authoritative FEMA NFHL endpoint refuses connections from the machine this
-was built on. See the blocker note in `.dev/PLAN.md`.
+was built on. See the blocker note in `.dev/BUILD.md`.
 
 *Corrected 2026-09-16, again.* This paragraph also said "AQS and AirNow need
 free keys that have not been registered". They were registered that day and both

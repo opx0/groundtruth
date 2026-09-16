@@ -67,7 +67,7 @@ describe("the stream folds into one state, in arrival order", () => {
 	});
 
 	/**
-	 * docs/BRIEF.md A3. This asserted "VALERO PLUME and HOUSTON REFINERY share
+	 * .dev/BRIEF.md A3. This asserted "VALERO PLUME and HOUSTON REFINERY share
 	 * one EPA facility registry ID, 110000460885" until 2026-09-16 — a sentence
 	 * about two records carrying a third thing's identifier, where HOUSTON
 	 * REFINERY is the registry's own record of that identifier and A3 and B6
@@ -187,7 +187,7 @@ function everySentence(state: ReportFlowState): readonly SentenceViewMessage[] {
 
 /**
  * The status sentences of the sources this deployment holds no credential for,
- * which is AQS and AirNow on every stream here (docs/BRIEF.md A6 beat 6).
+ * which is AQS and AirNow on every stream here (.dev/BRIEF.md A6 beat 6).
  *
  * They are what separates the counts below from the 172 and 27 the brief's own
  * audit took, when those two sources arrived as `not-asked` and carried no

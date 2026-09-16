@@ -1,24 +1,3 @@
-/**
- * The provenance-carrying value.
- *
- * The only ways to obtain a `Sourced<T>` are the readers returned by
- * `fieldsOf`, the formulas `haversine`, `coalesce`, and `urlFrom`, and
- * `fromQuery`. Each of those captures where the value came from at the moment
- * it is read. The brand symbol is not exported, so no other module can build
- * one by hand, and `seal` rejects any lookalike at runtime.
- *
- * A `Sourced<T>` is always a scalar leaf. A value with structure, an address
- * range of two strings or a facility's status under each of four statutes, is
- * a plain frozen container of leaves, built by `pick`, never one `Sourced`
- * wrapping an object. That is what lets the trace list every element by its
- * own path ("programStatuses.CAA") with the field it came from, instead of one
- * provenance for the whole container. `GeoPoint` is the same shape, built by
- * `point`.
- *
- * This module must never contain a type assertion or a non-null assertion.
- * `eslint.config.mjs` enforces that under `lib/evidence/`.
- */
-
 export type JsonValue =
 	| null
 	| boolean
@@ -39,13 +18,11 @@ export type TransformName =
 	| "parse-us-date"
 	| "parse-epoch-ms"
 	| "map-boolean"
-	/** A code to the word the source's own field description gives it. The code and this transform's name stay in the trace, so the mapping is on screen rather than silent. */
 	| "map-code"
 	| "join-fields";
 
 export type Formula = "haversine" | "coalesce" | "url-template";
 
-/** One response the record was built from. `url` carries coordinates only, never an address. */
 export type PayloadRef = {
 	readonly url: string;
 	readonly sha256: string;
@@ -62,7 +39,6 @@ export type FieldProvenance = {
 	readonly payload: PayloadRef;
 };
 
-/** The dataset has no such field. Recorded so the trace can say so, rather than showing a null with no origin. */
 export type AbsentProvenance = {
 	readonly kind: "absent";
 	readonly dataset: string;
@@ -71,7 +47,6 @@ export type AbsentProvenance = {
 	readonly payload: PayloadRef;
 };
 
-/** The value came from the request we made, not from the response. */
 export type QueryProvenance = {
 	readonly kind: "query";
 	readonly parameter: string;
@@ -125,26 +100,17 @@ export type GeoPoint = {
 	readonly referencePoint: Sourced<string | null>;
 };
 
-/** One validated response. `Raw` is any JSON value: Envirofacts answers with a bare array, and that is a payload too. */
 export type Fetched<Raw extends JsonValue> = {
 	readonly raw: Raw;
 	readonly payload: PayloadRef;
 };
 
-/** The keys of `Raw` whose value type is assignable to `T`. */
 export type KeysWhere<Raw, T> = {
 	[P in keyof Raw & string]: Raw[P] extends T ? P : never;
 }[keyof Raw & string];
 
-/**
- * The spec of a structured value: each name the record will use, mapped to the
- * text field of the row it is read from. Only text fields, because every
- * structured value an adapter has needed so far is made of them; a shape that
- * needs another transform is a new reader, not a loosened spec.
- */
 export type PickSpec<Raw> = { readonly [name: string]: KeysWhere<Raw, string | null> };
 
-/** What `pick` builds: a frozen container with one `Sourced` leaf per name, typed from the field it names. */
 export type Picked<Raw, S extends PickSpec<Raw>> = { readonly [N in keyof S]: Sourced<Raw[S[N]]> };
 
 export class ReaderInvariant extends Error {
@@ -154,13 +120,6 @@ export class ReaderInvariant extends Error {
 	}
 }
 
-/**
- * Binds one Zod-validated payload to a set of typed readers. Every reader takes
- * a key of the raw shape, constrained to the raw type the transform accepts,
- * and captures the key name, raw value, transform, adapter version, and payload
- * itself. Readers whose result type depends on nullability are overloaded so
- * the non-null case stays non-null in the type.
- */
 export type FieldReader<Raw extends JsonObject> = {
 	readonly raw: Raw;
 	readonly dataset: string;
@@ -171,14 +130,12 @@ export type FieldReader<Raw extends JsonObject> = {
 	number<P extends KeysWhere<Raw, string | number>>(field: P): Sourced<number>;
 	number<P extends KeysWhere<Raw, string | number | null>>(field: P): Sourced<number | null>;
 
-	/** "$0" or "$1,250.00" to a number. The string the source sent, symbol and all, is the trace's raw value. */
 	currency<P extends KeysWhere<Raw, string>>(field: P): Sourced<number>;
 	currency<P extends KeysWhere<Raw, string | null>>(field: P): Sourced<number | null>;
 
 	date<P extends KeysWhere<Raw, string>>(field: P): Sourced<string>;
 	date<P extends KeysWhere<Raw, string | null>>(field: P): Sourced<string | null>;
 
-	/** "08/12/2024", month first, to "2024-08-12". The raw string survives in the trace, so the reordering is visible. */
 	usDate<P extends KeysWhere<Raw, string>>(field: P): Sourced<string>;
 	usDate<P extends KeysWhere<Raw, string | null>>(field: P): Sourced<string | null>;
 
@@ -190,14 +147,6 @@ export type FieldReader<Raw extends JsonObject> = {
 		map: Readonly<Record<string, boolean>>,
 	): Sourced<boolean | null>;
 
-	/**
-	 * A code read as the word the agency's own field description gives it:
-	 * FEMA's `SFHA_TF` is "T" or "F" for inside or outside the Special Flood
-	 * Hazard Area, and a boolean cannot be printed. Null for a code the table
-	 * does not hold, exactly as `flag` does, so an unmapped value is visible as
-	 * an absence rather than guessed at. The raw code is the trace's raw value
-	 * and the transform is named, so nothing here is a silent rewrite.
-	 */
 	map<P extends KeysWhere<Raw, string | null>>(
 		field: P,
 		table: Readonly<Record<string, string>>,
@@ -210,13 +159,6 @@ export type FieldReader<Raw extends JsonObject> = {
 
 	absent(field: string): Sourced<null>;
 
-	/**
-	 * A structured value: several text fields of this row, read at once into
-	 * one frozen container keyed by the names the record uses. Each leaf is an
-	 * ordinary `text` read with its own field provenance, so the trace lists
-	 * "addressRange.from" against `fromAddress`, not one provenance for the
-	 * pair. A list is many rows picked the same way, one reader per row.
-	 */
 	pick<S extends PickSpec<Raw>>(spec: S): Picked<Raw, S>;
 
 	point<
@@ -233,13 +175,11 @@ export type FieldReader<Raw extends JsonObject> = {
 	): GeoPoint | null;
 };
 
-/** "2022-02-08 00:00:00" -> "2022-02-08"; an ISO instant keeps its date part; anything else is left verbatim. */
 function normalizeDate(raw: string): string {
 	const match = /^(\d{4}-\d{2}-\d{2})(?:[ T]|$)/.exec(raw);
 	return match?.[1] ?? raw;
 }
 
-/** 1710413511000 -> "2024-03-14T10:51:51Z" */
 function epochMsToIso(ms: number): string {
 	const d = new Date(ms);
 	if (Number.isNaN(d.getTime())) throw new ReaderInvariant(`epoch-ms ${ms} is not a valid instant`);
@@ -253,11 +193,6 @@ function parseNumber(raw: string | number): number {
 	return n;
 }
 
-/**
- * "$0" -> 0, "$1,250.50" -> 1250.5, "-$40" -> -40. An optional sign, an
- * optional dollar sign, digits with optional thousands separators, an optional
- * fraction. Anything else is a `ReaderInvariant`, not a guess.
- */
 function parseCurrency(raw: string): number {
 	const match = /^\s*(-?)\s*\$?\s*(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*$/.exec(raw);
 	const sign = match?.[1];
@@ -272,7 +207,6 @@ function twoDigits(n: number): string {
 	return n < 10 ? `0${n}` : String(n);
 }
 
-/** "08/12/2024" -> "2024-08-12". Month first, always; a day past the month's end or any other shape is a `ReaderInvariant`. */
 function usDateToIso(raw: string): string {
 	const match = /^\s*(\d{1,2})\/(\d{1,2})\/(\d{4})\s*$/.exec(raw);
 	const month = Number(match?.[1]);
@@ -328,8 +262,6 @@ export function fieldsOf<Raw extends JsonObject>(
 	function currency<P extends KeysWhere<Raw, string | null>>(name: P): Sourced<number | null>;
 	function currency(name: string): Sourced<number | null> {
 		const v = bag[name];
-		// The provenance is built first, from the untouched raw value: the trace
-		// reports "$0" because that is what arrived, whatever the value became.
 		const p = field(name, "parse-currency");
 		if (v === null) return make(null, [p]);
 		if (typeof v === "string") return make(parseCurrency(v), [p]);
@@ -356,7 +288,6 @@ export function fieldsOf<Raw extends JsonObject>(
 		throw new ReaderInvariant(`${dataset}.${name} is not a month/day/year string`);
 	}
 
-	/** `text` for one name of a spec, checked at runtime as well as by type because the field name arrived through data. */
 	function textLeaf<S extends PickSpec<Raw>, K extends keyof S & string>(spec: S, name: K): Sourced<Raw[S[K]]> {
 		const sourceField: S[K] = spec[name];
 		const v = raw[sourceField];
@@ -364,7 +295,6 @@ export function fieldsOf<Raw extends JsonObject>(
 		return make(v, [field(sourceField, "identity")]);
 	}
 
-	/** True once every name in the spec has its leaf: the one place a container-in-progress becomes a `Picked`. */
 	function isPicked<S extends PickSpec<Raw>>(spec: S, out: Partial<Picked<Raw, S>>): out is Picked<Raw, S> {
 		return Object.keys(spec).every((name) => name in out);
 	}
@@ -478,7 +408,6 @@ function radians(degrees: number): number {
 	return (degrees * Math.PI) / 180;
 }
 
-/** Great-circle distance in whole meters. Both coordinates, with their own provenance, are the inputs. */
 export function haversine(from: GeoPoint, to: GeoPoint): Sourced<number> {
 	const dLat = radians(to.latitude.value - from.latitude.value);
 	const dLng = radians(to.longitude.value - from.longitude.value);
@@ -503,7 +432,6 @@ export function haversine(from: GeoPoint, to: GeoPoint): Sourced<number> {
 	]);
 }
 
-/** The first non-null value, with both candidates in the provenance so the trace shows what was passed over. */
 export function coalesce<A extends JsonValue, B extends JsonValue>(
 	first: Sourced<A> | null,
 	second: Sourced<B>,
@@ -521,16 +449,8 @@ export function coalesce<A extends JsonValue, B extends JsonValue>(
 	return make(second.value, provenance);
 }
 
-/** The one slot a source-record URL template may carry. */
 const SLOT = "{id}";
 
-/**
- * The record's link on the agency's own site, built from an identifier the
- * kernel read from the source. The template names the slot exactly once as
- * `{id}`, so the trace shows both the raw field the identifier came from and
- * the template that shaped the URL, and a template that lost its slot, or an
- * empty identifier, is a `ReaderInvariant` rather than a confident wrong link.
- */
 export function urlFrom(template: string, id: Sourced<string>): Sourced<string> {
 	if (template.split(SLOT).length !== 2) {
 		throw new ReaderInvariant(`url template "${template}" must contain ${SLOT} exactly once`);
@@ -575,11 +495,6 @@ function freezeAll(x: unknown): void {
 	for (const key of Object.keys(x)) freezeAll(x[key]);
 }
 
-/**
- * Freezes everything. Outside a Sourced value, any `{value, provenance}` object
- * is a hand-built lookalike and is rejected. Inside one, the provenance was
- * built by the kernel and is only frozen.
- */
 function deepFreeze(x: unknown, path: string): void {
 	if (!isBag(x)) return;
 	if (isSourced(x)) {
@@ -592,7 +507,6 @@ function deepFreeze(x: unknown, path: string): void {
 	for (const key of Object.keys(bag)) deepFreeze(bag[key], `${path}.${key}`);
 }
 
-/** Deep-freezes the record and rejects any `{value, provenance}` lookalike that lacks the brand. */
 export function seal<R extends { readonly kind: string }>(record: R): Sealed<R> {
 	deepFreeze(record, record.kind);
 	const sealed: Sealed<R> = { ...record, [sealedBrand]: sealedBrand };

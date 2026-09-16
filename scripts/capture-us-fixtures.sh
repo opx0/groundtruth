@@ -12,7 +12,7 @@ set -uo pipefail
 cd "$(git rev-parse --show-toplevel)"
 mkdir -p tests/fixtures/echo tests/fixtures/fema
 
-# The demo address from docs/BRIEF.md A6. A public industrial block, not a home.
+# The demo address from .dev/BRIEF.md A6. A public industrial block, not a home.
 LAT=29.720659
 LON=-95.261996
 ok=0

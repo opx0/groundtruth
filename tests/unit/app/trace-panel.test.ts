@@ -474,10 +474,10 @@ describe("no rendered string outside a span was written by a component", () => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* docs/BRIEF.md C2                                                           */
+/* .dev/BRIEF.md C2                                                           */
 /* -------------------------------------------------------------------------- */
 
-/** Every phrase and every distinctive word of docs/BRIEF.md C2, plus the two words A5 bans from the renderer. */
+/** Every phrase and every distinctive word of .dev/BRIEF.md C2, plus the two words A5 bans from the renderer. */
 const FORBIDDEN: readonly string[] = [
 	"operating polluters near your home",
 	"polluter",
@@ -499,7 +499,7 @@ const FORBIDDEN: readonly string[] = [
 	"cumulative",
 ];
 
-describe("docs/BRIEF.md C2's words never appear", () => {
+describe(".dev/BRIEF.md C2's words never appear", () => {
 	it("greps every panel the demo report can open", async () => {
 		const sentences = everySentence(await houstonEvents());
 		const hits: string[] = [];

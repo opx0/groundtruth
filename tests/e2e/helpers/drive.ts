@@ -8,7 +8,7 @@
  * served by the production build `playwright.config.ts` starts, and that build
  * knows nothing about any fixture. The seam is deliberate: a report assembled
  * from live sources would make this suite a weather report, and four of the
- * eight paths (`docs/BRIEF.md` B12) cannot be reached from this machine at all
+ * eight paths (`.dev/BRIEF.md` B12) cannot be reached from this machine at all
  * -- FEMA's NFHL host refuses the connection and the two air sources have no
  * key. So the bytes are the ones `helpers/bodies.ts` built with the real route
  * handlers over the committed fixtures, and the wiring under test is everything
@@ -23,7 +23,7 @@
 import { expect, type Page } from "@playwright/test";
 import { geocodeBody, CENSUS, type Body } from "./bodies";
 
-/** `docs/BRIEF.md` A6 row 1, and the address the match fixture was recorded for. */
+/** `.dev/BRIEF.md` A6 row 1, and the address the match fixture was recorded for. */
 export const HOUSTON = "9311 E Ave P, Houston, TX 77012";
 
 /** A6 row 3. Its match returns a New Orleans point, and the flood answer there is the zone X levee subtype. */
@@ -80,7 +80,7 @@ export async function serveReport(page: Page, body: Body): Promise<Served> {
  * Screen 1: type an address and ask for it.
  *
  * The fixture decides the outcome, and the address is what the reader typed --
- * `docs/BRIEF.md` B9's one place a raw address exists. Nothing downstream of
+ * `.dev/BRIEF.md` B9's one place a raw address exists. Nothing downstream of
  * the geocode route ever sees it.
  */
 export async function search(page: Page, fixture: string, address: string): Promise<void> {
@@ -94,7 +94,7 @@ export async function search(page: Page, fixture: string, address: string): Prom
 /**
  * Screens 1 to 3: search, confirm the match, ask for the report. The
  * confirmation is a click and not a render, which is why this helper has to
- * make it -- `docs/BRIEF.md` B9 step 5.
+ * make it -- `.dev/BRIEF.md` B9 step 5.
  *
  * `typed` defaults to the Houston demo point, so every path written before
  * 2026-09-17 reads as it did. A path that passes something else drives its own

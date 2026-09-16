@@ -10,11 +10,6 @@ import { ReportScreen } from "./report-screen";
 import { renderTracePanel } from "./trace-panel";
 import { SearchScreen } from "./search-screen";
 
-/**
- * Calls the geocode route and parses the response through the shared zod
- * schema before it ever becomes a typed value in this component -- no `any`,
- * no assertion on `res.json()`'s result.
- */
 async function requestGeocode(address: string) {
 	const res = await fetch("/api/geocode", {
 		method: "POST",
@@ -25,18 +20,8 @@ async function requestGeocode(address: string) {
 	return GeocodeApiResponseSchema.parse(body);
 }
 
-/** The whole search-to-report flow. The screens below it are plain functions of props; `ReportScreen` owns the stream and its own state. */
 export function SearchFlow() {
 	const [state, dispatch] = useReducer(flowReducer, initialFlowState);
-	/**
-	 * Whether the reader has asked for the report on the match they are looking
-	 * at. Local to this component rather than a screen in `geocode-flow.ts`,
-	 * because that reducer's state shape is where the privacy rule lives: a
-	 * `confirm` state carries the match and no address, and the report is that
-	 * same state with the reader's confirmation on it, per docs/BRIEF.md B9
-	 * steps 4 and 5. It is reset by every action that changes which match is on
-	 * screen, so a new match is never already-confirmed.
-	 */
 	const [confirmed, setConfirmed] = useState(false);
 
 	const restart = useCallback((action: { readonly type: "start-over" } | { readonly type: "edit-no-match" }) => {
@@ -59,9 +44,6 @@ export function SearchFlow() {
 
 	if (state.screen === "confirm") {
 		if (confirmed) {
-			// The panel is passed in rather than imported by the screen, so the
-			// screen has no opinion about what a trace looks like and its tests
-			// need no panel. This is the one place the two halves meet.
 			return (
 				<ReportScreen
 					match={state.match}

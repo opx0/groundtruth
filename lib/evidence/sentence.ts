@@ -1,21 +1,3 @@
-/**
- * Rendered text and its trace.
- *
- * A `Sentence` is spans of connective text and `{field, display}` references.
- * It carries no values and no provenance. `render` and `trace` read the
- * subject from the store at call time, so deleting a record makes both return
- * null and `verify` reject any sentence that was rendered before.
- *
- * Nothing in this module caches. That, and not record-scoping, is what makes
- * the deletion guarantee hold (SYNTHESIS.md graft 1, arm C). It is why the
- * subject of a sentence can be wider than one record: a section's count is the
- * length of an ordering recomputed from the store on every render, so removing
- * a record lowers the count by itself. A count written down as a number could
- * drift away from the records behind it; the length of an ordering cannot. If
- * a scope ever seems to need a cache to work, the property is gone and the
- * design, not the cache, is what needs revisiting.
- */
-
 import {
 	AGENCY,
 	KINDS,
@@ -51,52 +33,19 @@ import type {
 	Template,
 } from "./templates";
 
-/* -------------------------------------------------------------------------- */
-/* Subjects                                                                   */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Which of a source's records a section counts. The field is a named slot of
- * the kind, so a filter cannot name a field the record does not have. There is
- * no free-form predicate: the rule that selects the ordering is data, visible
- * in the trace, not a closure.
- */
 export type SectionFilter<F extends string = string> =
 	| { readonly field: F; readonly equals: string | number | boolean | null }
 	| { readonly field: F; readonly atLeast: number }
-	/** The field holds a value rather than null. "Has a formal enforcement action on record" is this, and is not expressible as an equals or a threshold. */
 	| { readonly field: F; readonly present: true };
 
-/**
- * One source's records within its stated boundary, described well enough that
- * the ordering can be rebuilt from the store at any moment. It holds no
- * records and no count.
- *
- * `F` stays a plain string on the type so a `SectionSpec<"sems-site",
- * "frsActiveStatus">` flows into a `SectionSpec`, the same covariance trick
- * `SlotRef` uses. `defineSection` is what constrains it to a real slot.
- */
 export type SectionSpec<K extends Kind = Kind, F extends string = string> = {
 	readonly kind: K;
 	readonly source: SourceOf<K>;
-	/** How the boundary reads on screen, e.g. "5 miles". Its trace is the query that set it. */
 	readonly boundary: string;
-	/** The request behind the section: endpoint, boundary parameter, retrieval time. Null when no payload was kept. */
 	readonly query: QueryProvenance | null;
 	readonly retrievedAt: string | null;
-	/** Null counts every record of the kind. */
 	readonly filter: SectionFilter<F> | null;
-	/**
-	 * How many of the ordering the report actually carries, or null when it
-	 * carries all of it. A report cannot ship a sentence and a trace for every
-	 * one of the 1,686 facilities ECHO answers within five miles, so it carries
-	 * a bounded head of the ordering -- and a bound the reader cannot see is a
-	 * lie. This is what lets the section say how many it did not show, as a
-	 * number recomputed from the store like the count beside it, never one the
-	 * report wrote down.
-	 */
 	readonly carried: number | null;
-	/** What the section says when the ordering is empty. */
 	readonly note: string;
 };
 
@@ -106,11 +55,6 @@ export function defineSection<K extends Kind, F extends SlotKeys<RecordOf<K>> = 
 	return Object.freeze(spec);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Placements                                                                 */
-/* -------------------------------------------------------------------------- */
-
-/** Arm A's original case: one record, one template of that record's kind. */
 export type RecordPlacement = {
 	[K in Kind]: {
 		readonly scope: "record";
@@ -130,17 +74,6 @@ export type SourcePlacement = {
 	readonly source: SourceId;
 	readonly outcome: SourceOutcome;
 	readonly template: Template<"source">;
-	/**
-	 * What this outcome is about, when the source's own name is too coarse.
-	 * FEMA is one `SourceId` and two datasets, and the flood card carries two
-	 * outcomes: the authoritative layer that refused and the Esri copy that
-	 * answered. Under `AGENCY.fema` both sentences read "FEMA National Flood
-	 * Hazard Layer", so the card said the same named source both answered and
-	 * could not be reached, in consecutive sentences. Null uses `AGENCY`.
-	 *
-	 * This names our own request, not a field any agency sent -- `agency` is a
-	 * `Reported`, like `status` and `cause` beside it.
-	 */
 	readonly agency: string | null;
 };
 
@@ -150,16 +83,6 @@ export type OriginPlacement = {
 	readonly template: Template<"origin">;
 };
 
-/**
- * Records the grouping rules tied together. Members may be of different kinds,
- * because two of the B6 rules are about two sources disagreeing, so
- * `groupedBy` names a slot read from the lead member at render time and is
- * null when that member does not have it. Which records belong in a group, and
- * which slot ties them, is `lib/report/grouping.ts`'s decision, wired into the
- * report by `app/api/report/handler.ts`, which runs `groupRecords` over the
- * settled records and turns the result into placements with `groupPlacements`
- * and `groupsFor` in `lib/report/selection.ts`; nothing here decides it.
- */
 export type GroupPlacement<K extends Kind = Kind, F extends string = string> = {
 	readonly scope: "group";
 	readonly members: readonly [RecordId<K>, ...RecordId<K>[]];
@@ -167,7 +90,6 @@ export type GroupPlacement<K extends Kind = Kind, F extends string = string> = {
 	readonly template: Template<"group">;
 };
 
-/** The five subject scopes of SYNTHESIS.md graft 1. */
 export type Placement =
 	| RecordPlacement
 	| SectionPlacement
@@ -175,7 +97,6 @@ export type Placement =
 	| OriginPlacement
 	| GroupPlacement;
 
-/** What a sentence remembers about its subject: everything but the template, so a forged sentence cannot smuggle one in. */
 export type SentenceSubject =
 	| { readonly scope: "record"; readonly recordId: RecordId }
 	| { readonly scope: "section"; readonly section: SectionSpec }
@@ -194,7 +115,6 @@ export type SentenceSubject =
 
 export type Span = {
 	readonly text: string;
-	/** null: connective text from the template. */
 	readonly slot: { readonly field: string; readonly display: DisplayFormat } | null;
 };
 
@@ -204,13 +124,8 @@ export type Sentence = {
 	readonly spans: readonly [Span, ...Span[]];
 };
 
-/* -------------------------------------------------------------------------- */
-/* Traces                                                                     */
-/* -------------------------------------------------------------------------- */
-
 export type ValueTrace = {
 	readonly field: string;
-	/** As shown, after DisplayFormat; null if this value is not on screen in the sentence. */
 	readonly displayed: string | null;
 	readonly normalized: JsonValue;
 	readonly provenance: readonly Provenance[];
@@ -221,7 +136,6 @@ export type RecordTrace = {
 	readonly source: SourceId;
 	readonly agency: string;
 	readonly sourceRecordId: string;
-	/** The agency link, with the identifier field and template that produced it. */
 	readonly sourceUrl: ValueTrace;
 	readonly payloads: readonly PayloadRef[];
 	readonly caveats: readonly string[];
@@ -229,11 +143,6 @@ export type RecordTrace = {
 	readonly sourceUpdatedAt: ValueTrace;
 };
 
-/**
- * What stands behind a section claim: the query we made, and the records
- * counted. `counted` is read from the store at trace time, in the ordering's
- * own order, so it always agrees with the count on screen.
- */
 export type SectionTrace = {
 	readonly kind: Kind;
 	readonly source: SourceId;
@@ -259,12 +168,10 @@ export type OriginTrace = {
 };
 
 export type GroupTrace = {
-	/** The members still in the store, in the placement's order. */
 	readonly members: readonly RecordId[];
 	readonly groupedBy: string | null;
 };
 
-/** Explained by scope: a record-scoped span has a record behind it, a section-scoped span an ordering. */
 export type Trace =
 	| {
 			readonly scope: "record";
@@ -304,13 +211,8 @@ export class KindMismatch extends Error {
 	}
 }
 
-/* -------------------------------------------------------------------------- */
-/* Slots                                                                      */
-/* -------------------------------------------------------------------------- */
-
 type Bag = Readonly<Record<string, unknown>>;
 
-/** Any non-null object can be read by string key, yielding unknown. */
 function isBag(x: unknown): x is Bag {
 	return typeof x === "object" && x !== null;
 }
@@ -319,15 +221,12 @@ function isReported(x: unknown): x is Reported<unknown> {
 	return isBag(x) && "reported" in x && "provenance" in x && Array.isArray(x.provenance);
 }
 
-/** The kernel's only way to make a `Reported` fact. Not exported: a subject is built here or not at all. */
 function reported<T>(value: T, provenance: readonly Provenance[]): Reported<T> {
 	return Object.freeze({ reported: value, provenance: Object.freeze(provenance) });
 }
 
-/** What a span reads: a `Sourced` leaf or a `Reported` fact, flattened to the two things rendering needs. */
 type Slot = { readonly value: unknown; readonly provenance: readonly Provenance[] };
 
-/** The slot at `field`, or null when the field is absent or holds neither a reader result nor a reported fact. */
 function slotAt(subject: Bag, field: string): Slot | null {
 	const v = subject[field];
 	if (isSourced(v)) return { value: v.value, provenance: v.provenance };
@@ -335,15 +234,6 @@ function slotAt(subject: Bag, field: string): Slot | null {
 	return null;
 }
 
-/**
- * `20254146` -> `"$20,254,146"`; `0` -> `"$0"`. Comma-grouping and a leading
- * `$`, nothing else: no rounding and no forced decimal places, so a
- * whole-dollar value -- every recorded `FacLastPenaltyAmt` is one -- prints
- * exactly `$0` rather than `$0.00`. `parse-currency`
- * (`lib/evidence/sourced.ts`) is what turned ECHO's own `"$0"` into this
- * number; this only reverses that one step, so the sign it prints is a sign
- * the source sent, not one this codebase adds.
- */
 function formatDollars(value: number): string {
 	const sign = value < 0 ? "-" : "";
 	const [whole, fraction] = Math.abs(value).toString().split(".");
@@ -359,8 +249,6 @@ export function formatValue(value: unknown, display: DisplayFormat): string | nu
 			return `${(Math.round(value / 10) / 100).toFixed(2)} km`;
 		}
 		case "date": {
-			// The date part of an ISO instant, and anything else verbatim: this
-			// narrows what is shown, it never reinterprets what was read.
 			if (typeof value !== "string") return null;
 			return /^(\d{4}-\d{2}-\d{2})(?:[T ]|$)/.exec(value)?.[1] ?? value;
 		}
@@ -384,7 +272,6 @@ function spanFor(subject: Bag, ref: AnyRef<SubjectKey>): Span | null {
 	return { text, slot: { field: ref.field, display: ref.display } };
 }
 
-/** All spans of one clause, or null when any reference has nothing to show: a missing slot removes its clause. */
 function clauseSpans(
 	subject: Bag,
 	strings: readonly string[],
@@ -403,16 +290,10 @@ function clauseSpans(
 	return spans;
 }
 
-/** A plain tagged outcome, the shape `Requirement`'s `state` compares against. */
 function isTagged(x: unknown): x is { readonly status: string } {
 	return isBag(x) && typeof x["status"] === "string";
 }
 
-/**
- * Whether the subject is in the state the template says it speaks about. Every
- * requirement must hold; a template that declares none renders as before.
- * See `Requirement` in ./templates for why this exists.
- */
 function satisfies(subject: Bag, requires: readonly Requirement[]): boolean {
 	for (const requirement of requires) {
 		if ("state" in requirement) {
@@ -422,8 +303,6 @@ function satisfies(subject: Bag, requires: readonly Requirement[]): boolean {
 		}
 		const slot = slotAt(subject, requirement.slot);
 		if ("present" in requirement) {
-			// A field that is null itself and a `Sourced` whose value is null are
-			// the same absence to a reader, and both count as not present.
 			if ((slot !== null && slot.value !== null) !== requirement.present) return false;
 			continue;
 		}
@@ -452,10 +331,6 @@ function assemble(subject: Bag, template: Template<SubjectKey>, remembered: Sent
 	return Object.freeze({ subject: remembered, templateId: template.id, spans: Object.freeze(nonEmpty) });
 }
 
-/* -------------------------------------------------------------------------- */
-/* Orderings                                                                  */
-/* -------------------------------------------------------------------------- */
-
 type AnyRecord = Sealed<RecordOf<Kind>>;
 
 function isPresent<T>(x: T | undefined): x is T {
@@ -475,12 +350,6 @@ function matchesFilter(record: AnyRecord, filter: SectionFilter): boolean {
 	return typeof v.value === "number" && v.value >= filter.atLeast;
 }
 
-/**
- * The records of a section, in the order the report shows them: nearest first,
- * ties broken by the source's own identifier, records with no coordinate last.
- * A pure read of the store. The section's count is this array's length, which
- * is why removing a record lowers it with nothing else touched.
- */
 export function sectionOrdering(store: EvidenceStore, section: SectionSpec): readonly AnyRecord[] {
 	const filter = section.filter;
 	const all = store.ofKind(section.kind);
@@ -490,22 +359,6 @@ export function sectionOrdering(store: EvidenceStore, section: SectionSpec): rea
 	);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Subject construction                                                       */
-/* -------------------------------------------------------------------------- */
-
-/**
- * The field and the value a section's filter selects on, when it selects by a
- * string equality. Null for every other filter and for no filter at all: a
- * threshold and a presence test keep records by a rule no single value states,
- * and a slot that named one would be naming something the ordering was not
- * selected by.
- *
- * Read off the filter rather than written down beside it, so the two cannot
- * drift apart: a section could otherwise carry a value its ordering was never
- * selected by, which is the mistake `notShown` avoids by being recomputed from
- * the store instead of recorded.
- */
 function equalsString(filter: SectionFilter | null): { readonly field: string; readonly value: string } | null {
 	if (filter === null || !("equals" in filter)) return null;
 	const value = filter.equals;
@@ -515,21 +368,13 @@ function equalsString(filter: SectionFilter | null): { readonly field: string; r
 function sectionSubject(store: EvidenceStore, section: SectionSpec): SectionSubject {
 	const ordering = sectionOrdering(store, section);
 	const query: readonly Provenance[] = section.query === null ? [] : [section.query];
-	// Recomputed from the store like the count, so removing a record lowers one
-	// and raises the other by itself. Null when the report carries the whole
-	// ordering, and null when nothing was left out, so the sentence cannot
-	// render "0 not shown" over a section that showed everything.
 	const left = section.carried === null ? 0 : Math.max(0, ordering.length - section.carried);
-	// Read off the filter on every render, like the count: a sentence naming
-	// the value a section was selected by cannot name a different one, and a
-	// section selected by no single value has no pair to name at all.
 	const selects = equalsString(section.filter);
 	return {
 		scope: "section",
 		count: reported(ordering.length, query),
 		boundary: reported(section.boundary, query),
 		retrievedAt: section.retrievedAt === null ? null : reported(section.retrievedAt, query),
-		// Only an empty section has a note, so the no-data wording cannot render over a section that holds records.
 		note: ordering.length === 0 ? reported(section.note, query) : null,
 		notShown: left === 0 ? null : reported(left, query),
 		filterField: selects === null ? null : reported(selects.field, query),
@@ -543,14 +388,6 @@ function printableCode(raw: JsonValue | null): string | null {
 	return null;
 }
 
-/**
- * What a source outcome says, in words. `outcome.status` and
- * `FailureCause` are this codebase's own enums, and printing them put
- * "answered ok" and "could not be reached: http" on every card. They are facts
- * about our own request, so wording them renames nothing an agency sent -- and
- * `SourceTrace` still carries the enum, the same way `sfhaFlag` keeps the
- * letter behind `sfhaLabel`.
- */
 const STATUS_WORDS: { readonly [S in SourceOutcome["status"]]: string } = {
 	ok: "with records",
 	"no-data": "with no matching records",
@@ -558,8 +395,6 @@ const STATUS_WORDS: { readonly [S in SourceOutcome["status"]]: string } = {
 };
 
 const CAUSE_WORDS: { readonly [C in FailureCause]: string } = {
-	// Worded for completeness rather than for a reader. A cancelled source's
-	// card is never sent, because cancellation is the reader having gone.
 	cancelled: "the reader closed the report before it finished",
 	timeout: "the request timed out",
 	refused: "the host refused the connection",
@@ -619,19 +454,10 @@ function groupSubject(
 	groupedBy: string | null,
 ): GroupSubject | null {
 	const live = liveMembers(store, members);
-	// The group still exists while any member does, so the count and the
-	// identifier it was grouped on read from whoever is left.
 	const [anyLive] = live;
 	if (anyLive === undefined) return null;
 	const bag: Bag = anyLive;
 	const key = groupedBy === null ? undefined : bag[groupedBy];
-	// The two named records, though, are the placement's own first two. Reading
-	// them off `live` meant deleting a member re-seated the sentence on the next
-	// survivor: a three-member group losing its second rendered "PASADENA
-	// REFINING FIRE and PASADENA REFINING SYSTEM, INC. share one EPA facility
-	// registry ID", where the second is the record that ID names rather than a
-	// record sharing it. A null here drops the clause, which is what deleting a
-	// record is supposed to do.
 	const [firstId, secondId] = members;
 	const first = firstId === undefined ? undefined : store.get(firstId);
 	const second = secondId === undefined ? undefined : store.get(secondId);
@@ -644,10 +470,6 @@ function groupSubject(
 		members: reported(live.length, []),
 	};
 }
-
-/* -------------------------------------------------------------------------- */
-/* Rendering                                                                  */
-/* -------------------------------------------------------------------------- */
 
 function renderRecord<K extends Kind>(
 	store: EvidenceStore,
@@ -697,7 +519,6 @@ function renderGroup(
 	return assemble(subject, template, { scope: "group", members, groupedBy });
 }
 
-/** Reads the subject from the store now. Null if it is gone or every clause dropped. */
 export function render(store: EvidenceStore, placement: Placement): Sentence | null {
 	switch (placement.scope) {
 		case "record":
@@ -722,10 +543,6 @@ export function renderAll(store: EvidenceStore, placements: readonly Placement[]
 	return out;
 }
 
-/* -------------------------------------------------------------------------- */
-/* Tracing                                                                    */
-/* -------------------------------------------------------------------------- */
-
 function toJson(value: unknown): JsonValue {
 	if (value === null || value === undefined) return null;
 	if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return value;
@@ -746,13 +563,6 @@ function sourcedTrace(field: string, sourced: Sourced<unknown>, displayed: strin
 	return valueTrace(field, { value: sourced.value, provenance: sourced.provenance }, displayed);
 }
 
-/**
- * Every slot on the subject, at any depth, found by brand or by shape and
- * named by its path: "location.latitude", "zones.0.code". A slot is a leaf, so
- * the walk never descends into a provenance chain. Only the ancestors of the
- * current path are held, so one object reachable by two paths is reported
- * under both and a cycle still cannot spin.
- */
 function subjectValues(subject: Bag, shown: ReadonlyMap<string, string>): ValueTrace[] {
 	const out: ValueTrace[] = [];
 	const ancestors = new Set<Bag>();
@@ -796,10 +606,6 @@ function shownFields(sentence: Sentence): ReadonlyMap<string, string> {
 	return shown;
 }
 
-/**
- * Explains the span at `spanIndex` from the live subject. Null when the
- * subject is gone, the index is out of range, or the span is connective text.
- */
 export function trace(store: EvidenceStore, sentence: Sentence, spanIndex: number): Trace | null {
 	const span = sentence.spans[spanIndex];
 	if (span === undefined || span.slot === null) return null;
@@ -849,8 +655,6 @@ export function trace(store: EvidenceStore, sentence: Sentence, spanIndex: numbe
 				scope: "source",
 				source: {
 					source: subject.source,
-					// The trace carries the agency this outcome was attributed to and
-					// the raw cause enum, not the words the card printed.
 					agency: subject.agency ?? AGENCY[subject.source],
 					status: outcome.status,
 					retrievedAt: outcome.status === "unavailable" ? null : outcome.retrievedAt,
@@ -892,10 +696,6 @@ export function trace(store: EvidenceStore, sentence: Sentence, spanIndex: numbe
 	}
 }
 
-/* -------------------------------------------------------------------------- */
-/* Verifying                                                                  */
-/* -------------------------------------------------------------------------- */
-
 function isRecordTemplate(template: Template<SubjectKey>): template is Template<Kind> {
 	return KINDS.some((kind) => kind === template.kind);
 }
@@ -916,7 +716,6 @@ function isGroupTemplate(template: Template<SubjectKey>): template is Template<"
 	return template.kind === "group";
 }
 
-/** The subject key a template must declare to render this subject. */
 function subjectKeyOf(subject: SentenceSubject): SubjectKey {
 	return subject.scope === "record" ? subject.recordId.kind : subject.scope;
 }
@@ -938,7 +737,6 @@ function reRender(store: EvidenceStore, subject: SentenceSubject, template: Temp
 	}
 }
 
-/** Re-renders from the current store and compares span by span. False if the text is not derivable now. */
 export function verify(
 	store: EvidenceStore,
 	sentence: Sentence,

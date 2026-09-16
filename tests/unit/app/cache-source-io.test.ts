@@ -1,7 +1,7 @@
 /**
  * The B9 coordinate cache.
  *
- * Every test here names the sentence of `docs/BRIEF.md` B9 it proves, and the
+ * Every test here names the sentence of `.dev/BRIEF.md` B9 it proves, and the
  * privacy ones assert the key rather than the intention: the digest itself,
  * what a second request with one byte changed does, and what the module's own
  * source text is allowed to mention.

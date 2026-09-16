@@ -1,5 +1,5 @@
 /**
- * `docs/BRIEF.md` B12, paths 4 and 5: a sentence on a card, and what stands
+ * `.dev/BRIEF.md` B12, paths 4 and 5: a sentence on a card, and what stands
  * behind the span the reader clicked.
  *
  * This is A3's promise -- every displayed value traces to the agency, the

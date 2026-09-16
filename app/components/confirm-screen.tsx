@@ -3,31 +3,9 @@ import type { GeocodeMatchView, OriginSentence } from "@/app/lib/geocode-contrac
 type ConfirmScreenProps = {
 	readonly match: GeocodeMatchView;
 	readonly onStartOver: () => void;
-	/**
-	 * `docs/BRIEF.md` B9 step 4 and step 5: the report route is asked only
-	 * after the reader confirms this match, so the coordinate leaves the
-	 * browser on a click and not on a render. Optional, so a caller that only
-	 * wants to show the match -- a test, screen 2 on its own -- gets no button.
-	 */
 	readonly onSeeReport?: () => void;
 };
 
-/**
- * One sentence the server rendered, span by span. A span that carries a slot
- * is the rendered form of one field, and names it in `data-field`; a span with
- * no slot is the template's own connective text and gets no hook, because there
- * is nothing behind it to show.
- *
- * The trace panel of `docs/BRIEF.md` A3 screen 4 exists -- `app/components/`
- * has it, and the report screen opens it on a click. *These* spans still do not
- * open it, and the reason is not that the panel is missing: a panel needs the
- * provenance behind the field, and the geocode wire carries the origin
- * sentences as rendered spans only. `app/lib/report-contract.ts` has no origin
- * arm, so there is nothing on this screen for a click to show.
- * `app/components/report-screen.tsx` says the same of the origin sentences it
- * carries over, for the same reason. `data-field` is what a later origin arm
- * would hang that click on, and is already what the screen tests select by.
- */
 function RenderedSentence({ sentence, className }: { readonly sentence: OriginSentence; readonly className: string }) {
 	return (
 		<p className={className}>
@@ -40,23 +18,6 @@ function RenderedSentence({ sentence, className }: { readonly sentence: OriginSe
 	);
 }
 
-/**
- * Screen 2. Every factual line on it is a sentence `lib/templates/origin.ts`
- * rendered from the `GeocodeMatch` on the server, with the Census field
- * behind each span -- the matched address, the block range, the street side,
- * the TIGER line, the mapped point.
- *
- * This screen writes no sentence of its own and holds no fallback for one it
- * was not given. A clause whose fields are missing drops in the kernel, and a
- * sentence whose clauses all dropped never arrives; either way this renders
- * one paragraph fewer. Substituting prose for a sentence the fields could not
- * support is exactly what the deleted precision-sentence builder in
- * `app/lib/geocode-contract.ts` used to do, and it was the one line on this
- * screen with no trace behind it.
- *
- * The heading, the privacy note and the button are not claims about the
- * reader's address: they are this tool talking about itself.
- */
 export function ConfirmScreen({ match, onStartOver, onSeeReport }: ConfirmScreenProps) {
 	return (
 		<div className="mx-auto max-w-xl px-4 py-12 sm:py-16">

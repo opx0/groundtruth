@@ -2,17 +2,6 @@ type NoMatchScreenProps = {
 	readonly onEdit: () => void;
 };
 
-/**
- * Screen for the no-match outcome.
- *
- * `docs/BRIEF.md` B10's fixture for this state, 9400 Clinton Dr, Houston, TX
- * 77029, is a real address that EPA lists facilities at -- the Census
- * Geocoder simply has no street-range entry that resolves it. The copy below
- * says that plainly: the limit is the geocoder's own address-range data, not
- * a finding about the place. It must never read as "this address does not
- * exist," and it says which parts of the address to add rather than asking
- * the reader to guess.
- */
 export function NoMatchScreen({ onEdit }: NoMatchScreenProps) {
 	return (
 		<div className="mx-auto max-w-xl px-4 py-12 sm:py-16">

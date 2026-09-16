@@ -378,15 +378,30 @@ describe("every template against every record the fixtures build", () => {
 		]);
 	});
 
-	for (const template of semsTemplates) {
-		for (const { name, record } of RECORDS) {
-			const key = keyOf(template, name);
+	/**
+	 * All sixty-eight pairs in one test rather than sixty-eight tests.
+	 *
+	 * It was one `it` per pair, which made this file report 123 tests from 54
+	 * blocks and told a reader the suite was bigger than the ideas in it. The
+	 * coverage is identical: every template is still rendered over every record
+	 * and compared to its exact expected string or to null.
+	 *
+	 * Collecting the mismatches is the better failure too. A change to one
+	 * sentence used to turn seventeen pairs red separately and you read them one
+	 * at a time; now the assertion names every broken pair at once, with what it
+	 * rendered and what was expected.
+	 */
+	it("renders the exact sentence, or null, for all sixty-eight pairs", () => {
+		const wrong = RECORDS.flatMap(({ name, record }) =>
+			semsTemplates.flatMap((template) => {
+				const key = keyOf(template, name);
+				const got = rendered(record, template);
+				return got === expectedFor(key) ? [] : [`${key}\n  expected: ${expectedFor(key)}\n  rendered: ${got}`];
+			}),
+		);
 
-			it(`renders the exact sentence, or null, for ${key}`, () => {
-				expect(rendered(record, template)).toBe(expectedFor(key));
-			});
-		}
-	}
+		expect(wrong, `${wrong.length} of 68 pairs render the wrong thing:\n${wrong.join("\n")}`).toEqual([]);
+	});
 });
 
 /**
@@ -1072,7 +1087,7 @@ describe("a row the layer sent with no coordinate", () => {
 });
 
 /**
- * The archived site, which is `.dev/PLAN.md` item 13 and the one state no
+ * The archived site, which is `.dev/BUILD.md` item 13 and the one state no
  * recorded Houston row is in.
  *
  * `tests/fixtures/sems/envirofacts-archived.json` is a recording of two real

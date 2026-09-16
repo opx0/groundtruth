@@ -123,7 +123,7 @@ const emptyFlag = recordOf(derivedRow("esri-zone-ae-pasadena.json", { SFHA_TF: "
 // Derived: both recorded rows carry a DFIRM_ID, and ArcGIS declares it nullable.
 const noStudyId = recordOf(derivedRow("esri-zone-ae-pasadena.json", { DFIRM_ID: null }));
 // No NFHL response has ever been recorded — the host refuses connections from
-// here, docs/BRIEF.md B14 — and both layers carry the same field names. This
+// here, .dev/BRIEF.md B14 — and both layers carry the same field names. This
 // pairs the recorded Esri row with the NFHL dataset choice, and fixes which
 // label the clause prints for that choice. It says nothing about what NFHL sent.
 const nfhlDataset = recordOf(fixtureRow("esri-zone-ae-pasadena.json"), "NFHL");

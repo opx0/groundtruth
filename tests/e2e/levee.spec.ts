@@ -1,13 +1,13 @@
 /**
- * `docs/BRIEF.md` A6 row 3's flood half: FEMA's zone X levee subtype, on the
+ * `.dev/BRIEF.md` A6 row 3's flood half: FEMA's zone X levee subtype, on the
  * screen, in FEMA's own words, and openable to the column it was read from.
  *
- * WHY THIS PATH EXISTS. `.dev/PLAN.md` and `.dev/HANDOFF.md` record the gap it
+ * WHY THIS PATH EXISTS. `.dev/BUILD.md` and `.dev/BUILD.md` record the gap it
  * closes in the same words -- the zone X levee subtype, "the one verbatim
  * agency string A6 puts on screen for that address", was asserted only in unit
  * tests. The bytes are `tests/fixtures/fema/esri-zone-x-levee-neworleans.json`:
  * one polygon, `FLD_ZONE: "X"`, `SFHA_TF: "F"`, `ZONE_SUBTY: "Area With
- * Reduced Flood Risk Due To Levee"`. `docs/BRIEF.md` B14's row for that answer
+ * Reduced Flood Risk Due To Levee"`. `.dev/BRIEF.md` B14's row for that answer
  * carries a dated correction -- it had recorded a 0.2% annual chance subtype --
  * so every string asserted below is read off the committed bytes and off
  * `lib/templates/fema.ts`, never off that log row.

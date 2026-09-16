@@ -16,11 +16,6 @@ const ERROR_TEXT: Record<SearchError, string> = {
 	unavailable: "The Census Geocoder is not responding right now. Try again in a moment.",
 };
 
-/**
- * Screen 1. One address field, three curated examples, and the privacy note
- * `docs/BRIEF.md` B9 requires on this screen: what goes to Census, and that
- * every other source only ever sees a point and a distance.
- */
 export function SearchScreen(props: SearchScreenProps) {
 	const { address, pending, error, examples, onAddressChange, onSubmit, onExampleSelect } = props;
 	const canSubmit = address.trim().length > 0 && !pending;

@@ -31,7 +31,7 @@ export const evidenceKernelRules = {
 };
 
 /**
- * docs/BRIEF.md B11 and B12: "Recorded fixtures live only under the test
+ * .dev/BRIEF.md B11 and B12: "Recorded fixtures live only under the test
  * directory. Production code cannot import them," and "fixtures cannot enter a
  * production build."
  *
@@ -75,7 +75,7 @@ export const fixtureBoundaryRules = {
 							"../../../../tests/**",
 						],
 						message:
-							"No import from tests/ under lib/ or app/: recorded fixtures live only under the test directory and cannot enter a production build (docs/BRIEF.md B11).",
+							"No import from tests/ under lib/ or app/: recorded fixtures live only under the test directory and cannot enter a production build (.dev/BRIEF.md B11).",
 					},
 				],
 			},
@@ -95,6 +95,12 @@ const eslintConfig = defineConfig([
 		"out/**",
 		"build/**",
 		"next-env.d.ts",
+		// Scratch checkouts an agent or a tool leaves behind. Each carries its
+		// own `.next`, and the pattern above only covers this repo's, so without
+		// this line eslint walks into generated bundles and reports thousands of
+		// problems in code nobody wrote. It broke `pnpm verify` on 2026-09-17
+		// with 260 errors, none of them in a tracked file.
+		".delta/**",
 	]),
 ]);
 

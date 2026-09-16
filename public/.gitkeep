@@ -1,0 +1,4 @@
+# Next.js serves this directory at the site root, and the Dockerfile copies it.
+# Kept present-but-empty: the five scaffold SVGs that shipped here were never
+# referenced by any component, and an absent directory breaks both the image
+# build and `pnpm start:standalone`.

@@ -407,7 +407,7 @@ describe("clicking any slotted span of any sentence in any card", () => {
 				expect(selection.sentence).toBe(want.sentence);
 				expect(selection.spanIndex).toBe(want.spanIndex);
 
-				// Everything docs/BRIEF.md A3 asks the panel for is reachable from
+				// Everything .dev/BRIEF.md A3 asks the panel for is reachable from
 				// what the click carried: the value, the field it is called, and the
 				// scope header that says whose record it is.
 				const value = clickedValue(selection);
@@ -494,10 +494,10 @@ describe("every string on the screen is either a span the server sent or enumera
 });
 
 /* -------------------------------------------------------------------------- */
-/* 5. docs/BRIEF.md C2                                                        */
+/* 5. .dev/BRIEF.md C2                                                        */
 /* -------------------------------------------------------------------------- */
 
-/** docs/BRIEF.md C2, every phrase of it, plus the words those phrases are built from. */
+/** .dev/BRIEF.md C2, every phrase of it, plus the words those phrases are built from. */
 const C2_PHRASES: readonly string[] = [
 	"operating polluters near your home",
 	"any us address",
@@ -528,7 +528,7 @@ const C2_WORDS: readonly string[] = [
 	"danger",
 ];
 
-describe("the words of docs/BRIEF.md C2 appear nowhere", () => {
+describe("the words of .dev/BRIEF.md C2 appear nowhere", () => {
 	it("greps the whole rendered report for every phrase", () => {
 		const state = stateOf(demo);
 		const expanded = state.cards.flatMap((card) => card.listings.map((_listing, index) => listingKey(card.source, index)));

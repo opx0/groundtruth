@@ -1,5 +1,5 @@
 /**
- * `docs/BRIEF.md` B12, paths 1 to 3: the three outcomes the Census Geocoder can
+ * `.dev/BRIEF.md` B12, paths 1 to 3: the three outcomes the Census Geocoder can
  * give an address, each driven through the real screens in a real browser.
  *
  * What these three add to the 600-odd unit tests is the wiring: that the
@@ -71,7 +71,7 @@ test("a no-match", async ({ page }) => {
 
 	await expect(page.getByRole("heading", { name: "No match yet" })).toBeVisible();
 
-	// `docs/BRIEF.md` B10: the limit is the geocoder's own address-range data,
+	// `.dev/BRIEF.md` B10: the limit is the geocoder's own address-range data,
 	// and the screen says so rather than saying the address does not exist.
 	await expect(
 		page.getByText("The Census Geocoder has no street-range entry that matches this address as typed."),

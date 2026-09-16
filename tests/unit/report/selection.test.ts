@@ -1,6 +1,6 @@
 /**
  * The selection and ordering policy, against the committed fixture bytes —
- * docs/BRIEF.md B7.
+ * .dev/BRIEF.md B7.
  *
  * Every record here is built by running a real adapter (`semsAdapter`,
  * `createEchoAdapter`, `floodZoneOutcome` over `esriReducedSetAdapter`,
@@ -98,14 +98,12 @@ import {
 	type ReportSource,
 } from "@/lib/report/selection";
 import { airnowObservationNoIndex, airnowObservationSummary, airnowTemplates } from "@/lib/templates/airnow";
-import { aqsMonitorSummary, aqsTemplates } from "@/lib/templates/aqs";
-import { echoTemplates } from "@/lib/templates/echo";
-import { femaTemplates } from "@/lib/templates/fema";
-import { frsTemplates } from "@/lib/templates/frs";
+import { aqsMonitorSummary } from "@/lib/templates/aqs";
 import { groupTemplates } from "@/lib/templates/groups";
 import { originTemplates } from "@/lib/templates/origin";
 import { aqsNoPollutantMonitor, sectionTemplates, semsNplSectionCount } from "@/lib/templates/sections";
-import { semsSiteRegistryOnly, semsTemplates } from "@/lib/templates/sems";
+import { semsSiteRegistryOnly } from "@/lib/templates/sems";
+import { RECORD_TEMPLATES } from "@/lib/templates/registry";
 import { sourceTemplates } from "@/lib/templates/sources";
 import { houstonLocus } from "@/tests/unit/evidence/helpers/sems-fixtures";
 
@@ -115,14 +113,21 @@ const POLICY = { timeoutMs: 10_000 };
 
 const locus: Locus = houstonLocus();
 
-/** Every template the report may hold, for `verify`. */
+/**
+ * Every template the report may hold, for `verify`.
+ *
+ * The record kinds come from `RECORD_TEMPLATES` rather than six spreads written
+ * out here. The spreads were correct and would have stayed correct only by
+ * someone remembering: a kind left out of them fails nothing, because `verify`
+ * simply finds no template for that sentence and returns false, which reads
+ * like a defect in the renderer rather than a gap in this list. The registry
+ * cannot leave one out and still compile.
+ *
+ * The four subject kinds below it are not record kinds and are not in `Kind`,
+ * so they are still named here.
+ */
 const ALL_TEMPLATES: readonly Template<SubjectKey>[] = [
-	...semsTemplates,
-	...echoTemplates,
-	...aqsTemplates,
-	...airnowTemplates,
-	...femaTemplates,
-	...frsTemplates,
+	...RECORD_TEMPLATES,
 	...sectionTemplates,
 	...sourceTemplates,
 	...originTemplates,
@@ -231,10 +236,10 @@ function epaIdOf(url: URL): string | null {
  */
 const PART_OF_NPL = "TXN000607155";
 
-/** The two sites docs/BRIEF.md A2 names as being on the final National Priorities List, nearest first. */
+/** The two sites .dev/BRIEF.md A2 names as being on the final National Priorities List, nearest first. */
 const FINAL_NPL_SITES: readonly string[] = ["TXN000607093", "TXD980748453"];
 
-/** docs/BRIEF.md B6's verified pair: two Superfund EPA IDs under registry 110000462703, each with its own Envirofacts name. */
+/** .dev/BRIEF.md B6's verified pair: two Superfund EPA IDs under registry 110000462703, each with its own Envirofacts name. */
 const PASADENA_PAIR: readonly string[] = ["TXN000607355", "TXN000605303"];
 
 /**
@@ -265,7 +270,7 @@ function semsLayerBody(overrides: Readonly<Record<string, JsonObject>>): JsonVal
  * The recorded answers, with the Envirofacts status request rejected for the
  * sites `failing` names.
  *
- * Which sites those are is the whole of docs/BRIEF.md A1: Envirofacts is a
+ * Which sites those are is the whole of .dev/BRIEF.md A1: Envirofacts is a
  * second host, asked once per site, fifteen times at `STATUS_CONCURRENCY = 4`,
  * and the sites whose request fails are the sites the final-NPL filter cannot
  * see. One unrelated site failing is the default here; the two final-NPL sites
@@ -367,7 +372,7 @@ const NFHL_REFUSED = new SourceFailure("refused");
 
 /**
  * `floodZoneOutcome` asks FEMA's own layer first. Its host refuses connections
- * from outside the US (docs/BRIEF.md B14) and no response from it has ever been
+ * from outside the US (.dev/BRIEF.md B14) and no response from it has ever been
  * recorded, so the stub refuses it and Esri's recorded copy answers — which is
  * the case that leaves a non-null `nfhl` on the result.
  */
@@ -942,7 +947,7 @@ describe("the four Superfund templates, one state each", () => {
 describe("the final-NPL section counts the final list and nothing else", () => {
 	const npl = listingOf(houston.plan, "sems", 1);
 
-	it("counts exactly the two sites docs/BRIEF.md A2 names", () => {
+	it("counts exactly the two sites .dev/BRIEF.md A2 names", () => {
 		const counted = sectionOrdering(answered.store, listingOf(answered.plan, "sems", 1).section).map(
 			(record) => record.sourceRecordId,
 		);
@@ -997,7 +1002,7 @@ describe("the final-NPL section counts the final list and nothing else", () => {
 	});
 
 	/**
-	 * docs/BRIEF.md A1, which is docs/BRIEF.md A6 row 1's headline number: fail
+	 * .dev/BRIEF.md A1, which is .dev/BRIEF.md A6 row 1's headline number: fail
 	 * the status request for exactly the two final-NPL sites of the demo address
 	 * and the filter sees neither, so the count read 0 — above two sentences, on
 	 * the same card, naming those two sites and the registry's answer for them.
@@ -1523,9 +1528,9 @@ describe("B7's list, item by item", () => {
 	});
 
 	/**
-	 * docs/BRIEF.md A2. `lookupFrsFacility` asks `where=REGISTRY_ID='...'` for
+	 * .dev/BRIEF.md A2. `lookupFrsFacility` asks `where=REGISTRY_ID='...'` for
 	 * registry IDs another card named; there is no radius in the request, and
-	 * docs/BRIEF.md B14 records 6,915 FRS interest rows within five miles of
+	 * .dev/BRIEF.md B14 records 6,915 FRS interest rows within five miles of
 	 * this exact point. "Searched within 5 miles of the mapped point" claimed
 	 * that search on the answering path and, with `no-records` beside it,
 	 * asserted an absence over it.
@@ -1661,7 +1666,7 @@ describe("the groups the B6 rules produced", () => {
 	 * A group *placement* is not a group *sentence*. This group is led by a SEMS
 	 * record, so its placement sits on the SEMS card; rendered against a store
 	 * the SEMS records have not reached yet -- the one-event-per-source wiring
-	 * `.dev/briefs/U3.1-report-route.md` requires -- it renders null while the
+	 * `.dev/BUILD.md` requires -- it renders null while the
 	 * registry record still carried `cross-reference@1`, whose whole
 	 * justification is that `identity@1` "would restate the group sentence
 	 * directly above it". The registry card lost the facility's name and the
@@ -1763,7 +1768,7 @@ describe("the groups the B6 rules produced", () => {
 	});
 
 	/**
-	 * docs/BRIEF.md A3. Registry 110000460885 is VALERO PLUME in Envirofacts and
+	 * .dev/BRIEF.md A3. Registry 110000460885 is VALERO PLUME in Envirofacts and
 	 * HOUSTON REFINERY in the registry, and A3 and B6 establish those as one site
 	 * under two names. "VALERO PLUME and HOUSTON REFINERY share one EPA facility
 	 * registry ID, 110000460885" made them two records sharing a third thing's
@@ -2210,7 +2215,7 @@ describe("the air cards over air records", () => {
 /**
  * `lib/evidence/source.ts` gives an `ok` outcome at least one record, so an
  * empty section under one is not a state the world can be in. It is a state the
- * wiring can be in: `.dev/briefs/U3.1-report-route.md` asks for one event per
+ * wiring can be in: `.dev/BUILD.md` asks for one event per
  * source card as that source settles, in settle order, so a card is built while
  * the store is still filling. Reading emptiness off the store alone put "No
  * matching records within the stated boundary" under a status line that said

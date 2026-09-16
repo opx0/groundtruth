@@ -62,7 +62,7 @@ function registryIdOf(url: URL): string {
 
 /**
  * NFHL's host refuses connections from outside the US and no response from it
- * has ever been recorded (docs/BRIEF.md B14), so it is refused here and Esri's
+ * has ever been recorded (.dev/BRIEF.md B14), so it is refused here and Esri's
  * recorded copy answers. That is what leaves a `source`-scoped prior attempt on
  * the flood card. It is one of three unavailable traces in the demo report: the
  * two air sources are asked and fail before the network, because this
@@ -237,7 +237,7 @@ function inputNamed(inputs: ReturnType<typeof computation>["inputs"], name: stri
 /* A3, row by row, over the sentence A3 was written about                     */
 /* -------------------------------------------------------------------------- */
 
-describe("a record trace fills every row of docs/BRIEF.md A3", () => {
+describe("a record trace fills every row of .dev/BRIEF.md A3", () => {
 	it("names the agency, the record kind and the three identifiers", async () => {
 		const sentences = everySentence(await houstonEvents());
 		const view = firstView(sentenceSaying(sentences, "VALERO PLUME"));
@@ -431,7 +431,7 @@ describe("a status sentence opens on our own request", () => {
 		});
 
 		// A request that failed before the network, for a reason an operator can
-		// act on -- docs/BRIEF.md A6 beat 6, the state the demo shows until a key
+		// act on -- .dev/BRIEF.md A6 beat 6, the state the demo shows until a key
 		// is registered. Same status, a different cause, and a raw code under it.
 		for (const sentence of [sentenceSaying(sentences, "EPA Air Quality System"), sentenceSaying(sentences, "EPA AirNow")]) {
 			expect(rowNamed(firstView(sentence), pick.outcome, "outcome")).toEqual({
@@ -505,7 +505,7 @@ describe("every slotted span of the demo report opens something", () => {
 				expect(grounding.length, `${textOf(sentence)} @${index}`).toBeGreaterThan(0);
 			}
 		}
-		// docs/BRIEF.md A2 screen 3 over the Houston demo point: 48 sentences,
+		// .dev/BRIEF.md A2 screen 3 over the Houston demo point: 48 sentences,
 		// 171 of whose spans carry a slot. Pinned, so a template that loses a
 		// slot is a failure here.
 		//

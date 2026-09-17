@@ -7,10 +7,12 @@ import {
 	fieldsOf,
 	NO_DATA_NOTE,
 	render,
+	requestMade,
 	runSource,
 	sectionOrdering,
 	storeOf,
 	unavailableOf,
+	watched,
 } from "@/lib/evidence";
 import type {
 	Adapter,
@@ -34,7 +36,7 @@ import { airnowAdapter } from "@/lib/adapters/airnow";
 import { aqsAdapter, latestLikelySummaryYear } from "@/lib/adapters/aqs";
 import { ECHO_POLICY, echoAdapter } from "@/lib/adapters/echo";
 import { floodZoneOutcome } from "@/lib/adapters/fema";
-import { lookupFrsFacility } from "@/lib/adapters/frs";
+import { FRS_VERSION, lookupFrsFacility } from "@/lib/adapters/frs";
 import { semsAdapter } from "@/lib/adapters/sems";
 import { groupRecords } from "@/lib/report/grouping";
 import {
@@ -253,10 +255,13 @@ type FrsAnswer =
 	| { readonly failed: SourceUnavailable };
 
 async function askFrs(locus: Locus, io: SourceIo, registryIds: readonly string[]): Promise<SourceOutcome> {
+	// These lookups do not go through `runSource`, so the io is watched here for
+	// the same reason: the section owes its count a request to name.
+	const seen = watched(io);
 	const answers = await Promise.all(
 		registryIds.map(async (registryId): Promise<FrsAnswer> => {
 			try {
-				return { built: await lookupFrsFacility(registryId, io) };
+				return { built: await lookupFrsFacility(registryId, seen.io) };
 			} catch (error) {
 				return { failed: unavailableOf(error) };
 			}
@@ -271,10 +276,11 @@ async function askFrs(locus: Locus, io: SourceIo, registryIds: readonly string[]
 		}
 		for (const one of answer.built) records.push(complete(locus, one));
 	}
+	const query = requestMade(io, FRS_VERSION, seen.made);
 	const [first, ...rest] = records;
-	if (first !== undefined) return { status: "ok", records: [first, ...rest], retrievedAt: io.now() };
+	if (first !== undefined) return { status: "ok", records: [first, ...rest], retrievedAt: io.now(), query };
 	if (failed !== null) return failed;
-	return { status: "no-data", note: NO_DATA_NOTE, retrievedAt: io.now() };
+	return { status: "no-data", note: NO_DATA_NOTE, retrievedAt: io.now(), query };
 }
 
 function invalid(): Response {

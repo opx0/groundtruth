@@ -44,7 +44,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { Locus, SourceIo, SourcePolicy } from "@/lib/evidence";
+import type { Locus, QueryProvenance, SourceIo, SourcePolicy } from "@/lib/evidence";
 import { complete, runSource, SourceFailure } from "@/lib/evidence";
 import {
 	ArcgisQueryBody,
@@ -78,6 +78,21 @@ const SHA = {
 	houston: "cf4ebcfcc74358f6b8005616e1544c334a2fba9f1408458b6b05c3d1e3a9ce22",
 	error: "889c681894d89d34616e16a4fd28016e321f9b7330caabfd6902aa23afe89211",
 };
+
+/**
+ * What `runSource` names as the request behind a section's own claims. On this
+ * source it is also the only part of an empty answer that says which of the
+ * two layers produced it.
+ */
+function requestQuery(url: string, sha256: string): QueryProvenance {
+	return {
+		kind: "query",
+		parameter: "request",
+		value: url,
+		adapterVersion: FEMA_VERSION,
+		payload: { url, sha256, retrievedAt: NOW },
+	};
+}
 
 // B10's wording, prefixed with the dataset that answered so a no-polygon
 // state names its dataset (B12). The second sentence is B10 verbatim.
@@ -281,7 +296,12 @@ describe("no polygon: the two datasets must not be confused", () => {
 
 		expect(result.dataset).toBe("ESRI_REDUCED_SET");
 		expect(result.nfhl).toEqual({ status: "unavailable", cause: "refused", rawCode: null, retryAfter: null });
-		expect(result.outcome).toEqual({ status: "no-data", note: ESRI_NOTE, retrievedAt: NOW });
+		expect(result.outcome).toEqual({
+			status: "no-data",
+			note: ESRI_NOTE,
+			retrievedAt: NOW,
+			query: requestQuery(`${ESRI_LAYER}/query?${QUERY_TAIL}`, SHA.houston),
+		});
 		expect(result.outcome.status === "no-data" && result.outcome.note).not.toBe(NFHL_NOTE);
 	});
 
@@ -296,7 +316,12 @@ describe("no polygon: the two datasets must not be confused", () => {
 		expect(calls).toEqual([`${NFHL_LAYER}/query?${QUERY_TAIL}`]);
 		expect(result.dataset).toBe("NFHL");
 		expect(result.nfhl).toBeNull();
-		expect(result.outcome).toEqual({ status: "no-data", note: NFHL_NOTE, retrievedAt: NOW });
+		expect(result.outcome).toEqual({
+			status: "no-data",
+			note: NFHL_NOTE,
+			retrievedAt: NOW,
+			query: requestQuery(`${NFHL_LAYER}/query?${QUERY_TAIL}`, SHA.houston),
+		});
 	});
 
 	it("the two B10 wordings are distinct constants", () => {
@@ -616,7 +641,12 @@ describe("B12 case 7, timeout: two datasets, so two meanings", () => {
 		expect(result.dataset).toBe("ESRI_REDUCED_SET");
 		// The layer that did not answer must not be the one quoted as having
 		// found nothing. Esri's wording, on Esri's empty answer.
-		expect(result.outcome).toEqual({ status: "no-data", note: ESRI_NOTE, retrievedAt: NOW });
+		expect(result.outcome).toEqual({
+			status: "no-data",
+			note: ESRI_NOTE,
+			retrievedAt: NOW,
+			query: requestQuery(`${ESRI_LAYER}/query?${QUERY_TAIL}`, SHA.houston),
+		});
 		expect(result.outcome.status === "no-data" && result.outcome.note).not.toBe(NFHL_NOTE);
 	});
 

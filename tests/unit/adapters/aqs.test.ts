@@ -402,8 +402,21 @@ describe("success: the recorded Houston response", () => {
 
 describe("no records", () => {
 	it("is a no-data outcome naming the year, never an unavailable one", async () => {
-		const { outcome } = await outcomeFor({ fixture: "annual-summary-no-rows.json" });
-		expect(outcome).toEqual({ status: "no-data", note: noMonitorsNote(YEAR), retrievedAt: NOW });
+		const { outcome, calls } = await outcomeFor({ fixture: "annual-summary-no-rows.json" });
+		const asked = calls[0] ?? "";
+		expect(outcome).toEqual({
+			status: "no-data",
+			note: noMonitorsNote(YEAR),
+			retrievedAt: NOW,
+			// An empty answer still names what was asked.
+			query: {
+				kind: "query",
+				parameter: "request",
+				value: asked,
+				adapterVersion: AQS_VERSION,
+				payload: { url: asked, sha256: SHA.noRows, retrievedAt: NOW },
+			},
+		});
 		expect(createHash("sha256").update(readFileSync(`${fixturesDir}annual-summary-no-rows.json`)).digest("hex"))
 			.toBe(SHA.noRows);
 	});

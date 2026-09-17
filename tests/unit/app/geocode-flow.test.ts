@@ -139,7 +139,7 @@ describe("the raw address does not survive past the search and no-match screens,
 
 /**
  * Type-level, mirroring `tests/unit/adapters/census.test.ts`'s
- * `mustNotCompile`: `tsc --noEmit`, part of `pnpm verify`, fails if either
+ * `mustNotCompile`: `tsc --noEmit`, part of `bun run verify`, fails if either
  * access below starts compiling.
  */
 function mustNotCompile(state: FlowState): void {

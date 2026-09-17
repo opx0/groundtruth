@@ -269,14 +269,24 @@ describe("B12 case 1, success: the derived success shape, read field by field", 
 
 describe("B12 case 2, no records: an answer, not a failure", () => {
 	it("returns nothing, which the kernel reports as no-data with B10's wording", async () => {
-		const { io } = stubIo({ fixture: "no-observations.json" });
+		const { io, urls } = stubIo({ fixture: "no-observations.json" });
 		await expect(airnowAdapter.run(locus(), io)).resolves.toEqual([]);
 
 		const outcome = await runSource(locus(), airnowAdapter, io, DEFAULT_POLICY);
+		const asked = urls[urls.length - 1] ?? "";
 		expect(outcome).toEqual({
 			status: "no-data",
 			note: "No matching records within the stated boundary.",
 			retrievedAt: NOW,
+			// An empty answer still names what was asked. The key in that URL is
+			// the kernel's to hold and `app/lib/report-contract.ts`'s to redact.
+			query: {
+				kind: "query",
+				parameter: "request",
+				value: asked,
+				adapterVersion: AIRNOW_VERSION,
+				payload: { url: asked, sha256: SHA.none, retrievedAt: NOW },
+			},
 		});
 		expect(SHA.none).toBe(createHash("sha256").update("[]").digest("hex"));
 	});

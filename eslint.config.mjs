@@ -37,7 +37,7 @@ export const evidenceKernelRules = {
  *
  * A lint rule rather than a test, because the two fail at different moments: a
  * test fails after the import exists and someone runs the suite, and this fails
- * in the editor, in `pnpm lint`, and in `next build` -- on the line that wrote
+ * in the editor, in `bun run lint`, and in `next build` -- on the line that wrote
  * it. Everything shipped to a browser or run on the server is built from `app/`
  * and `lib/`, so a ban on importing `tests/` from those two trees is the whole
  * boundary. It is deliberately about the *directory*, not about a file naming
@@ -98,7 +98,7 @@ const eslintConfig = defineConfig([
 		// Scratch checkouts an agent or a tool leaves behind. Each carries its
 		// own `.next`, and the pattern above only covers this repo's, so without
 		// this line eslint walks into generated bundles and reports thousands of
-		// problems in code nobody wrote. It broke `pnpm verify` on 2026-09-17
+		// problems in code nobody wrote. It broke `bun run verify` on 2026-09-17
 		// with 260 errors, none of them in a tracked file.
 		".delta/**",
 	]),

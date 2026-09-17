@@ -47,8 +47,8 @@ the fallbacks cost in accuracy.
 ## Running it
 
 ```bash
-pnpm install
-pnpm dev
+bun install
+bun dev
 ```
 
 AQS and AirNow need free keys. `scripts/setup.sh` is a wizard that opens the
@@ -58,12 +58,12 @@ copying `.env.example` by hand works too. Every other source is open.
 Without those keys the report still runs: both air cards say the source could
 not be reached because this deployment holds no credential for it, which is a
 fact about us rather than about the address, and the other five cards are
-unaffected. Keys stay server-side and never reach browser code — `pnpm test`
+unaffected. Keys stay server-side and never reach browser code — `bun run test`
 builds the app and scans the client bundle to prove it.
 
 ```bash
-pnpm verify   # typecheck, unit tests, lint
-pnpm e2e      # Playwright, the full address to trace path
+bun run verify   # typecheck, unit tests, lint
+bun run e2e      # Playwright, the full address to trace path
 ```
 
 ## Layout
@@ -82,11 +82,15 @@ pnpm e2e      # Playwright, the full address to trace path
 
 ## Status
 
-694 unit tests and 14 browser paths, both green, driven against a production
+695 unit tests and 14 browser paths, both green, driven against a production
 build. `.dev/BUILD.md` has the detail.
 
-It runs. There's a deployment in `us-central1` answering live reports from all
-six sources, including FEMA's own flood layer.
+It runs, here:
+
+    https://ground-truth-946486142611.us-central1.run.app
+
+Cloud Run, `us-central1`, answering live reports from all six sources,
+including FEMA's own flood layer.
 
 One thing is still about where you run it rather than about the code. FEMA's
 authoritative layer refuses traffic from outside the US — measured, it resets

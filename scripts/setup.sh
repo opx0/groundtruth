@@ -290,7 +290,7 @@ pause
 stage "Prove it works"
 say "Running the checks so you can see the state you left the repo in."
 say ""
-if pnpm verify; then
+if bun run verify; then
   say ""
   printf '  %s✓ verify green%s\n' "$GREEN" "$RESET"
 else

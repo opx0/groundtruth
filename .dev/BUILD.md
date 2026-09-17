@@ -6,16 +6,21 @@ way. `BRIEF.md` next to this is the spec. This is the log.
 ## Where it is
 
 ```
-pnpm verify    694 tests, 38 files
-pnpm e2e       14 paths
-mutation       8 of 8
-pnpm build     compiles standalone
+bun run verify  695 tests, 38 files
+bun run e2e     14 paths
+mutation        8 of 8
+bun run build   compiles standalone
 ```
 
-Running on a Compute Engine box in `us-central1` as `ground-truth.service`,
-port 8300. A live report across all six sources takes about fourteen seconds,
-most of it waiting on government APIs. Not publicly reachable yet — no Caddy
-route, no DNS.
+Running on Cloud Run in `us-central1`, from the bun image the `Dockerfile`
+builds:
+
+    https://ground-truth-946486142611.us-central1.run.app
+
+A live report across all six sources takes about eleven seconds, most of it
+waiting on government APIs. The three keys are set on the service; nothing is
+baked into the image. The Compute Engine box that used to serve this on port
+8300 is gone, and with it the Caddy route it never got.
 
 ## The five kernel decisions
 
@@ -49,7 +54,7 @@ The unit suite strips the three air keys before it runs. Four files assume this
 deployment has none, and without that a shell holding real keys fails eight
 tests with messages that never mention a credential.
 
-Check port 3000 is free before `pnpm e2e`. A stale server serves an old build
+Check port 3000 is free before `bun run e2e`. A stale server serves an old build
 and the failures make no sense.
 
 ## Still open
@@ -62,9 +67,10 @@ Three queue items, all deliberate:
   layer answers now, so it isn't a reachability problem any more.
 - **A slot-to-slot requirement arm.** No caller.
 
-And one real gap: `SectionSpec.query` is null everywhere, so clicking a count
-shows you the records behind it but not the HTTP request. Record sentences
-trace all the way down.
+`SectionSpec.query` used to be the fourth and the only real one. It is closed:
+`runSource` watches the io, and a count, a boundary and a "no matching records"
+note now open on the request the adapter issued, the way a record sentence
+opens on a raw field.
 
 ## What went wrong, and what it taught
 
@@ -88,6 +94,16 @@ whatever io they're handed, so binding the signal to the io covered all of them.
 **And measuring beat reading.** After that fix, one request still escaped every
 run. It was the flood fallback, which asked Esri whenever the first leg failed
 and never asked *why* it failed, so a cancelled leg looked like a refused one.
+
+**The first request is not the first timestamp.** The section query started out
+reading the earliest payload by `retrievedAt`, the way `complete` orders a
+record's payloads. Every leg of a stub run shares one clock, so the tiebreak
+fell to whichever URL sorted first, and SEMS cited an Envirofacts join instead
+of the layer query that carried the boundary. Real clocks tie inside a second
+too. The slot is taken when `get` is called now, not when it answers. Found by
+a test written for a different reason -- that the request a section names is
+redacted like any other -- which is the second time a leak assertion has caught
+something that was not a leak.
 
 **Run the suite somewhere other than your laptop.** On the deployment host with
 real keys exported, eight tests failed that pass here.

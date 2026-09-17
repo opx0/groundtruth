@@ -1,29 +1,32 @@
-# Next.js standalone on Cloud Run.
+# Next.js standalone on Cloud Run, built and run with Bun.
 #
 # Three stages so the runtime image holds no toolchain and no dev dependency.
-# The build needs pnpm and the whole dependency tree; the runtime needs
+# The build needs bun and the whole dependency tree; the runtime needs
 # `.next/standalone`, `.next/static` and `public`, and nothing else.
+#
+# `oven/bun` carries no node binary, so every step has to be one bun can run
+# by itself. `bun run build` executes Next's CLI on the bun runtime rather
+# than through its `#!/usr/bin/env node` shebang, and the final stage starts
+# `server.js` the same way.
 #
 # No credential is baked in. AQS_EMAIL, AQS_KEY and AIRNOW_KEY are read from
 # `process.env` at the point of use by their adapters, never at module load, so
 # Cloud Run supplies them at start and an image pushed to a registry carries
 # none of them.
 
-FROM node:22-alpine AS deps
+FROM oven/bun:1.4-alpine AS deps
 WORKDIR /app
-RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
-FROM node:22-alpine AS builder
+FROM oven/bun:1.4-alpine AS builder
 WORKDIR /app
-RUN corepack enable
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm build
+RUN bun run build
 
-FROM node:22-alpine AS runner
+FROM oven/bun:1.4-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
@@ -36,4 +39,4 @@ USER nextjs
 # interface, not just loopback.
 ENV PORT=8080 HOSTNAME=0.0.0.0
 EXPOSE 8080
-CMD ["node", "server.js"]
+CMD ["bun", "server.js"]

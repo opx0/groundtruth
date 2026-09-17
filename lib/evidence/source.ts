@@ -64,8 +64,14 @@ export type SourceOutcome<K extends Kind = Kind> =
 			readonly status: "ok";
 			readonly records: readonly [Sealed<RecordOf<K>>, ...Sealed<RecordOf<K>>[]];
 			readonly retrievedAt: string;
+			readonly query: QueryProvenance | null;
 	  }
-	| { readonly status: "no-data"; readonly note: string; readonly retrievedAt: string }
+	| {
+			readonly status: "no-data";
+			readonly note: string;
+			readonly retrievedAt: string;
+			readonly query: QueryProvenance | null;
+	  }
 	| SourceUnavailable;
 
 export type SourceIo = {
@@ -159,13 +165,68 @@ function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
 	});
 }
 
-function boundTo(io: SourceIo, signal: AbortSignal): SourceIo {
+/**
+ * Requests in the order they were issued. A slot is taken when `get` is called
+ * and filled when it answers, so a leg that resolves first cannot displace the
+ * leg that went first. A request that threw leaves its slot empty.
+ */
+type Issued = (PayloadRef | null)[];
+
+function recordingInto(io: SourceIo, made: Issued, bound?: AbortSignal): SourceIo {
 	return {
-		get: <Raw extends JsonValue>(url: URL, schema: z.ZodType<Raw>): Promise<Fetched<Raw>> =>
-			io.get(url, schema, signal),
+		get: async <Raw extends JsonValue>(
+			url: URL,
+			schema: z.ZodType<Raw>,
+			signal?: AbortSignal,
+		): Promise<Fetched<Raw>> => {
+			const slot = made.length;
+			made.push(null);
+			const fetched = await io.get(url, schema, bound ?? signal);
+			made[slot] = fetched.payload;
+			return fetched;
+		},
 		query: (parameter, value, adapterVersion, payload) => io.query(parameter, value, adapterVersion, payload),
 		now: () => io.now(),
 	};
+}
+
+function boundTo(io: SourceIo, signal: AbortSignal, made: Issued): SourceIo {
+	return recordingInto(io, made, signal);
+}
+
+export type WatchedIo = { readonly io: SourceIo; readonly made: readonly (PayloadRef | null)[] };
+
+/**
+ * An io that remembers what it fetched, for a caller that assembles its own
+ * outcome instead of going through `runSource` and still owes its section a
+ * request to name.
+ */
+export function watched(io: SourceIo): WatchedIo {
+	const made: Issued = [];
+	return { io: recordingInto(io, made), made };
+}
+
+/**
+ * The request a section's own claims answer to: its count, its boundary, its
+ * "no matching records" note.
+ *
+ * Read off what the adapter fetched rather than off the records it built,
+ * because a source that matched nothing has no record to read it from, and
+ * that is exactly the case where a reader wants to see what was asked.
+ *
+ * The first leg issued, never the first to answer and never the first by
+ * timestamp: every adapter here asks its boundary question first and joins or
+ * enriches afterwards, and a stub clock -- or a real one, inside a second --
+ * ties the timestamps of every leg, which left the tiebreak to whichever URL
+ * happened to sort first.
+ */
+export function requestMade(
+	io: SourceIo,
+	version: AdapterVersion,
+	made: readonly (PayloadRef | null)[],
+): QueryProvenance | null {
+	const first = made.find((payload): payload is PayloadRef => payload !== null);
+	return first === undefined ? null : io.query("request", first.url, version, first);
 }
 
 export async function runSource<K extends Kind>(
@@ -182,14 +243,16 @@ export async function runSource<K extends Kind>(
 	if (signal?.aborted === true) controller.abort();
 	else signal?.addEventListener("abort", stop, { once: true });
 
+	const made: Issued = [];
 	try {
-		const built = await withTimeout(adapter.run(locus, boundTo(io, controller.signal)), policy.timeoutMs);
+		const built = await withTimeout(adapter.run(locus, boundTo(io, controller.signal, made)), policy.timeoutMs);
 		const retrievedAt = io.now();
+		const query = requestMade(io, adapter.version, made);
 		const [first, ...rest] = built.map((b) => complete(locus, b));
 		if (first === undefined) {
-			return { status: "no-data", note: adapter.noDataNote ?? NO_DATA_NOTE, retrievedAt };
+			return { status: "no-data", note: adapter.noDataNote ?? NO_DATA_NOTE, retrievedAt, query };
 		}
-		return { status: "ok", records: [first, ...rest], retrievedAt };
+		return { status: "ok", records: [first, ...rest], retrievedAt, query };
 	} catch (error) {
 		controller.abort();
 		return unavailableOf(error);

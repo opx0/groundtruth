@@ -13,7 +13,7 @@
 	//
 	// The root config excludes `tests/e2e`, so `exclude` is cleared here: these
 	// files are type-checked by `tsc -p tests/e2e/tsconfig.json`, not by
-	// `pnpm typecheck`.
+	// `bun run typecheck`.
 	"extends": "../../tsconfig.json",
 	"compilerOptions": {
 		"baseUrl": ".",

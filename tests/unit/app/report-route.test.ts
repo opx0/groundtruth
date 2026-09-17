@@ -992,6 +992,30 @@ describe("a payload URL carrying an API key does not reach the wire", () => {
 		expect(raw).toContain("param=88101");
 	});
 
+	it("redacts it where a section names the request behind its count, not only where a record names a field", async () => {
+		// A count's citation is not a record's. `SectionSpec.query` is its own row
+		// on the wire -- the one that opens under a boundary -- and it reaches the
+		// browser through the same redaction as a payload URL, or it would carry a
+		// credential no record's provenance does.
+		const leaky = `https://aqs.epa.gov/data/api/annualData/byBox?param=88101&email=nobody%40example.gov&key=${KEY_SENTINEL}`;
+		const { raw, events } = await report({
+			...DEMO,
+			semsLayer: { derived: leaky, body: parseJson(SEMS_LAYER) },
+		});
+
+		expect(raw).not.toContain(KEY_SENTINEL);
+		const queries = sentencesOf(cardFor(events, "sems")).flatMap((sentence) => {
+			const trace = sentence.trace;
+			return trace !== null && trace.scope === "section" ? [trace.section.query] : [];
+		});
+		expect(queries.length).toBeGreaterThan(0);
+		for (const query of queries) {
+			expect(query?.payload.url).toContain(`key=${REDACTED}`);
+			expect(query?.payload.url).not.toContain(KEY_SENTINEL);
+			expect(query?.value).not.toContain(KEY_SENTINEL);
+		}
+	});
+
 	/**
 	 * The redaction above works on shape: it parses a string as a URL and
 	 * rewrites the parameters it recognises. A source's own error text is not a

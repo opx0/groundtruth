@@ -15,6 +15,7 @@ import {
 	type SectionPlacement,
 	type SectionSpec,
 	type SourceId,
+	type QueryProvenance,
 	type SourceOutcome,
 	type SourcePlacement,
 	type Template,
@@ -405,12 +406,20 @@ function airnowTemplateFor(
 	return chosen;
 }
 
+/**
+ * The request behind a section's count, when there was one. An unavailable
+ * source never got as far as a request that returned anything, so it has none.
+ */
+function queryOf(outcome: SourceOutcome): QueryProvenance | null {
+	return outcome.status === "unavailable" ? null : outcome.query;
+}
+
 function semsSection(outcome: SourceOutcome, bounds: Bounds): SectionSpec<"sems-site"> {
 	return defineSection({
 		kind: "sems-site",
 		source: "sems",
 		boundary: BOUNDARY.sems,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: null,
 		note: noteOf(outcome),
@@ -423,7 +432,7 @@ function semsNplSection(outcome: SourceOutcome, bounds: Bounds): SectionSpec<"se
 		kind: "sems-site",
 		source: "sems",
 		boundary: BOUNDARY.sems,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: { field: "semsNplStatus", equals: FINAL_NPL_STATUS },
 		note: noteOf(outcome),
@@ -436,7 +445,7 @@ function echoSection(outcome: SourceOutcome, bounds: Bounds): SectionSpec<"echo-
 		kind: "echo-facility",
 		source: "echo",
 		boundary: BOUNDARY.echo,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: null,
 		note: noteOf(outcome),
@@ -449,7 +458,7 @@ function echoFormalActionSection(outcome: SourceOutcome): SectionSpec<"echo-faci
 		kind: "echo-facility",
 		source: "echo",
 		boundary: BOUNDARY.echo,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: { field: "lastFormalActionDate", present: true },
 		note: noteOf(outcome),
@@ -462,7 +471,7 @@ function echoNoncomplianceSection(outcome: SourceOutcome): SectionSpec<"echo-fac
 		kind: "echo-facility",
 		source: "echo",
 		boundary: BOUNDARY.echo,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: { field: "quartersInNoncompliance", atLeast: NONCOMPLIANCE_QUARTERS },
 		note: noteOf(outcome),
@@ -475,7 +484,7 @@ function frsSection(outcome: SourceOutcome, bounds: Bounds): SectionSpec<"frs-fa
 		kind: "frs-facility",
 		source: "frs",
 		boundary: BOUNDARY.frs,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: null,
 		note: FRS_NO_ROWS_NOTE,
@@ -488,7 +497,7 @@ function floodSection(result: FloodZoneResult, bounds: Bounds): SectionSpec<"fem
 		kind: "fema-flood-zone",
 		source: "fema",
 		boundary: BOUNDARY.fema,
-		query: null,
+		query: queryOf(result.outcome),
 		retrievedAt: retrievedAtOf(result.outcome),
 		filter: null,
 		note: noteOf(result.outcome),
@@ -501,7 +510,7 @@ function aqsSection(outcome: SourceOutcome): SectionSpec<"aqs-monitor-summary"> 
 		kind: "aqs-monitor-summary",
 		source: "aqs",
 		boundary: BOUNDARY.aqs,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: null,
 		note: noteOf(outcome),
@@ -518,7 +527,7 @@ function aqsPollutantSection(
 		kind: "aqs-monitor-summary",
 		source: "aqs",
 		boundary: BOUNDARY.aqs,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: { field: "pollutant", equals: pollutant },
 		note: noteOf(outcome),
@@ -531,7 +540,7 @@ function airnowSection(outcome: SourceOutcome, bounds: Bounds): SectionSpec<"air
 		kind: "airnow-observation",
 		source: "airnow",
 		boundary: BOUNDARY.airnow,
-		query: null,
+		query: queryOf(outcome),
 		retrievedAt: retrievedAtOf(outcome),
 		filter: null,
 		note: noteOf(outcome),

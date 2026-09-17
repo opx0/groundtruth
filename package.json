@@ -7,13 +7,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "start:standalone": "rm -rf .next/standalone/public .next/standalone/.next/static && mkdir -p .next/standalone/.next && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && node .next/standalone/server.js",
+    "start:standalone": "rm -rf .next/standalone/public .next/standalone/.next/static && mkdir -p .next/standalone/.next && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && bun .next/standalone/server.js",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
-    "verify": "pnpm typecheck && pnpm test && pnpm lint"
+    "verify": "bun run typecheck && bun run test && bun run lint"
   },
   "dependencies": {
     "next": "16.3.5",
@@ -33,5 +33,5 @@
     "typescript": "^5",
     "vitest": "^3.2.4"
   },
-  "packageManager": "pnpm@12.4.1"
+  "packageManager": "bun@1.4.0"
 }

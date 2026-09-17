@@ -376,12 +376,16 @@ describe("a count sentence opens on the records it counted", () => {
 		expect(rowNamed(view, pick.retrieved, "retrieved").at).toEqual([RETRIEVED_AT]);
 	});
 
-	it("has no query behind the boundary, and says which A3 rows the scope cannot fill", async () => {
+	it("names the request behind the boundary, and says which A3 rows the scope cannot fill", async () => {
 		const sentences = everySentence(await houstonEvents());
 		const view = firstView(sentenceSaying(sentences, "Superfund sites EPA's inventory lists within"));
-		// SectionTrace.query is null on every section this route builds, so the
-		// boundary string is the whole of what stands behind "5 miles".
-		expect(rowNamed(view, pick.boundary, "boundary").query).toBeNull();
+		// "5 miles" is our wording for the boundary. The request the adapter
+		// issued is the thing a reader can check that wording against, so the
+		// count opens on it the way a record sentence opens on a raw field.
+		const { query } = rowNamed(view, pick.boundary, "boundary");
+		expect(query?.parameter).toBe("request");
+		expect(query?.adapterVersion).toBe("sems@1");
+		expect(query?.payload.url).toBe("fixture:sems/arcgis-5mi-houston.json");
 		expect(view.absentRows).toEqual(["original-record", "record-date", "source-updated", "caveats"]);
 	});
 });
@@ -529,7 +533,7 @@ describe("every slotted span of the demo report opens something", () => {
 		expect(opened).toBe(171);
 	});
 
-	it("leaves 31 spans whose value has no provenance of its own, and gives every one of them a header", async () => {
+	it("leaves 20 spans whose value has no provenance of its own, and gives every one of them a header", async () => {
 		const sentences = everySentence(await houstonEvents());
 		let empty = 0;
 		let onAir = 0;
@@ -551,12 +555,14 @@ describe("every slotted span of the demo report opens something", () => {
 				expect(grounding, `${textOf(sentence)} @${index}`).toBe(true);
 			}
 		}
-		// The 27 the audit counted, plus every span of the two air cards -- an
-		// agency, a cause and a raw code are facts about our own request, and no
-		// agency's record stands behind any of them -- less the boundary and the
-		// retrieval time of a registry card that stopped claiming a search.
+		// Was 31 before a section named the request behind its count. Eleven of
+		// those spans have provenance of their own now: a count, a boundary and
+		// a retrieval time all answer to the request the adapter issued. What is
+		// left is a status -- an agency, a cause and a raw code are facts about
+		// our own request, and no agency's record stands behind any of them --
+		// and a section whose source never got as far as a request to name.
 		expect(onAir).toBe(6);
-		expect(empty).toBe(31);
+		expect(empty).toBe(20);
 	});
 
 	it("opens nothing for connective text or for an index off the end", async () => {

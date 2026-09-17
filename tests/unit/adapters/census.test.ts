@@ -405,7 +405,7 @@ describe("timeout", () => {
 });
 
 /**
- * Type-level: `tsc --noEmit` (part of `pnpm verify`) fails if any access
+ * Type-level: `tsc --noEmit` (part of `bun run verify`) fails if any access
  * below ever starts compiling. This is the "not by inspecting an array
  * length" requirement enforced at the type checker, not by convention.
  */

@@ -31,13 +31,13 @@ export default defineConfig({
 		 * That failed here once, and the error Next prints for it blames a build
 		 * that did not exit cleanly, which is not what happened.
 		 */
-		command: "pnpm build && pnpm start:standalone",
+		command: "bun run build && bun run start:standalone",
 		url: "http://127.0.0.1:3000",
 		/**
 		 * Never reuse, not even locally.
 		 *
 		 * Playwright's scaffold sets `!process.env.CI` here, which is right for a
-		 * dev server you want to keep warm. This command is `pnpm build && pnpm
+		 * dev server you want to keep warm. This command is `bun run build && bun run
 		 * start`: reusing means paying for the rebuild and then serving the *old*
 		 * server anyway, which is strictly worse than either. It cost a debugging
 		 * cycle once -- six of nine paths failed with the search button stuck

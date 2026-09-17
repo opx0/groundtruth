@@ -105,11 +105,13 @@ export {
 	DEFAULT_POLICY,
 	NO_DATA_NOTE,
 	NoPayload,
+	requestMade,
 	runSource,
 	runSources,
 	SourceFailure,
 	storeOfSources,
 	unavailableOf,
+	watched,
 } from "./source";
 export type {
 	Adapter,
@@ -120,4 +122,5 @@ export type {
 	SourceOutcome,
 	SourcePolicy,
 	SourceUnavailable,
+	WatchedIo,
 } from "./source";

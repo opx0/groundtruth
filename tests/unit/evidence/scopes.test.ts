@@ -247,7 +247,7 @@ describe("source: an unavailable source and an empty section are different facts
 	});
 
 	it("cannot render the unavailable wording over a source that answered, or the reverse", () => {
-		const answered: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT };
+		const answered: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT, query: null };
 		expect(render(store, { scope: "source", source: "sems", outcome: answered, agency: null, template: sourceUnavailable })).toBeNull();
 		expect(
 			render(store, { scope: "source", source: "sems", outcome: unavailableOutcome, agency: null, template: sourceRetrieved }),

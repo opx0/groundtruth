@@ -258,19 +258,19 @@ describe("every slotted span of every sentence resolves to the value behind it",
 				// Every one of them is a status or a count: the grounding is the
 				// source outcome, or the section's `counted` list, on the header.
 				// A panel rendering only `values[].provenance` would show an empty
-				// citation on all 31 of them.
+				// citation on all 20 of them.
 				expect(trace?.scope === "source" || trace?.scope === "section").toBe(true);
 				if (trace?.scope === "source") expect(trace.source.agency.length).toBeGreaterThan(0);
 				if (trace?.scope === "section") expect(trace.section.agency.length).toBeGreaterThan(0);
 			}
 		}
-		// The 27 the audit counted, plus all six spans of the two air cards — an
-		// agency, a cause and a raw code are facts about our own request, and no
-		// agency's record stands behind any of them — less the registry card's
-		// boundary and retrieval time, which the card stopped claiming because
-		// its lookup searched no area.
+		// Was 31 before a section named the request behind its count. Eleven of
+		// those spans have provenance of their own now. The six that are left on
+		// the two air cards are the ones whose source never got as far as a
+		// request: an agency, a cause and a raw code are facts about our own
+		// attempt, and no agency's record stands behind any of them.
 		expect(emptyOnAir).toBe(6);
-		expect(empty).toBe(31);
+		expect(empty).toBe(20);
 	});
 });
 

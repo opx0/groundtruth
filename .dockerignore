@@ -8,6 +8,10 @@ playwright-report
 .dev
 docs
 tests
+# Scratch checkouts left by agents or tooling: 496MB of build context that
+# nothing in the image reads.
+.delta
+.claude
 .env
 .env.local
 *.log

@@ -37,10 +37,12 @@ import {
 	runSource,
 	sectionOrdering,
 	SourceFailure,
+	requestMade,
 	storeOf,
 	trace,
 	unavailableOf,
 	verify,
+	watched,
 	type EvidenceRecord,
 	type EvidenceStore,
 	type Fetched,
@@ -65,7 +67,7 @@ import { aqsAdapter, latestLikelySummaryYear } from "@/lib/adapters/aqs";
 import { geocode } from "@/lib/adapters/census";
 import { createEchoAdapter } from "@/lib/adapters/echo";
 import { FEMA_DATASETS, floodZoneOutcome, type FloodZoneResult } from "@/lib/adapters/fema";
-import { lookupFrsFacility } from "@/lib/adapters/frs";
+import { FRS_VERSION, lookupFrsFacility } from "@/lib/adapters/frs";
 import { semsAdapter } from "@/lib/adapters/sems";
 import { groupRecords, type GroupingResult } from "@/lib/report/grouping";
 import {
@@ -361,9 +363,15 @@ const TWO_IDS_REGISTRY = "110000462703";
  * outcome around it is assembled here.
  */
 async function frsOutcome(fixture: string, registryId: string): Promise<SourceOutcome> {
-	const [built] = await lookupFrsFacility(registryId, ioOf(() => ({ fixture })));
+	const seen = watched(ioOf(() => ({ fixture })));
+	const [built] = await lookupFrsFacility(registryId, seen.io);
 	if (built === undefined) throw new Error(`no FRS facility for ${registryId}`);
-	return { status: "ok", records: [complete(locus, built)], retrievedAt: RETRIEVED_AT };
+	return {
+		status: "ok",
+		records: [complete(locus, built)],
+		retrievedAt: RETRIEVED_AT,
+		query: requestMade(seen.io, FRS_VERSION, seen.made),
+	};
 }
 
 const frs = await frsOutcome(`frs/arcgis-registry-${TWO_IDS_REGISTRY}-two-ids.json`, TWO_IDS_REGISTRY);
@@ -475,7 +483,7 @@ const airnowAnswered = await withAirKeys(() =>
 	),
 );
 
-const NO_RECORDS: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT };
+const NO_RECORDS: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT, query: null };
 
 /* -------------------------------------------------------------------------- */
 /* Plans                                                                      */
@@ -1562,7 +1570,7 @@ describe("B7's list, item by item", () => {
 	 * boundary" states a boundary the request did not have.
 	 */
 	it("says what an empty registry answer is, in place of the fan-out's boundary wording", () => {
-		const empty: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT };
+		const empty: SourceOutcome = { status: "no-data", note: NO_DATA_NOTE, retrievedAt: RETRIEVED_AT, query: null };
 		const none = planOf({ ...HOUSTON, frs: empty });
 		const card = cardOf(none.plan, "frs");
 

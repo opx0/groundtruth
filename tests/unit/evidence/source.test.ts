@@ -50,6 +50,8 @@ describe("source outcomes (graft 2 and graft 3)", () => {
 			status: "no-data",
 			note: "No matching records within the stated boundary.",
 			retrievedAt: "2026-09-15T18:00:00Z",
+			// An adapter that issued no request has none to name.
+			query: null,
 		});
 	});
 
@@ -148,6 +150,7 @@ describe("the fan-out: one source failing never takes another down", () => {
 			status: "no-data",
 			note: "No matching records within the stated boundary.",
 			retrievedAt: "2026-09-15T18:00:00Z",
+			query: null,
 		});
 	});
 

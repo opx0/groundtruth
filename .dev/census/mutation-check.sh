@@ -18,8 +18,8 @@ try() { # name, file, sed-expr, checker
 	cp "/tmp/mut.bak" "$file"
 }
 
-tc() { pnpm exec tsc --noEmit; }
-vt() { pnpm exec vitest run tests/unit/evidence/render.test.ts; }
+tc() { bunx tsc --noEmit; }
+vt() { bunx vitest run tests/unit/evidence/render.test.ts; }
 
 echo "mutating the kernel to prove the guards bite:"
 try "wrong-kind field now allowed"      tests/unit/evidence/types.test.ts '0,/@ts-expect-error -- zoneCode/s|// @ts-expect-error -- zoneCode.*|//|' tc
@@ -44,7 +44,7 @@ export const smuggle = defineTemplate("section", "section/smuggle@1", () => [
 	sentence`${{ reported: "this home is safe", provenance: [] }}`,
 ]);
 PROBE
-	local out; out=$(pnpm exec tsc --noEmit 2>&1 | grep -c "__probe" || true)
+	local out; out=$(bunx tsc --noEmit 2>&1 | grep -c "__probe" || true)
 	rm -f lib/__probe.ts
 	[ "$out" -gt 0 ] && return 1 || return 0
 }
@@ -60,7 +60,7 @@ fi
 # said the inventory returned no status row over a site whose row had joined.
 # Strip the requirement and the templates go back to overlapping; the test that
 # pins which template speaks for which record is what has to notice.
-st() { pnpm exec vitest run tests/unit/templates/sems.test.ts; }
+st() { bunx vitest run tests/unit/templates/sems.test.ts; }
 try "template requirement removed"      lib/templates/sems.ts 's|{ state: "statusRow", is: "no-row" }|{ state: "statusRow", is: "joined" }|' st
 
 echo

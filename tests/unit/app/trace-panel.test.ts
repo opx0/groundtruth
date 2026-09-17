@@ -286,9 +286,11 @@ describe("clicking a record sentence opens the agency, the record, the raw field
 		expect(countHtml).toContain(CHROME.counted);
 		expect(countHtml).toContain("TXN000622182");
 		expect(countHtml).toContain("5 miles");
-		// SectionTrace.query is null on every section, so there is no citation
-		// under the boundary and the panel does not invent one.
-		expect(countHtml).not.toContain('data-provenance="query"');
+		// The boundary is our wording; the request the adapter issued is what a
+		// reader can check it against, so it is cited under the boundary the way
+		// a raw field is cited under a record's value.
+		expect(countHtml).toContain('data-provenance="query"');
+		expect(countHtml).toContain("fixture:sems/arcgis-5mi-houston.json");
 
 		// Named, not taken first: three sources on this report could not be
 		// reached, and the other two -- the air sources this deployment holds no

@@ -1,6 +1,6 @@
 /**
  * Type-level tests. Each `@ts-expect-error` line is a snippet that must fail
- * to compile; `pnpm typecheck` fails if any of them ever compiles. The runtime
+ * to compile; `bun run typecheck` fails if any of them ever compiles. The runtime
  * body never calls these functions.
  */
 

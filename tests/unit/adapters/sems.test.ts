@@ -37,7 +37,16 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { layerUrl, semsAdapter, statusUrl } from "@/lib/adapters/sems";
-import type { Locus, PayloadRef, Provenance, Sealed, SemsSiteRecord, SourceIo, SourceOutcome } from "@/lib/evidence";
+import type {
+	Locus,
+	PayloadRef,
+	Provenance,
+	QueryProvenance,
+	Sealed,
+	SemsSiteRecord,
+	SourceIo,
+	SourceOutcome,
+} from "@/lib/evidence";
 import { runSource, SourceFailure } from "@/lib/evidence";
 import {
 	houstonLocus,
@@ -82,6 +91,14 @@ const NEAREST_FAC_URL = "https://ofmpub.epa.gov/frs_public2/fii_query_detail.dis
 
 function payloadFor(url: string, bytes: Buffer): PayloadRef {
 	return { url, sha256: createHash("sha256").update(bytes).digest("hex"), retrievedAt: RETRIEVED_AT };
+}
+
+/**
+ * What `runSource` names as the request behind a section's own claims: its
+ * count, its boundary, its "no matching records" note.
+ */
+function requestQuery(payload: PayloadRef): QueryProvenance {
+	return { kind: "query", parameter: "request", value: payload.url, adapterVersion: "sems@1", payload };
 }
 
 /** The payload a fixture-served response carries, so a provenance entry can be asserted whole. */
@@ -292,6 +309,9 @@ describe("no records", () => {
 			status: "no-data",
 			note: "No matching records within the stated boundary.",
 			retrievedAt: RETRIEVED_AT,
+			// An empty answer still names what was asked, which is the whole of
+			// what a reader can check about it.
+			query: requestQuery(fixturePayload(LAYER_NONE)),
 		});
 		expect(served.requested).toHaveLength(1);
 	});

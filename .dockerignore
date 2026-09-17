@@ -8,6 +8,10 @@ playwright-report
 .dev
 docs
 tests
+# `scripts/shots.ts` imports the e2e helpers, which `tests` above keeps out of
+# the image. Nothing in the runtime runs a script, so the build must not
+# typecheck one either.
+scripts
 # Scratch checkouts left by agents or tooling: 496MB of build context that
 # nothing in the image reads.
 .delta

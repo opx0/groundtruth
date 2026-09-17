@@ -3,6 +3,8 @@ import { BOUNDARIES } from "@/lib/boundaries";
 export type SourceParameter = { readonly name: string; readonly means: string };
 
 export type SourceDoc = {
+	/** Shared with `ORBIT_SOURCES`, so the diagram can open this row. */
+	readonly id: string;
 	readonly agency: string;
 	readonly answers: string;
 	readonly host: string;
@@ -13,6 +15,7 @@ export type SourceDoc = {
 
 export const SOURCE_DOCS: readonly SourceDoc[] = [
 	{
+		id: "census",
 		agency: "US Census Geocoder",
 		answers: "Which mapped point an address resolves to, and how precisely.",
 		host: "geocoding.geo.census.gov",
@@ -25,6 +28,7 @@ export const SOURCE_DOCS: readonly SourceDoc[] = [
 		docsUrl: "https://geocoding.geo.census.gov/geocoder/",
 	},
 	{
+		id: "echo",
 		agency: "EPA ECHO",
 		answers: "Regulated facilities, their compliance status, violations and enforcement.",
 		host: "echodata.epa.gov",
@@ -37,6 +41,7 @@ export const SOURCE_DOCS: readonly SourceDoc[] = [
 		docsUrl: "https://echo.epa.gov/tools/web-services",
 	},
 	{
+		id: "frs",
 		agency: "EPA FRS",
 		answers: "Facility identity: the name, the coordinate, and the programme systems that track it.",
 		host: "services.arcgis.com",
@@ -48,6 +53,7 @@ export const SOURCE_DOCS: readonly SourceDoc[] = [
 		docsUrl: "https://www.epa.gov/frs",
 	},
 	{
+		id: "sems",
 		agency: "EPA SEMS",
 		answers: "Superfund assessment and cleanup sites, with their NPL status.",
 		host: "services.arcgis.com and ofmpub.epa.gov",
@@ -60,6 +66,7 @@ export const SOURCE_DOCS: readonly SourceDoc[] = [
 		docsUrl: "https://www.epa.gov/enviro/sems-overview",
 	},
 	{
+		id: "fema",
 		agency: "FEMA NFHL",
 		answers: "The flood zone designation at the mapped point.",
 		host: "hazards.fema.gov, with services.arcgis.com as the named fallback",
@@ -72,6 +79,7 @@ export const SOURCE_DOCS: readonly SourceDoc[] = [
 		docsUrl: "https://www.fema.gov/flood-maps/national-flood-hazard-layer",
 	},
 	{
+		id: "aqs",
 		agency: "EPA AQS",
 		answers: "Recorded annual summaries from the monitors nearest the point.",
 		host: "aqs.epa.gov",
@@ -85,6 +93,7 @@ export const SOURCE_DOCS: readonly SourceDoc[] = [
 		docsUrl: "https://aqs.epa.gov/aqsweb/documents/data_api.html",
 	},
 	{
+		id: "airnow",
 		agency: "AirNow",
 		answers: "Current preliminary air conditions for the reporting area.",
 		host: "www.airnowapi.org",

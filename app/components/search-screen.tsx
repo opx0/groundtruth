@@ -138,6 +138,8 @@ function Ridge({ className }: { readonly className: string }) {
 export function SearchScreen(props: SearchScreenProps) {
 	const { address, pending, error, groups, lookup, onAddressChange, onSubmit, onExampleSelect } = props;
 	const canSubmit = !pending;
+	// The badge says what to do, so it does it: the first curated address.
+	const first = groups[0]?.examples[0];
 
 	return (
 		<div className="flex flex-col">
@@ -151,19 +153,36 @@ export function SearchScreen(props: SearchScreenProps) {
 						<BarLink href="#sources">Sources</BarLink>
 					</TopBar>
 
-					<svg
-						className="pointer-events-none absolute bottom-4 right-2 h-40 w-40 max-lg:hidden xl:right-6 xl:h-48 xl:w-48"
-						viewBox="0 0 150 150"
-						aria-hidden="true"
-					>
-						<circle cx="75" cy="75" r="75" fill="var(--color-beacon)" />
-						<path id="gt-arc" d="M75,75 m-52,0 a52,52 0 1,1 104,0 a52,52 0 1,1 -104,0" fill="none" />
-						<text fill="var(--color-ink)" fontSize="11.5" fontWeight="600" letterSpacing="1.2">
-							<textPath href="#gt-arc" startOffset="3%">
-								CLICK ANY SENTENCE · SEE THE RECORD ·
-							</textPath>
-						</text>
-					</svg>
+					{first === undefined ? null : (
+						<button
+							type="button"
+							disabled={pending}
+							onClick={() => onExampleSelect(first.address)}
+							aria-label={`Click any sentence, see the record. Start with ${first.address}.`}
+							className="gt-seal absolute bottom-4 right-2 h-40 w-40 max-lg:hidden disabled:opacity-60 xl:right-6 xl:h-48 xl:w-48"
+						>
+							<svg viewBox="0 0 150 150" aria-hidden="true">
+								<circle cx="75" cy="75" r="75" fill="var(--color-beacon)" />
+								<circle cx="75" cy="75" r="56" fill="none" stroke="var(--color-ink)" strokeOpacity="0.25" strokeWidth="1" strokeDasharray="3 6" />
+								<path id="gt-arc" d="M75,75 m-52,0 a52,52 0 1,1 104,0 a52,52 0 1,1 -104,0" fill="none" />
+								<g className="gt-turning">
+									<text fill="var(--color-ink)" fontSize="11.5" fontWeight="600" letterSpacing="1.2">
+										<textPath href="#gt-arc" startOffset="3%">
+											CLICK ANY SENTENCE · SEE THE RECORD ·
+										</textPath>
+									</text>
+								</g>
+								<path
+									d="M67 75h16M77 69l6 6-6 6"
+									fill="none"
+									stroke="var(--color-ink)"
+									strokeWidth="2.4"
+									strokeLinecap="round"
+									strokeLinejoin="round"
+								/>
+							</svg>
+						</button>
+					)}
 
 					<p className="gt-hand mt-16 text-2xl sm:mt-24 sm:text-4xl">what the public record says</p>
 					<h1 className="gt-display mt-1 max-w-[15ch] text-[clamp(3rem,9vw,7.5rem)] leading-[0.92]">

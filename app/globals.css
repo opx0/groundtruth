@@ -341,6 +341,51 @@ body {
 	}
 	.gt-step { position: relative; }
 
+	/* A source in the diagram is a door to what that source is asked. */
+	.gt-orb {
+		position: relative;
+		cursor: pointer;
+		transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 220ms ease;
+	}
+	.gt-orb:hover,
+	.gt-orb:focus-visible {
+		transform: scale(1.045);
+		box-shadow: 0 0 0 2px var(--color-beacon), 0 18px 40px -18px rgb(0 0 0 / 0.55);
+	}
+	.gt-orb-hint {
+		display: block;
+		margin-top: 0.55rem;
+		font-size: 0.6875rem;
+		letter-spacing: 0.09em;
+		text-transform: uppercase;
+		opacity: 0;
+		transition: opacity 200ms ease;
+	}
+	.gt-orb:hover .gt-orb-hint,
+	.gt-orb:focus-visible .gt-orb-hint { opacity: 0.75; }
+
+	/*
+	 * The two curved-type badges turn. They are the only moving decoration on
+	 * the page, so they turn slowly, and they stop entirely for a reader who
+	 * asked for less motion.
+	 */
+	@keyframes gt-turn { to { transform: rotate(360deg); } }
+	.gt-turning { transform-box: fill-box; transform-origin: 50% 50%; }
+	@media (prefers-reduced-motion: no-preference) {
+		.gt-turning { animation: gt-turn 44s linear infinite; }
+		.gt-seal:hover .gt-turning,
+		.gt-seal:focus-visible .gt-turning { animation-duration: 9s; }
+	}
+	.gt-seal {
+		cursor: pointer;
+		transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 220ms ease;
+	}
+	.gt-seal:hover,
+	.gt-seal:focus-visible {
+		transform: scale(1.06);
+		filter: drop-shadow(0 0 26px color-mix(in srgb, var(--color-beacon) 55%, transparent));
+	}
+
 	.gt-meter { display: flex; gap: 0.35rem; }
 	.gt-meter > i {
 		height: 4px;

@@ -3,6 +3,8 @@
 import { useId, type CSSProperties } from "react";
 
 export type OrbitSource = {
+	/** Shared with `SOURCE_DOCS`, so a circle can open that source's row. */
+	readonly id: string;
 	readonly name: string;
 	readonly tags: readonly string[];
 };
@@ -13,12 +15,12 @@ export type SourceOrbitProps = {
 };
 
 export const ORBIT_SOURCES: readonly OrbitSource[] = [
-	{ name: "EPA AirNow", tags: ["current conditions", "reporting area"] },
-	{ name: "EPA AQS", tags: ["PM2.5", "ozone", "50 km"] },
-	{ name: "FEMA NFHL", tags: ["flood zone", "the mapped point"] },
-	{ name: "EPA SEMS", tags: ["Superfund sites", "5 miles"] },
-	{ name: "EPA ECHO", tags: ["facilities", "violations", "5 miles"] },
-	{ name: "EPA FRS", tags: ["facility identity", "registry IDs"] },
+	{ id: "airnow", name: "EPA AirNow", tags: ["current conditions", "reporting area"] },
+	{ id: "aqs", name: "EPA AQS", tags: ["PM2.5", "ozone", "50 km"] },
+	{ id: "fema", name: "FEMA NFHL", tags: ["flood zone", "the mapped point"] },
+	{ id: "sems", name: "EPA SEMS", tags: ["Superfund sites", "5 miles"] },
+	{ id: "echo", name: "EPA ECHO", tags: ["facilities", "violations", "5 miles"] },
+	{ id: "frs", name: "EPA FRS", tags: ["facility identity", "registry IDs"] },
 ];
 
 const ORBIT_X = 36;
@@ -80,11 +82,13 @@ function CentreBadge({ pathId, className }: { readonly pathId: string; readonly 
 				strokeDasharray="3 7"
 			/>
 			<path id={pathId} d="M100,100 m-78,0 a78,78 0 1,1 156,0 a78,78 0 1,1 -156,0" fill="none" />
-			<text fill="var(--color-ink)" fontSize="12.5" fontWeight="600" letterSpacing="2.1">
-				<textPath href={`#${pathId}`} startOffset="1.5%">
-					ONE ADDRESS · ONE ADDRESS · ONE ADDRESS ·
-				</textPath>
-			</text>
+			<g className="gt-turning">
+				<text fill="var(--color-ink)" fontSize="12.5" fontWeight="600" letterSpacing="2.1">
+					<textPath href={`#${pathId}`} startOffset="1.5%">
+						ONE ADDRESS · ONE ADDRESS · ONE ADDRESS ·
+					</textPath>
+				</text>
+			</g>
 			<g style={{ color: "var(--color-ink)" }}>
 				<PinShape transform="translate(76 76) scale(2)" />
 			</g>
@@ -166,6 +170,29 @@ function TagList({ tags, className }: { readonly tags: readonly string[]; readon
 	);
 }
 
+/**
+ * Open that source's row in the documentation below and go to it.
+ *
+ * The anchor alone would scroll to a closed row, so the click opens it first.
+ * `<details>` is left server-rendered and closed-by-default, which is what keeps
+ * the section usable before this file's JavaScript arrives; this only sets
+ * `open` when someone actually asks for it.
+ */
+/** The centre of the diagram is the thing the diagram is about: the address box. */
+function askTheAddress(): void {
+	const field = document.getElementById("address");
+	if (!(field instanceof HTMLInputElement)) return;
+	field.scrollIntoView({ behavior: "smooth", block: "center" });
+	field.focus({ preventScroll: true });
+}
+
+function reveal(id: string): void {
+	const row = document.getElementById(`source-${id}`);
+	if (!(row instanceof HTMLDetailsElement)) return;
+	row.open = true;
+	row.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 export function SourceOrbit({ sources = ORBIT_SOURCES, className }: SourceOrbitProps) {
 	// React mints the id, so two orbits on one page cannot collide on the textPath.
 	const idPrefix = useId();
@@ -174,28 +201,39 @@ export function SourceOrbit({ sources = ORBIT_SOURCES, className }: SourceOrbitP
 			<div className="relative mx-auto hidden aspect-[4/3] w-full max-w-5xl lg:block">
 				<OrbitField />
 
-				<CentreBadge
-					pathId={`${idPrefix}-arc-wide`}
-					className="absolute left-1/2 top-1/2 h-[clamp(9rem,14vw,12rem)] w-[clamp(9rem,14vw,12rem)] -translate-x-1/2 -translate-y-1/2"
-				/>
+				<button
+					type="button"
+					onClick={askTheAddress}
+					aria-label="One address. Go to the address box."
+					className="absolute left-1/2 top-1/2 h-[clamp(9rem,15vw,12rem)] w-[clamp(9rem,15vw,12rem)] -translate-x-1/2 -translate-y-1/2"
+				>
+					{/* Position on the button, motion on the span: one transform each, so
+					    the hover scale cannot cancel the centring translate. */}
+					<span className="gt-seal block h-full w-full">
+						<CentreBadge pathId={`${idPrefix}-arc-wide`} className="h-full w-full" />
+					</span>
+				</button>
 
-				<ul className="absolute inset-0">
+				<ul className="pointer-events-none absolute inset-0">
 					{sources.map((source, index) => {
 						const tone = toneAt(index);
 						const seat = seatAt(index, sources.length);
 						return (
 							<li
 								key={source.name}
-								className="absolute -translate-x-1/2 -translate-y-1/2"
+								className="pointer-events-auto absolute -translate-x-1/2 -translate-y-1/2"
 								style={{ left: seat.left, top: seat.top }}
 							>
-								<div
-									className={`${tone.className} flex h-[clamp(10rem,17vw,13.5rem)] w-[clamp(10rem,17vw,13.5rem)] flex-col items-center justify-center rounded-full px-5 text-center`}
+								<button
+									type="button"
+									onClick={() => reveal(source.id)}
+									className={`${tone.className} gt-orb flex h-[clamp(10rem,17vw,13.5rem)] w-[clamp(10rem,17vw,13.5rem)] flex-col items-center justify-center rounded-full px-5 text-center`}
 									style={tone.style}
 								>
 									<span className="gt-display text-[1.3rem] leading-tight">{source.name}</span>
 									<TagList tags={source.tags} className="mt-3 flex flex-wrap items-center justify-center gap-1.5" />
-								</div>
+									<span className="gt-orb-hint">What it is asked</span>
+								</button>
 							</li>
 						);
 					})}
@@ -215,11 +253,17 @@ export function SourceOrbit({ sources = ORBIT_SOURCES, className }: SourceOrbitP
 						const tone = toneAt(index);
 						return (
 							<li key={source.name} className="gt-node">
-								<div className={`${tone.className} rounded-[24px] p-5`} style={tone.style}>
+								<button
+									type="button"
+									onClick={() => reveal(source.id)}
+									className={`${tone.className} gt-orb w-full rounded-[24px] p-5 text-left`}
+									style={tone.style}
+								>
 									<span className="gt-index">{indexLabel(index)}</span>
 									<p className="gt-display mt-1 text-xl leading-tight">{source.name}</p>
 									<TagList tags={source.tags} className="mt-3 flex flex-wrap gap-1.5" />
-								</div>
+									<span className="gt-orb-hint">What it is asked</span>
+								</button>
 							</li>
 						);
 					})}

@@ -93,7 +93,7 @@ export function SourceList({ docs = SOURCE_DOCS, className }: SourceListProps) {
 							index % 2 === 1 ? "bg-bark" : ""
 						}`}
 					>
-						<details className="group" open={index === 0}>
+						<details id={`source-${doc.id}`} className="group scroll-mt-24" open={index === 0}>
 							<summary className="flex cursor-pointer list-none items-start gap-4 px-5 py-5 transition-colors hover:bg-moss/25 focus-visible:[outline-offset:-4px] sm:gap-6 sm:px-8 [&::-webkit-details-marker]:hidden">
 								<span className="gt-index w-9 shrink-0 pt-1.5 tabular-nums">
 									{String(index + 1).padStart(2, "0")}

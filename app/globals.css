@@ -1,26 +1,424 @@
 @import "tailwindcss";
 
 @theme {
-	--font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-		"Helvetica Neue", Arial, sans-serif;
-	--font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-		"Liberation Mono", monospace;
+	--font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+	--font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-hand: var(--font-caveat), ui-sans-serif, cursive;
+	--font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+	--color-canopy: #14312a;
+	--color-bark: #1e4438;
+	--color-moss: #2f5a4a;
+	--color-frond: #b9d4b4;
+	--color-sage: #9dbfa4;
+	--color-bone: #f3efe7;
+	--color-beacon: #edc32b;
+	--color-ink: #10231e;
+
+	--radius-card: 24px;
 }
 
 :root {
-	--background: #fbfbfa;
-	--foreground: #1a1a19;
-}
+	color-scheme: dark;
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--background: #0d0d0c;
-		--foreground: #e8e8e6;
-	}
+	--ground: var(--color-canopy);
+	--on-ground: var(--color-bone);
+	--on-ground-muted: var(--color-sage);
+	--edge: var(--color-moss);
+
+	--surface-bar: color-mix(in srgb, var(--color-bark) 76%, transparent);
+	--surface-card: var(--color-frond);
+	--on-card: var(--color-ink);
+	--on-card-muted: #3d6153;
+	--card-edge: color-mix(in srgb, var(--color-ink) 16%, transparent);
+
+	--surface-paper: var(--color-bone);
+	--paper-edge: color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
 body {
-	background: var(--background);
-	color: var(--foreground);
+	background: var(--ground);
+	color: var(--on-ground);
 	font-family: var(--font-sans);
+}
+
+@layer components {
+	.gt-display {
+		font-family: var(--font-display);
+		font-weight: 400;
+		letter-spacing: -0.02em;
+	}
+
+	.gt-hand {
+		font-family: var(--font-hand);
+		font-weight: 600;
+		color: var(--color-beacon);
+	}
+
+	.gt-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		background: var(--surface-bar);
+		border: 1px solid var(--edge);
+		border-radius: 999px;
+		padding: 0.7rem 0.7rem 0.7rem 1.4rem;
+	}
+
+	.gt-card {
+		--on-muted: var(--on-card-muted);
+		--hairline: var(--card-edge);
+		background: var(--surface-card);
+		color: var(--on-card);
+		border-radius: var(--radius-card);
+		padding: 1.9rem 2rem;
+	}
+
+	.gt-paper {
+		--on-muted: var(--on-card-muted);
+		--hairline: var(--paper-edge);
+		background: var(--surface-paper);
+		color: var(--on-card);
+	}
+
+	.gt-card-dark {
+		--on-muted: var(--color-sage);
+		--hairline: color-mix(in srgb, var(--color-bone) 18%, transparent);
+		background: var(--color-bark);
+		color: var(--color-bone);
+	}
+	.gt-card-sand {
+		--on-muted: #6b6455;
+		--hairline: color-mix(in srgb, var(--color-ink) 14%, transparent);
+		background: #eadfc4;
+		color: var(--color-ink);
+	}
+
+	.gt-index {
+		font-family: var(--font-sans);
+		font-size: 0.75rem;
+		letter-spacing: 0.12em;
+		opacity: 0.55;
+	}
+
+	.gt-ghost-art {
+		position: absolute;
+		right: -0.5rem;
+		top: -0.5rem;
+		width: 8.5rem;
+		height: 8.5rem;
+		opacity: 0.16;
+		pointer-events: none;
+	}
+
+	.gt-go {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 2.6rem;
+		height: 2.6rem;
+		border-radius: 999px;
+		border: 1px solid var(--hairline);
+		transition: transform 150ms ease;
+	}
+	.gt-card:hover .gt-go { transform: translateX(3px); }
+
+	.gt-card-reached { border: 1px solid var(--hairline); }
+	.gt-card-silent {
+		--on-muted: var(--on-ground-muted);
+		--hairline: var(--edge);
+		background: transparent;
+		color: var(--on-ground);
+		border: 1px dashed var(--edge);
+	}
+	.gt-card-idle {
+		--on-muted: var(--on-ground-muted);
+		--hairline: var(--edge);
+		background: transparent;
+		color: var(--on-ground-muted);
+		border: 1px dotted var(--edge);
+	}
+
+	.gt-pill {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--color-beacon);
+		color: var(--color-ink);
+		border: 1px solid transparent;
+		border-radius: 999px;
+		padding: 0.62rem 1.15rem;
+		font-size: 0.875rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.gt-pill:disabled { opacity: 0.6; cursor: default; }
+
+	.gt-ghost {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: transparent;
+		color: inherit;
+		border: 1px solid currentColor;
+		border-radius: 999px;
+		padding: 0.55rem 1.05rem;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		cursor: pointer;
+		opacity: 0.75;
+	}
+	.gt-ghost:hover { opacity: 1; }
+	.gt-ghost:disabled { opacity: 0.35; cursor: default; }
+
+	.gt-field {
+		width: 100%;
+		background: transparent;
+		border: 0;
+		outline: 0;
+		color: var(--color-ink);
+		font-size: 1rem;
+		padding: 0.8rem 0.9rem;
+	}
+	.gt-field::placeholder { color: color-mix(in srgb, var(--color-ink) 45%, transparent); }
+
+	.gt-field:focus-visible { outline: none; }
+	.gt-control:focus-within {
+		outline: 2px solid var(--color-beacon);
+		outline-offset: 3px;
+	}
+
+	.gt-spine { position: relative; padding-left: 2.6rem; }
+	.gt-spine::before {
+		content: "";
+		position: absolute;
+		left: 0.78rem;
+		top: 0.6rem;
+		bottom: 0.6rem;
+		border-left: 2px dashed color-mix(in srgb, var(--color-beacon) 55%, transparent);
+	}
+	.gt-node { position: relative; }
+	.gt-node::before {
+		content: "";
+		position: absolute;
+		left: -2.2rem;
+		top: 1.85rem;
+		width: 0.7rem;
+		height: 0.7rem;
+		border-radius: 999px;
+		background: var(--color-beacon);
+	}
+
+	.gt-signpost { position: relative; padding-left: 1.4rem; }
+	.gt-signpost::before {
+		content: "";
+		position: absolute;
+		left: 0.45rem;
+		top: 0.2rem;
+		bottom: 0.2rem;
+		width: 5px;
+		border-radius: 3px;
+		background: linear-gradient(to bottom, var(--edge), color-mix(in srgb, var(--edge) 40%, transparent));
+	}
+	.gt-sign {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.6rem;
+		background: var(--color-beacon);
+		color: var(--color-ink);
+		font-weight: 700;
+		font-size: 0.9375rem;
+		padding: 0.6rem 2.1rem 0.6rem 1.1rem;
+		clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 50%, calc(100% - 20px) 100%, 0 100%);
+		transition: transform 150ms ease;
+	}
+	.gt-sign:hover { transform: translateX(5px); }
+	.gt-sign-quiet {
+		background: color-mix(in srgb, var(--color-beacon) 22%, transparent);
+		color: var(--on-ground-muted);
+		font-weight: 500;
+	}
+
+	.gt-dial {
+		position: fixed;
+		left: 1.75rem;
+		top: 18vh;
+		bottom: 18vh;
+		width: 11.5rem;
+		z-index: 20;
+	}
+
+	.gt-dial-scale {
+		position: absolute;
+		left: 0.5rem;
+		top: 0;
+		bottom: 0;
+		width: 1px;
+		background: linear-gradient(
+			to bottom,
+			transparent,
+			color-mix(in srgb, var(--color-beacon) 45%, transparent) 12%,
+			color-mix(in srgb, var(--color-beacon) 45%, transparent) 88%,
+			transparent
+		);
+	}
+
+	.gt-dial-needle {
+		position: absolute;
+		left: 0;
+		width: 1.1rem;
+		height: 2px;
+		margin-top: -1px;
+		background: var(--color-beacon);
+		box-shadow: 0 0 10px color-mix(in srgb, var(--color-beacon) 70%, transparent);
+		transition: top 120ms linear;
+	}
+	.gt-dial-needle::after {
+		content: "";
+		position: absolute;
+		right: -0.28rem;
+		top: 50%;
+		width: 0.52rem;
+		height: 0.52rem;
+		border-radius: 999px;
+		background: var(--color-beacon);
+		transform: translateY(-50%);
+	}
+
+	.gt-notch {
+		display: grid;
+		grid-template-columns: 1.6rem 1fr;
+		align-items: baseline;
+		gap: 0 0.55rem;
+		padding: 0.3rem 0;
+		color: var(--on-ground-muted);
+		transition: color 160ms ease;
+	}
+	.gt-notch:hover { color: var(--on-ground); }
+
+	.gt-notch-tick {
+		position: absolute;
+		left: 0.16rem;
+		top: 0.95rem;
+		width: 0.7rem;
+		height: 1px;
+		background: color-mix(in srgb, var(--color-beacon) 55%, transparent);
+	}
+
+	.gt-notch-index {
+		font-family: var(--font-display);
+		font-size: 0.8125rem;
+		letter-spacing: 0.06em;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.gt-notch-name {
+		font-size: 0.75rem;
+		line-height: 1.25;
+		letter-spacing: 0.02em;
+	}
+
+	.gt-notch-here { color: var(--color-beacon); }
+	.gt-notch-here .gt-notch-tick {
+		width: 1.15rem;
+		height: 2px;
+		background: var(--color-beacon);
+	}
+	.gt-notch-here .gt-notch-name { font-weight: 600; }
+
+	.gt-steps {
+		display: grid;
+		gap: 1rem;
+		list-style: none;
+	}
+	@media (min-width: 900px) {
+		.gt-steps { grid-template-columns: repeat(3, 1fr); align-items: start; }
+		.gt-step:nth-child(1) { transform: rotate(-0.7deg); }
+		.gt-step:nth-child(2) { transform: translateY(1.1rem) rotate(0.5deg); }
+		.gt-step:nth-child(3) { transform: translateY(0.3rem) rotate(-0.4deg); }
+	}
+	.gt-step { position: relative; }
+
+	.gt-meter { display: flex; gap: 0.35rem; }
+	.gt-meter > i {
+		height: 4px;
+		flex: 1;
+		border-radius: 999px;
+		background: var(--edge);
+	}
+	.gt-meter > i[data-on="true"] { background: var(--color-beacon); }
+
+	.gt-slot {
+		display: inline;
+		text-align: left;
+		cursor: pointer;
+		text-decoration-line: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 3px;
+		text-decoration-color: color-mix(in srgb, currentColor 32%, transparent);
+	}
+	.gt-slot:hover,
+	.gt-slot:focus-visible {
+		text-decoration-color: var(--color-beacon);
+		text-decoration-thickness: 2px;
+	}
+
+	.gt-rule { border-top: 1px solid var(--hairline, var(--edge)); }
+
+	.gt-check {
+		display: grid;
+		grid-template-columns: 1.15rem 1fr;
+		gap: 0.7rem;
+		align-items: start;
+	}
+	.gt-check > svg {
+		width: 1.15rem;
+		height: 1.15rem;
+		margin-top: 0.18rem;
+		color: var(--color-beacon);
+	}
+
+	.gt-tag {
+		display: inline-block;
+		border-radius: 999px;
+		padding: 0.22rem 0.7rem;
+		font-size: 0.8125rem;
+		background: color-mix(in srgb, currentColor 12%, transparent);
+	}
+
+	.gt-watermark {
+		position: absolute;
+		right: -0.06em;
+		bottom: -0.34em;
+		font-family: var(--font-display);
+		font-size: 13rem;
+		line-height: 1;
+		opacity: 0.07;
+		pointer-events: none;
+		user-select: none;
+	}
+	.gt-label {
+		font-size: 0.6875rem;
+		text-transform: uppercase;
+		letter-spacing: 0.09em;
+		font-weight: 600;
+	}
+}
+
+/*
+ * In `base`, not unlayered.
+ *
+ * Unlayered declarations beat every layered one regardless of specificity, so
+ * as a bare rule this outranked all of Tailwind's `focus-visible:` utilities and
+ * a component could not adjust its own ring. One row of the source accordion
+ * had its ring clipped away by an ancestor's overflow for exactly that reason,
+ * and the utility written to fix it silently lost.
+ */
+@layer base {
+	:focus-visible {
+		outline: 2px solid var(--color-beacon);
+		outline-offset: 2px;
+	}
 }

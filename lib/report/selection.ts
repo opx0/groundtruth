@@ -20,6 +20,7 @@ import {
 	type SourcePlacement,
 	type Template,
 } from "@/lib/evidence";
+import { BOUNDARIES } from "@/lib/boundaries";
 import { FEMA_DATASETS, type FloodZoneResult } from "@/lib/adapters/fema";
 import type { FacilityGroup, GroupingResult } from "@/lib/report/grouping";
 import {
@@ -169,12 +170,12 @@ export const FINAL_NPL_STATUS: string = requiredEquals(semsSiteNpl, "semsNplStat
 export const NONCOMPLIANCE_QUARTERS: number = requiredAtLeast(echoFacilityNoncompliance, "quartersInNoncompliance");
 
 export const BOUNDARY: { readonly [S in ReportSource]: string } = {
-	echo: "5 miles",
-	frs: "the registry IDs this report looked up",
-	sems: "5 miles",
-	aqs: "50 km",
-	airnow: "the reporting area AirNow names",
-	fema: "the mapped point",
+	echo: BOUNDARIES.echo.label,
+	frs: BOUNDARIES.frs.label,
+	sems: BOUNDARIES.sems.label,
+	aqs: BOUNDARIES.aqs.label,
+	airnow: BOUNDARIES.airnow.label,
+	fema: BOUNDARIES.fema.label,
 };
 
 const RADIUS_BOUNDARY: ReadonlySet<ReportSource> = new Set(["echo", "sems", "aqs"]);

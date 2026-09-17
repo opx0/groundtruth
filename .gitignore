@@ -61,3 +61,11 @@ yarn.lock
 
 # Scratch checkouts left by agents or tooling. Never this repo's source.
 .delta/
+
+# Screenshots the design lever writes. Regenerate with `bun scripts/shots.ts`.
+.dev/shots/
+
+# Written and re-added by `next dev` itself, per the notice inside AGENTS.md.
+# Scaffolding, not this project's own instructions.
+AGENTS.md
+CLAUDE.md

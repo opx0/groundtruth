@@ -6,7 +6,7 @@ way. `BRIEF.md` next to this is the spec. This is the log.
 ## Where it is
 
 ```
-bun run verify  695 tests, 38 files
+bun run verify  697 tests, 38 files
 bun run e2e     14 paths
 mutation        8 of 8
 bun run build   compiles standalone
@@ -55,7 +55,34 @@ deployment has none, and without that a shell holding real keys fails eight
 tests with messages that never mention a credential.
 
 Check port 3000 is free before `bun run e2e`. A stale server serves an old build
-and the failures make no sense.
+and the failures make no sense. `bun scripts/shots.ts` needs that same server
+running, so kill it again afterwards or the next `e2e` refuses to start.
+
+The design is a token block in `app/globals.css` and about a dozen `gt-`
+primitives. Components never name a colour. Two things bite if you forget them:
+a class may not contain "red", "amber", "green", "danger" or "warning" anywhere
+in it, which rules out `answered`, `centered` and `layered` as much as it rules
+out `bg-green-800`; and every visible string the report or the panel writes is
+enumerated in a test, so a new label is a two-line change, not a one-line one.
+`bun scripts/shots.ts` writes the four screens at two widths, which is how the
+palette was chosen and how a change to it should be checked. It waits for a
+`data-hydrated` marker before it types, because on a heavy page React hydrates
+measurably later than load and a run that raced it read as a broken button.
+
+A label a component composes from wire values, the way the distance strip and
+the timeline both do, passes the same enumeration only when the part in front of
+the number is itself a string the server sent. So a component cannot smuggle in
+a name it invented.
+
+`lib/boundaries.ts` is the only place "5 miles" and "50 km" are written. It
+imports nothing, which is why the client can read it: `lib/report/selection.ts`
+takes its sentence wording from there and `app/` takes the metres from the same
+row, so a radius cannot drift between the sentence and the axis under it.
+
+`app/globals.css` puts `:focus-visible` inside `@layer base`. As a bare rule it
+outranked every Tailwind `focus-visible:` utility, because unlayered
+declarations beat layered ones whatever their specificity, and a component could
+not adjust its own ring.
 
 ## Still open
 
@@ -94,6 +121,14 @@ whatever io they're handed, so binding the signal to the io covered all of them.
 **And measuring beat reading.** After that fix, one request still escaped every
 run. It was the flood fallback, which asked Esri whenever the first leg failed
 and never asked *why* it failed, so a cancelled leg looked like a refused one.
+
+**The ground colour was the wrong variable.** The report was going to be dark
+text on a dark ground, and the worry was three minutes of reading. Four variants
+rendered with the real Houston report said otherwise: the record text never
+sits on the ground, it sits on the card, so the ground changes card separation
+and nothing else. Pale cards on the dark ground won on both counts. The same
+four screenshots killed a loud dotted underline that looked fine on one
+sentence and turned a ten-span paragraph into stripes.
 
 **The first request is not the first timestamp.** The section query started out
 reading the earliest payload by `retrievedAt`, the way `complete` orders a

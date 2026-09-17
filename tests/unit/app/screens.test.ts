@@ -23,8 +23,9 @@ import { CandidatesScreen } from "@/app/components/candidates-screen";
 import { ConfirmScreen } from "@/app/components/confirm-screen";
 import { NoMatchScreen } from "@/app/components/no-match-screen";
 import { SearchScreen } from "@/app/components/search-screen";
+import { C2_PHRASES, C2_WORDS } from "./helpers/c2";
 import {
-	CURATED_EXAMPLES,
+	CURATED_GROUPS,
 	GeocodeApiResponseSchema,
 	type GeocodeMatchView,
 } from "@/app/lib/geocode-contract";
@@ -82,7 +83,8 @@ describe("the three outcomes render three different screens", () => {
 				address: "",
 				pending: false,
 				error: null,
-				examples: CURATED_EXAMPLES,
+				groups: CURATED_GROUPS,
+				lookup: () => Promise.resolve({ status: "no-match" as const }),
 				onAddressChange: () => undefined,
 				onSubmit: () => undefined,
 				onExampleSelect: () => undefined,
@@ -106,6 +108,7 @@ describe("the three outcomes render three different screens", () => {
 				" It marks the block, not the parcel.",
 		);
 		expect(text).toContain("Mapped point: 29.720658823001, -95.261995884462.");
+		expect(text).toContain("not the address you typed");
 		// The words the hand-written sentence used, which the Census does not.
 		expect(text).not.toContain("left side of the street segment");
 	});
@@ -192,6 +195,26 @@ describe("the three outcomes render three different screens", () => {
 			return found[1];
 		});
 		expect(new Set(headings).size).toBe(3);
+	});
+});
+
+describe("the words of .dev/BRIEF.md C2 appear nowhere on the landing page", () => {
+	it("greps every string the search screen wrote, words as well as phrases", () => {
+		const html = renderToStaticMarkup(
+			createElement(SearchScreen, {
+				address: "",
+				pending: false,
+				error: null,
+				groups: CURATED_GROUPS,
+				lookup: () => Promise.resolve({ status: "no-match" as const }),
+				onAddressChange: () => undefined,
+				onSubmit: () => undefined,
+				onExampleSelect: () => undefined,
+			}),
+		);
+		const text = html.replace(/<[^>]*>/g, " ").toLowerCase();
+		for (const phrase of C2_PHRASES) expect(text, phrase).not.toContain(phrase);
+		for (const word of C2_WORDS) expect(text, word).not.toContain(word);
 	});
 });
 

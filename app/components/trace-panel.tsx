@@ -54,7 +54,7 @@ function jsonText(value: JsonValue): string {
 function Field({ label, children }: { readonly label: string; readonly children: React.ReactNode }) {
 	return (
 		<div className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1 py-0.5 max-sm:grid-cols-1">
-			<dt className="text-xs uppercase tracking-wide opacity-60">{label}</dt>
+			<dt className="gt-label text-[var(--on-muted)]">{label}</dt>
 			<dd className="min-w-0 break-words text-sm">{children}</dd>
 		</div>
 	);
@@ -62,7 +62,7 @@ function Field({ label, children }: { readonly label: string; readonly children:
 
 function Payload({ payload }: { readonly payload: WirePayloadRef }) {
 	return (
-		<dl className="mt-1 border-l border-black/10 pl-3 dark:border-white/15">
+		<dl className="mt-1 border-l-2 border-[var(--hairline)] pl-3">
 			<Field label={CHROME.payload}>
 				<span className="break-all font-mono text-xs">{payload.url}</span>
 			</Field>
@@ -76,7 +76,7 @@ function Payload({ payload }: { readonly payload: WirePayloadRef }) {
 
 function ComputationInput({ input }: { readonly input: WireComputationInput }) {
 	return (
-		<div data-input={input.name} className="mt-2 border-l border-black/10 pl-3 dark:border-white/15">
+		<div data-input={input.name} className="mt-2 border-l-2 border-[var(--hairline)] pl-3">
 			<dl>
 				<Field label={CHROME.input}>{input.name}</Field>
 				<Field label={CHROME.value}>{jsonText(input.value)}</Field>
@@ -138,8 +138,8 @@ function Value({ value, label }: { readonly value: TraceValueRow; readonly label
 			data-presence={value.presence}
 			className={
 				value.presence === "clicked"
-					? "mt-3 rounded-md border border-black/20 p-3 dark:border-white/30"
-					: "mt-3 rounded-md border border-black/10 p-3 dark:border-white/15"
+					? "mt-3 rounded-xl border-2 border-[var(--color-beacon)] p-3"
+					: "mt-3 rounded-xl border border-[var(--hairline)] p-3"
 			}
 		>
 			<dl>
@@ -176,7 +176,7 @@ function Row({ row }: { readonly row: TraceRow }) {
 							<ul>
 								{row.ids.map((id) => (
 									<li key={`${id.label}:${id.value}`} className="flex flex-wrap items-baseline gap-x-2">
-										<span className="font-mono text-xs opacity-70">{id.label}</span>
+										<span className="font-mono text-xs text-[var(--on-muted)]">{id.label}</span>
 										<span className="font-mono text-xs">{id.value}</span>
 									</li>
 								))}
@@ -294,14 +294,14 @@ export function TracePanel({ selection, onClose }: TracePanelProps) {
 			aria-label={CHROME.panel}
 			data-scope={view.scope}
 			data-template={view.templateId}
-			className="flex h-full flex-col overflow-y-auto border-l border-black/10 bg-white p-4 dark:border-white/15 dark:bg-black sm:p-6"
+			className="gt-paper flex h-full flex-col overflow-y-auto p-5 sm:p-7"
 		>
 			<div className="flex items-baseline justify-between gap-4">
-				<h2 className="text-lg font-semibold">{CHROME.panel}</h2>
+				<h2 className="gt-display text-2xl">{CHROME.panel}</h2>
 				<button
 					type="button"
 					onClick={onClose}
-					className="rounded-md border border-black/15 px-3 py-1 text-sm dark:border-white/20"
+					className="gt-ghost"
 				>
 					{CHROME.close}
 				</button>
@@ -313,7 +313,7 @@ export function TracePanel({ selection, onClose }: TracePanelProps) {
 						key={`${view.templateId}:${index}`}
 						data-field={span.slot === null ? undefined : span.slot.field}
 						data-clicked={index === view.clickedSpan ? "true" : undefined}
-						className={index === view.clickedSpan ? "bg-black/10 dark:bg-white/20" : undefined}
+						className={index === view.clickedSpan ? "bg-[var(--color-beacon)]" : undefined}
 					>
 						{span.text}
 					</span>
@@ -324,7 +324,7 @@ export function TracePanel({ selection, onClose }: TracePanelProps) {
 				{view.rows.map((row, index) => (
 					<div key={`${row.row}:${index}`}>
 						{index === firstContext ? (
-							<h3 className="mt-4 text-xs uppercase tracking-wide opacity-60">{CHROME.context}</h3>
+							<h3 className="gt-label mt-5 text-[var(--on-muted)]">{CHROME.context}</h3>
 						) : null}
 						<Row row={row} />
 					</div>

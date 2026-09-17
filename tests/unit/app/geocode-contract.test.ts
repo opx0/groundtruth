@@ -21,6 +21,7 @@ import type { SourceIo } from "@/lib/evidence";
 import { createGeocodeHandler } from "@/app/api/geocode/handler";
 import {
 	CURATED_EXAMPLES,
+	CURATED_GROUPS,
 	GeocodeApiResponseSchema,
 	type GeocodeMatchView,
 	type OriginSentence,
@@ -391,13 +392,19 @@ describe("GeocodeApiResponseSchema", () => {
 /* -------------------------------------------------------------------------- */
 
 describe("CURATED_EXAMPLES", () => {
-	it("is exactly the three curated addresses from .dev/BRIEF.md A6, rows 1-3", () => {
-		expect(CURATED_EXAMPLES).toHaveLength(3);
-		expect(CURATED_EXAMPLES.map((e) => e.address)).toEqual([
-			"9311 E Ave P, Houston, TX 77012",
-			"400 N Richey St, Pasadena, TX 77506",
-			"1300 Perdido St, New Orleans, LA 70112",
-		]);
+	it("carries .dev/BRIEF.md A6's rows and offers each address exactly once", () => {
+		const addresses = CURATED_EXAMPLES.map((e) => e.address);
+		expect(addresses).toContain("9311 E Ave P, Houston, TX 77012");
+		expect(addresses).toContain("400 N Richey St, Pasadena, TX 77506");
+		expect(addresses).toContain("1300 Perdido St, New Orleans, LA 70112");
+		expect(new Set(addresses).size).toBe(addresses.length);
+		expect(CURATED_EXAMPLES.every((e) => e.note.trim().length > 0)).toBe(true);
+	});
+
+	it("flattens the groups in group order, and every group offers something", () => {
+		expect(CURATED_GROUPS.every((group) => group.examples.length > 0)).toBe(true);
+		expect(new Set(CURATED_GROUPS.map((g) => g.heading)).size).toBe(CURATED_GROUPS.length);
+		expect(CURATED_EXAMPLES).toEqual(CURATED_GROUPS.flatMap((group) => group.examples));
 	});
 
 	it("never uses the words the renderer is forbidden to use anywhere in the product (.dev/BRIEF.md C2)", () => {
@@ -407,9 +414,18 @@ describe("CURATED_EXAMPLES", () => {
 		}
 	});
 
-	it("does not include the no-match or ambiguous demo addresses as buttons", () => {
-		const addresses = CURATED_EXAMPLES.map((e) => e.address);
-		expect(addresses).not.toContain("9400 Clinton Dr, Houston, TX 77029");
-		expect(addresses.some((a) => a.includes("Springfield"))).toBe(false);
+	it("offers the no-match and ambiguous addresses only where the heading warns of it", () => {
+		const breaking = CURATED_GROUPS.filter((group) =>
+			group.examples.some(
+				(e) => e.address === "9400 Clinton Dr, Houston, TX 77029" || e.address.includes("Springfield"),
+			),
+		);
+		expect(breaking).toHaveLength(1);
+		expect(breaking[0]?.heading.toLowerCase()).toContain("breaks");
+
+		const noMatch = CURATED_EXAMPLES.find((e) => e.address === "9400 Clinton Dr, Houston, TX 77029");
+		expect(noMatch?.note.toLowerCase()).toContain("no match");
+		const ambiguous = CURATED_EXAMPLES.find((e) => e.address.includes("Springfield"));
+		expect(ambiguous?.note.toLowerCase()).toContain("candidates");
 	});
 });

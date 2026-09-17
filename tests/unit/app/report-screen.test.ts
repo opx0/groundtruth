@@ -25,12 +25,19 @@ import { createElement, isValidElement, type ReactElement, type ReactNode } from
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ReportCard } from "@/app/components/report-card";
+import { GLOSSARY } from "@/app/lib/glossary";
+import { AQI_BANDS, AQI_SOURCE, FLOOD_SOURCE, FLOOD_TIERS } from "@/app/lib/scales";
+import { DATED, FALLBACK } from "@/app/lib/timeline";
+import { TIMELINE_EMPTY_LANE, TIMELINE_HEADING } from "@/app/components/timeline";
+import { QUARTERS_NOTE } from "@/app/components/quarters";
+import { C2_PHRASES, C2_WORDS } from "./helpers/c2";
 import { ReportView } from "@/app/components/report-screen";
 import type { GeocodeMatchView } from "@/app/lib/geocode-contract";
 import type { CardView, ReportEvent, SentenceViewMessage } from "@/app/lib/report-contract";
 import {
 	clickedValue,
 	initialReportState,
+	REPORT_SECTIONS,
 	listingKey,
 	reportReducer,
 	sentencesOf,
@@ -168,7 +175,36 @@ function slottedElements(node: ReactNode): readonly Slotted[] {
  * sources have settled, out of the sources the wire's own enum names.
  */
 const CHROME: readonly string[] = [
+	"Ground Truth",
 	"Report",
+	"The air here",
+	"Water and flooding",
+	"Land once contaminated",
+	"Industry next door",
+	"What these words mean",
+	"01",
+	"02",
+	"03",
+	"04",
+	"At a glance",
+	TIMELINE_HEADING,
+	TIMELINE_EMPTY_LANE,
+	QUARTERS_NOTE,
+	"The address",
+	"The point",
+	"The record",
+	"The bands and their names are",
+	"The tiers are",
+	"'s own.",
+	"'s own definitions.",
+	"Distance from the mapped point",
+	"the mapped point",
+	"Zone AE",
+	"Zone X",
+	"Special Flood Hazard Area",
+	"National Priorities List",
+	"Removal action",
+	"Air quality index",
 	"Sources settled: 0 of 6.",
 	"Sources settled: 1 of 6.",
 	"Sources settled: 2 of 6.",
@@ -187,6 +223,19 @@ const CHROME: readonly string[] = [
 	"Search another address",
 ];
 
+function isGeneratedChrome(text: string, server: ReadonlySet<string>): boolean {
+	if (/^\d+ records?$/.test(text)) return true;
+	if (/^[\d.]+ (km|mi)$/.test(text)) return true;
+	if (/^Distance only\. .+ is where the search stopped\.$/.test(text)) return true;
+	if (/^(19|20)\d{2}$/.test(text)) return true;
+	if (/^\d{1,2} of \d{1,2} quarters$/.test(text)) return true;
+	const what = [...Object.values(DATED), ...Object.values(FALLBACK)].join("|");
+	const mark = new RegExp(`^(.+), (${what}), \\d{4}(-\\d{2}-\\d{2})?$`).exec(text);
+	if (mark !== null && mark[1] !== undefined && server.has(mark[1])) return true;
+	const title = /^(.+), [\d.]+ (km|mi) from the mapped point$/.exec(text);
+	return title !== null && title[1] !== undefined && server.has(title[1]);
+}
+
 /** Every string the screen did not write: the spans, the agency labels and the caveats the wire carried. */
 function serverStrings(state: ReportFlowState): ReadonlySet<string> {
 	const out = new Set<string>();
@@ -196,6 +245,17 @@ function serverStrings(state: ReportFlowState): ReadonlySet<string> {
 	for (const card of state.groups.flatMap((one) => [...one.groups, ...one.crossReferences])) {
 		for (const span of card.spans) out.add(span.text);
 	}
+	for (const entry of GLOSSARY) {
+		out.add(entry.quote);
+		out.add(entry.agency);
+	}
+	for (const band of AQI_BANDS) {
+		out.add(band.name);
+		out.add(String(band.from));
+	}
+	for (const tier of FLOOD_TIERS) out.add(tier.label);
+	out.add(AQI_SOURCE.agency);
+	out.add(FLOOD_SOURCE.agency);
 	for (const card of state.cards) {
 		out.add(card.agency);
 		for (const sentence of sentencesOf(card)) {
@@ -239,10 +299,13 @@ describe("cards appear as their sources settle", () => {
 		expect(semsSawEchoWaiting).toBe(true);
 		expect(arrivals[arrivals.length - 1]).toBe("echo");
 		expect(state.status).toBe("complete");
-		// The rendered order is the arrival order, start to finish.
 		const html = viewHtml(state);
-		const rendered = [...html.matchAll(/data-source="([a-z]+)"/g)].map((hit) => hit[1]);
-		expect(rendered).toEqual(arrivals);
+		for (const section of REPORT_SECTIONS) {
+			const block = html.split(`data-section="${section.id}"`)[1]?.split("</section>")[0] ?? "";
+			const inSection = [...block.matchAll(/data-source="([a-z]+)"/g)].map((hit) => hit[1]);
+			const want = arrivals.filter((source) => (section.sources as readonly string[]).includes(source));
+			expect(inSection, section.id).toEqual(want);
+		}
 	}, 30_000);
 
 	it("says how many sources have settled, and shows one placeholder for each that has not", () => {
@@ -454,7 +517,7 @@ describe("every string on the screen is either a span the server sent or enumera
 		const expanded = state.cards.flatMap((card) => card.listings.map((_listing, index) => listingKey(card.source, index)));
 		const html = viewHtml({ ...state, expanded });
 		const server = serverStrings(state);
-		const written = textNodes(html).filter((text) => !server.has(text));
+		const written = textNodes(html).filter((text) => !server.has(text) && !isGeneratedChrome(text, server));
 
 		// Every string on the finished Houston report that no agency produced.
 		// Six of them, and the sixth is the retry the two air cards offer. "This
@@ -464,7 +527,35 @@ describe("every string on the screen is either a span the server sent or enumera
 		// server rendered, above a Retry, not a line this screen wrote. Add a
 		// string to a component and this list stops matching.
 		expect([...new Set(written)].sort()).toEqual(
-			["Hide the rest", "Limits", "Report", "Retry", "Search another address", "Sources settled: 6 of 6."].sort(),
+			[
+				"Ground Truth",
+				"Hide the rest",
+				"Industry next door",
+				"01",
+				"02",
+				"03",
+				"04",
+				"At a glance",
+				TIMELINE_HEADING,
+				TIMELINE_EMPTY_LANE,
+				QUARTERS_NOTE,
+				"The address",
+				"The point",
+				"The record",
+				"Distance from the mapped point",
+				"Land once contaminated",
+				"Limits",
+				"National Priorities List",
+				"Removal action",
+				"Report",
+				"Retry",
+				"Search another address",
+				"Sources settled: 6 of 6.",
+				"The air here",
+				"the mapped point",
+				"What these words mean",
+				"Water and flooding",
+			].sort(),
 		);
 		for (const text of written) expect(CHROME).toContain(text);
 	});
@@ -478,7 +569,10 @@ describe("every string on the screen is either a span the server sent or enumera
 		const registry = fourStates.findIndex((event) => event.type === "card" && event.card.source === "frs");
 		expect(registry).toBeGreaterThan(-1);
 		const partial = stateOf(fourStates.slice(0, registry + 1));
-		const midStream = textNodes(viewHtml(partial)).filter((text) => !serverStrings(partial).has(text));
+		const partialServer = serverStrings(partial);
+		const midStream = textNodes(viewHtml(partial)).filter(
+			(text) => !partialServer.has(text) && !isGeneratedChrome(text, partialServer),
+		);
 		for (const text of midStream) expect(CHROME).toContain(text);
 		expect(midStream).toContain("This source was not asked.");
 		expect(midStream).toContain("Waiting for a source.");
@@ -486,7 +580,10 @@ describe("every string on the screen is either a span the server sent or enumera
 		// Settled, with a source that could not be reached, and a stream that
 		// could not be read: both offer a retry and neither writes a claim.
 		const broken = reportReducer(stateOf(fourStates), { type: "stream-failed" });
-		const failed = textNodes(viewHtml(broken)).filter((text) => !serverStrings(broken).has(text));
+		const brokenServer = serverStrings(broken);
+		const failed = textNodes(viewHtml(broken)).filter(
+			(text) => !brokenServer.has(text) && !isGeneratedChrome(text, brokenServer),
+		);
 		for (const text of failed) expect(CHROME).toContain(text);
 		expect(failed).toContain("Retry");
 		expect(failed).toContain("This report could not be loaded.");
@@ -498,35 +595,6 @@ describe("every string on the screen is either a span the server sent or enumera
 /* -------------------------------------------------------------------------- */
 
 /** .dev/BRIEF.md C2, every phrase of it, plus the words those phrases are built from. */
-const C2_PHRASES: readonly string[] = [
-	"operating polluters near your home",
-	"any us address",
-	"parcel-level flood risk",
-	"no records means safe",
-	"the ai cannot hallucinate",
-	"personal exposure",
-	"real-time environmental history",
-	"every source is complete and correct",
-	"likely cause",
-	"risk score",
-	"cumulative risk",
-	"judging score",
-];
-
-/** The words of C2, which may not appear in anything a component wrote even out of their phrase. */
-const C2_WORDS: readonly string[] = [
-	"polluter",
-	"safe",
-	"unsafe",
-	"risk",
-	"score",
-	"hallucinate",
-	"exposure",
-	"real-time",
-	"cumulative",
-	"severity",
-	"danger",
-];
 
 describe("the words of .dev/BRIEF.md C2 appear nowhere", () => {
 	it("greps the whole rendered report for every phrase", () => {

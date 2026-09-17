@@ -8,6 +8,24 @@ export type WireValueTrace = WireTrace["values"][number];
 
 export const REPORT_SOURCES: readonly ReportSourceId[] = ReportSourceSchema.options;
 
+export type ReportSection = {
+	readonly id: string;
+	readonly heading: string;
+	readonly sources: readonly ReportSourceId[];
+};
+
+export const REPORT_SECTIONS: readonly ReportSection[] = [
+	{ id: "air", heading: "The air here", sources: ["airnow", "aqs"] },
+	{ id: "water", heading: "Water and flooding", sources: ["fema"] },
+	{ id: "land", heading: "Land once contaminated", sources: ["sems"] },
+	{ id: "industry", heading: "Industry next door", sources: ["echo", "frs"] },
+];
+
+const placed = REPORT_SECTIONS.flatMap((section) => section.sources);
+if (placed.length !== REPORT_SOURCES.length || REPORT_SOURCES.some((s) => !placed.includes(s))) {
+	throw new Error("REPORT_SECTIONS must place every source exactly once");
+}
+
 export type TraceSelection = {
 	readonly sentence: SentenceViewMessage;
 	readonly spanIndex: number;
